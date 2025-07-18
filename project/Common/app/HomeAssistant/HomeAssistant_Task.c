@@ -431,6 +431,57 @@ void vHAConfigPublishTask(void *pvParameters)
   vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 #endif
 
+#if (DEMO_LIGHT_SENSOR == 1)
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
+           "homeassistant/sensor/%s_lux_sensor/config", pThingName);
+
+  xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+      "\"name\": \"Ambient Light\","
+      "\"unique_id\": \"%s_lux_sensor\","
+      "\"state_topic\": \"%s/sensor/lux_sensor\","
+      "\"value_template\": \"{{ value_json.lux }}\","
+      "\"device_class\": \"illuminance\","
+      "\"unit_of_measurement\": \"lx\","
+      /*"\"availability_topic\": \"%s/status/availability\","
+      "\"payload_available\": \"online\","
+      "\"payload_not_available\": \"offline\","*/
+      "\"retain\": true,"
+      "\"device\": {"
+      "\"identifiers\": [\"%s\"],"
+      "\"manufacturer\": \"STMicroelectronics\","
+      "\"model\": \"%s\","
+      "\"name\": \"%s\","
+      "\"sw_version\": \"%s\""
+      "}"
+      "}",
+      pThingName,           // unique_id
+      pThingName,           // state_topic
+      pThingName,           // availability_topic
+      BOARD,                // identifiers
+      BOARD,                // model
+      pThingName,           // name
+      fwVersionStr);        // sw_version
+
+  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+  {
+    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC,
+                      (uint8_t*) cPayloadBuf, xPayloadLength);
+  }
+  else
+  {
+    LogError(("Lux payload truncated"));
+  }
+
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+#else
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
+           "homeassistant/sensor/%s_lux_sensor/config", pThingName);
+
+  prvClearRetainedTopic(configPUBLISH_TOPIC);
+
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+#endif
+
 #if (DEMO_ENV_SENSOR == 1)
   const char *env_fields[] = { "temp_0_c", "temp_1_c", "rh_pct", "baro_mbar" };
   const char *env_names[] = { "Temperature 0", "Temperature 1", "Humidity", "Pressure" };

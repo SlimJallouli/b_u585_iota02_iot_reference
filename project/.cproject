@@ -823,6 +823,7 @@
 									<listOptionValue builtIn="false" value="../Drivers/BSP/Components/iis2mdc"/>
 									<listOptionValue builtIn="false" value="../Drivers/BSP/Components/hts221"/>
 									<listOptionValue builtIn="false" value="../Drivers/BSP/Components/lps22hh"/>
+									<listOptionValue builtIn="false" value="../Drivers/BSP/Components/veml3235"/>
 									<listOptionValue builtIn="false" value="../Drivers/CMSIS/Device/ST/STM32U5xx/Include"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.2050476619" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>

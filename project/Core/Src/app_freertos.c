@@ -123,6 +123,7 @@ extern void vDefenderAgentTask           ( void * pvParameters );
 extern void vLEDTask                     ( void * pvParameters );
 extern void vButtonTask                  ( void * pvParameters );
 extern void vHAConfigPublishTask         ( void * pvParameters );
+extern void vLightSensorPublishTask      ( void * pvParameters );
 /* USER CODE END FunctionPrototypes */
 
 /* USER CODE BEGIN 5 */
@@ -388,6 +389,10 @@ void StartDefaultTask(void *argument)
 
 #if DEMO_ENV_SENSOR
   xTaskCreate(vEnvironmentSensorPublishTask, "EnvSense", TASK_STACK_SIZE_ENV, NULL, TASK_PRIO_ENV, NULL);
+#endif
+
+#if DEMO_LIGHT_SENSOR
+  xTaskCreate(vLightSensorPublishTask, "LightSense", TASK_STACK_SIZE_LIGHT, NULL, TASK_PRIO_LIGHT, NULL);
 #endif
 
 #if DEMO_MOTION_SENSOR

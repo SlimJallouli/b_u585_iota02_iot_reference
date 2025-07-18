@@ -186,6 +186,7 @@ void Error_Handler(void);
 #define DEMO_PUB_SUB                            0   // Publish/Subscribe Example
 #define DEMO_OTA                                1   // OTA Update Example
 #define DEMO_ENV_SENSOR                         1   // Environmental Sensor Example
+#define DEMO_LIGHT_SENSOR                       1   // Light Sensor Example
 #define DEMO_MOTION_SENSOR                      0   // Motion Sensor Example
 #define DEMO_SHADOW                             0   // AWS IoT Shadow Example
 #define DEMO_DEFENDER                           1   // AWS IoT Defender Example
@@ -222,10 +223,11 @@ void Error_Handler(void);
 #define TASK_PRIO_LED                           (tskIDLE_PRIORITY      + 7 )
 #define TASK_PRIO_PUBLISH                       (tskIDLE_PRIORITY      + 8 )
 #define TASK_PRIO_ENV                           (tskIDLE_PRIORITY      + 9 )
-#define TASK_PRIO_MOTION                        (tskIDLE_PRIORITY      + 10)
-#define TASK_PRIO_HS                            (tskIDLE_PRIORITY      + 11)
-#define TASK_PRIO_CLI                           (tskIDLE_PRIORITY      + 12)
-#define TASK_PRIO_MQTTA_AGENT                   (tskIDLE_PRIORITY      + 13)
+#define TASK_PRIO_LIGHT                         (tskIDLE_PRIORITY      + 10 )
+#define TASK_PRIO_MOTION                        (tskIDLE_PRIORITY      + 11)
+#define TASK_PRIO_HS                            (tskIDLE_PRIORITY      + 12)
+#define TASK_PRIO_CLI                           (tskIDLE_PRIORITY      + 13)
+#define TASK_PRIO_MQTTA_AGENT                   (tskIDLE_PRIORITY      + 14)
 #define TASK_PRIO_W6X                           (TASK_PRIO_MQTTA_AGENT + 1 )
 #define TASK_PRIO_MXCHIP                        (tskIDLE_PRIORITY      + 23)
 #define TASK_PRIO_NET_ETH                       (TASK_PRIO_MQTTA_AGENT + 1 )
@@ -239,6 +241,7 @@ void Error_Handler(void);
 #define TASK_STACK_SIZE_BUTTON                  2024/** Stack size of the Button process task            */
 #define TASK_STACK_SIZE_PUBLISH                 2024/** Stack size of the publish process task           */
 #define TASK_STACK_SIZE_ENV                     2024/** Stack size of the EnvSense process task          */
+#define TASK_STACK_SIZE_LIGHT                   2024/** Stack size of the LightSense process task        */
 #define TASK_STACK_SIZE_MOTION                  2024/** Stack size of the MotionS process task           */
 #define TASK_STACK_SIZE_HS                      2024/** Stack size of the Home Assistant process task    */
 #define TASK_STACK_SIZE_CLI                     2048/** Stack size of the CLI process task               */
