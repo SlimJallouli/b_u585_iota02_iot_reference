@@ -1,0 +1,20 @@
+1- copy 
+.settings
+Common
+Core
+Libraries
+.cproject
+.project
+
+2- open Git Bash terminal
+3- ./iot_project_sanitizer.sh
+4- Open the .ioc with cubeMX
+5- Generate the project
+6- ./update.sh stm32h5xx
+7- Build the project
+
+
+
+
+
+
