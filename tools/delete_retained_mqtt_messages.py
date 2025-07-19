@@ -41,12 +41,14 @@ def get_retained_topics(thing_name):
         f"homeassistant/sensor/{thing_name}_rh_pct/config",
         f"homeassistant/sensor/{thing_name}_temp_1_c/config",
         f"homeassistant/sensor/{thing_name}_temp_0_c/config",
+        f"homeassistant/sensor/{thing_name}_lux_sensor/config",
         f"homeassistant/binary_sensor/{thing_name}_button/config",
         f"homeassistant/switch/{thing_name}_led/config",
         f"homeassistant/update/{thing_name}_fw/config",
         f"{thing_name}/led/reported",
         f"{thing_name}/led/desired",
         f"{thing_name}/sensor/button/reported",
+        f"{thing_name}/status/availability",
         f"{thing_name}/fw/state"
     ]
 

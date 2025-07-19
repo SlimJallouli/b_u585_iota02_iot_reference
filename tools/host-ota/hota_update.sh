@@ -28,10 +28,10 @@ if [ -z "$1" ]; then
 fi
 
 export FILE_VERSION="$1"
-export BIN_LOCATION="../../project/MXCHIP_STSAFEA110/"
+export BIN_LOCATION="../../project/MXCHIP_FleeProvisioning/"
 export BIN_FILE="b_u585_iota02_iot_reference.bin"
 export THING_NAME='eval3-02090046215AD42AC20139'
-export THING_GROUP_NAME="B_U585I-IOT02A-Group"
+export THING_GROUP_NAME="BU585MXFP"
 
 export AWS_CLI_PROFILE='default'
 export ROLE='ld-st67-OTA_ROLE'
@@ -54,8 +54,8 @@ clear
 
 # source ../.venv/bin/activate
 
-python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
-# python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$THING_GROUP_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
+# python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
+python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$THING_GROUP_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
 
 # Reserved for thing group updates
 # python3 $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$BOARD --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path=$BIN_LOCATION --certarn=$CERT_ARN

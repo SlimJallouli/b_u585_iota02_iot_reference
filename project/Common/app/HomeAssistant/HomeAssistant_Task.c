@@ -328,6 +328,9 @@ void vHAConfigPublishTask(void *pvParameters)
       "\"latest_version_template\": \"{{ value_json.latest_version }}\","
       "\"command_topic\": \"%s/fw/update\","
       "\"payload_install\": \"start_update\","
+      "\"availability_topic\": \"%s/status/availability\","
+      "\"payload_available\": \"online\","
+      "\"payload_not_available\": \"offline\","
       "\"retain\": false,"
       "\"device_class\": \"firmware\","
       "\"device\": {"
@@ -337,7 +340,17 @@ void vHAConfigPublishTask(void *pvParameters)
       "\"name\": \"%s\","
       "\"sw_version\": \"%s\""
       "}"
-      "}", pThingName, pThingName, pThingName, pThingName, pThingName, BOARD, pThingName, fwVersionStr);
+      "}",
+      pThingName, // unique_id
+      pThingName, // state_topic
+      pThingName, // latest_version_topic
+      pThingName, // command_topic
+      pThingName, // availability_topic
+      pThingName, // identifiers
+      BOARD,      // model
+      pThingName, // name
+      fwVersionStr// sw_version
+      );
 
   if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
   {
@@ -364,6 +377,9 @@ void vHAConfigPublishTask(void *pvParameters)
       "\"payload_off\": \"OFF\","
       "\"state_on\": \"ON\","
       "\"state_off\": \"OFF\","
+      "\"availability_topic\": \"%s/status/availability\","
+      "\"payload_available\": \"online\","
+      "\"payload_not_available\": \"offline\","
       "\"retain\": true,"
       "\"device\": {"
       "\"identifiers\": [\"%s\"],"
@@ -372,7 +388,16 @@ void vHAConfigPublishTask(void *pvParameters)
       "\"name\": \"%s\","
       "\"sw_version\": \"%s\""
       "}"
-      "}", pThingName, pThingName, pThingName, pThingName, BOARD, pThingName, fwVersionStr);
+      "}",
+      pThingName, // unique_id
+      pThingName, // command_topic
+      pThingName, // state_topic
+      pThingName, // availability_topic
+      pThingName, // identifiers
+      BOARD,      // model
+      pThingName, // name
+      fwVersionStr// sw_version
+      );
 
   if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
   {
@@ -403,6 +428,9 @@ void vHAConfigPublishTask(void *pvParameters)
       "\"payload_on\": \"ON\","
       "\"payload_off\": \"OFF\","
       "\"device_class\": \"occupancy\","
+      "\"availability_topic\": \"%s/status/availability\","
+      "\"payload_available\": \"online\","
+      "\"payload_not_available\": \"offline\","
       "\"retain\": true,"
       "\"device\": {"
       "\"identifiers\": [\"%s\"],"
@@ -411,7 +439,15 @@ void vHAConfigPublishTask(void *pvParameters)
       "\"name\": \"%s\","
       "\"sw_version\": \"%s\""
       "}"
-      "}", pThingName, pThingName, pThingName, BOARD, pThingName, fwVersionStr);
+      "}",
+      pThingName, // unique_id
+      pThingName, // state_topic
+      pThingName, // availability_topic
+      pThingName, // identifiers
+      BOARD,      // model
+      pThingName, // name
+      fwVersionStr// sw_version
+      );
 
   if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
   {
@@ -442,9 +478,9 @@ void vHAConfigPublishTask(void *pvParameters)
       "\"value_template\": \"{{ value_json.lux }}\","
       "\"device_class\": \"illuminance\","
       "\"unit_of_measurement\": \"lx\","
-      /*"\"availability_topic\": \"%s/status/availability\","
+      "\"availability_topic\": \"%s/status/availability\","
       "\"payload_available\": \"online\","
-      "\"payload_not_available\": \"offline\","*/
+      "\"payload_not_available\": \"offline\","
       "\"retain\": true,"
       "\"device\": {"
       "\"identifiers\": [\"%s\"],"
@@ -457,7 +493,7 @@ void vHAConfigPublishTask(void *pvParameters)
       pThingName,           // unique_id
       pThingName,           // state_topic
       pThingName,           // availability_topic
-      BOARD,                // identifiers
+      pThingName,           // identifiers
       BOARD,                // model
       pThingName,           // name
       fwVersionStr);        // sw_version
@@ -499,6 +535,9 @@ void vHAConfigPublishTask(void *pvParameters)
         "\"value_template\": \"{{ value_json.%s }}\","
         "\"unit_of_measurement\": \"%s\","
         "\"device_class\": \"%s\","
+        "\"availability_topic\": \"%s/status/availability\","
+        "\"payload_available\": \"online\","
+        "\"payload_not_available\": \"offline\","
         "\"retain\": true,"
         "\"device\": {"
         "\"identifiers\": [\"%s\"],"
@@ -507,7 +546,20 @@ void vHAConfigPublishTask(void *pvParameters)
         "\"name\": \"%s\","
         "\"sw_version\": \"%s\""
         "}"
-        "}", env_names[i], pThingName, i, pThingName, env_fields[i], env_units[i], env_classes[i], pThingName, BOARD, pThingName, fwVersionStr);
+        "}",
+        env_names[i],   // name
+        pThingName,     // unique_id
+        i,              // unique_id
+        pThingName,     // state_topic
+        env_fields[i],  // value_template
+        env_units[i],   // unit_of_measurement
+        env_classes[i], // device_class
+        pThingName,     // availability_topic
+        pThingName,     // identifiers
+        BOARD,          // model
+        pThingName,     // name
+        fwVersionStr    // sw_version
+        );
 
     if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
     {
@@ -552,6 +604,9 @@ void vHAConfigPublishTask(void *pvParameters)
             "\"state_topic\": \"%s/sensor/motion\","
             "\"value_template\": \"{{ value_json.%s.%s }}\","
             "\"unit_of_measurement\": \"%s\","
+            "\"availability_topic\": \"%s/status/availability\","
+            "\"payload_available\": \"online\","
+            "\"payload_not_available\": \"offline\","
             "\"retain\": true,"
             "\"device\": {"
             "\"identifiers\": [\"%s\"],"
@@ -561,7 +616,7 @@ void vHAConfigPublishTask(void *pvParameters)
             "\"sw_version\": \"%s\""
             "}"
             "}", motion_labels[m], axes[a], pThingName, motion_roots[m], axes[a], pThingName, motion_roots[m], axes[a], (
-            m == 0 ? "mG" : (m == 1 ? "mDPS" : "mG")), pThingName, BOARD, pThingName, fwVersionStr);
+            m == 0 ? "mG" : (m == 1 ? "mDPS" : "mG")),  pThingName, pThingName, BOARD, pThingName, fwVersionStr);
 
         if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
         {
@@ -596,6 +651,22 @@ void vHAConfigPublishTask(void *pvParameters)
     }
   }
 #endif
+
+/* Send availability message  */
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "%s/status/availability", pThingName);
+
+  strcpy(cPayloadBuf, "online");
+
+  xPayloadLength = strlen(cPayloadBuf);
+
+  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+  {
+      prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+  }
+  else
+  {
+      LogError(("availability update payload truncated"));
+  }
 
   vPortFree(cPayloadBuf);
   vPortFree(pThingName);
