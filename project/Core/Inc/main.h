@@ -205,6 +205,7 @@ void Error_Handler(void);
 #define MQTT_ENABLED                            (DEMO_PUB_SUB       || \
                                                  DEMO_OTA           || \
                                                  DEMO_ENV_SENSOR    || \
+												                         DEMO_LIGHT_SENSOR  || \
                                                  DEMO_MOTION_SENSOR || \
                                                  DEMO_SHADOW        || \
 												                         DEMO_LED           || \
