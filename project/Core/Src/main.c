@@ -727,7 +727,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, ARD_D05_Pin|ARD_D10_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOH, LED_RED_Pin|LED_GREEN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOH, LED_RED_Pin|LED_GREEN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOF, STSAFE_EN_Pin|MXCHIP_RESET_Pin, GPIO_PIN_RESET);
