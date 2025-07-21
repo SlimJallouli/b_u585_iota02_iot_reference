@@ -89,22 +89,26 @@ struct MQTTAgentCommandContext
   void *pArgs;
 };
 
-
-typedef struct {
+typedef struct EnvSensorDescriptor_t{
     const char *field;
     const char *name;
     const char *unit;
     const char *class;
+    const BaseType_t enabled;
 } EnvSensorDescriptor_t;
 
 static const EnvSensorDescriptor_t xEnvSensors[] = {
-    { "temp_0_c"    , "Temperature 0" , "°C"     , "temperature" },
-    { "temp_1_c"    , "Temperature 1" , "°C"     , "temperature" },
-    { "rh_pct"      , "Humidity"      , "%"      , "humidity"    },
-    { "baro_mbar"   , "Pressure"      , "mbar"   , "pressure"    }
+    { "temp_0_c"    , "Temperature 0" , "°C"     , "temperature", pdTRUE  },
+#if (USE_AVG_TEMP == 0)
+    { "temp_1_c"    , "Temperature 1" , "°C"     , "temperature", pdTRUE  },
+#else
+    { "temp_1_c"    , "Temperature 1" , "°C"     , "temperature", pdFALSE },
+#endif
+    { "rh_pct"      , "Humidity"      , "%"      , "humidity"   , pdTRUE  },
+    { "baro_mbar"   , "Pressure"      , "mbar"   , "pressure"   , pdTRUE  }
 };
 
-typedef struct {
+typedef struct MotionSensorDescriptor_t{
     const char *root;
     const char *label;
     const char *unit;
@@ -112,15 +116,15 @@ typedef struct {
 } MotionSensorDescriptor_t;
 
 static const MotionSensorDescriptor_t xMotionSensors[] = {
-    { "acceleration", "Acceleration"  , "mG"     , "x"           },
-    { "acceleration", "Acceleration"  , "mG"     , "y"           },
-    { "acceleration", "Acceleration"  , "mG"     , "z"           },
-    { "gyro"        , "Gyroscope"     , "mDPS"   , "x"           },
-    { "gyro"        , "Gyroscope"     , "mDPS"   , "y"           },
-    { "gyro"        , "Gyroscope"     , "mDPS"   , "z"           },
-    { "magnetometer", "Magnetometer"  , "mGauss" , "x"           },
-    { "magnetometer", "Magnetometer"  , "mGauss" , "y"           },
-    { "magnetometer", "Magnetometer"  , "mGauss" , "z"           },
+    { "acceleration", "Acceleration"  , "mG"     , "x" },
+    { "acceleration", "Acceleration"  , "mG"     , "y" },
+    { "acceleration", "Acceleration"  , "mG"     , "z" },
+    { "gyro"        , "Gyroscope"     , "mDPS"   , "x" },
+    { "gyro"        , "Gyroscope"     , "mDPS"   , "y" },
+    { "gyro"        , "Gyroscope"     , "mDPS"   , "z" },
+    { "magnetometer", "Magnetometer"  , "mGauss" , "x" },
+    { "magnetometer", "Magnetometer"  , "mGauss" , "y" },
+    { "magnetometer", "Magnetometer"  , "mGauss" , "z" },
 };
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
@@ -292,10 +296,7 @@ void clearEnvSensorConfigs(const char *pThingName)
 {
     for (int i = 0; i < ARRAY_SIZE(xEnvSensors); i++)
     {
-        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
-                 "homeassistant/sensor/%s_%s/config",
-                 pThingName,
-                 xEnvSensors[i].field);
+        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s/config", pThingName, xEnvSensors[i].field);
 
         prvClearRetainedTopic(configPUBLISH_TOPIC);
         vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
@@ -541,46 +542,52 @@ void publishEnvSensorConfigs(const char *pThingName, const char *fwVersionStr, c
     {
         snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s/config", pThingName, xEnvSensors[i].field);
 
-        size_t xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
-            "\"name\": \"%s\","
-            "\"unique_id\": \"%s_env_%d\","
-            "\"state_topic\": \"%s/sensor/env\","
-            "\"value_template\": \"{{ value_json.%s }}\","
-            "\"unit_of_measurement\": \"%s\","
-            "\"device_class\": \"%s\","
-            "\"availability_topic\": \"%s/status/availability\","
-            "\"payload_available\": \"online\","
-            "\"payload_not_available\": \"offline\","
-            "\"retain\": true,"
-            "\"device\": {"
-            "\"identifiers\": [\"%s\"],"
-            "\"manufacturer\": \"STMicroelectronics\","
-            "\"model\": \"%s\","
-            "\"name\": \"%s\","
-            "\"sw_version\": \"%s\""
-            "}"
-            "}",
-            xEnvSensors[i].name,
-            pThingName,
-            i,
-            pThingName,
-            xEnvSensors[i].field,
-            xEnvSensors[i].unit,
-            xEnvSensors[i].class,
-            pThingName,
-            pThingName,
-            BOARD,
-            pThingName,
-            fwVersionStr);
-
-        if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+        if(pdTRUE == xEnvSensors[i].enabled)
         {
-            prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC,
-                              (uint8_t *)cPayloadBuf, xPayloadLength);
+          size_t xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+              "\"name\": \"%s\","
+              "\"unique_id\": \"%s_env_%d\","
+              "\"state_topic\": \"%s/sensor/env\","
+              "\"value_template\": \"{{ value_json.%s }}\","
+              "\"unit_of_measurement\": \"%s\","
+              "\"device_class\": \"%s\","
+              "\"availability_topic\": \"%s/status/availability\","
+              "\"payload_available\": \"online\","
+              "\"payload_not_available\": \"offline\","
+              "\"retain\": true,"
+              "\"device\": {"
+              "\"identifiers\": [\"%s\"],"
+              "\"manufacturer\": \"STMicroelectronics\","
+              "\"model\": \"%s\","
+              "\"name\": \"%s\","
+              "\"sw_version\": \"%s\""
+              "}"
+              "}",
+              xEnvSensors[i].name,
+              pThingName,
+              i,
+              pThingName,
+              xEnvSensors[i].field,
+              xEnvSensors[i].unit,
+              xEnvSensors[i].class,
+              pThingName,
+              pThingName,
+              BOARD,
+              pThingName,
+              fwVersionStr);
+
+          if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+          {
+            prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t *)cPayloadBuf, xPayloadLength);
+          }
+          else
+          {
+            LogError(("Env sensor %d payload truncated", i));
+          }
         }
         else
         {
-            LogError(("Env sensor %d payload truncated", i));
+          prvClearRetainedTopic(configPUBLISH_TOPIC);
         }
 
         vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);

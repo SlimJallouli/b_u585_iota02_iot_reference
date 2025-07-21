@@ -384,7 +384,7 @@ void vEnvironmentSensorPublishTask(void *pvParameters)
     else if (xIsMqttConnected() == pdTRUE)
     {
       int lbytesWritten = 0;
-
+#if (USE_AVG_TEMP == 0)
       /* Write to */
       lbytesWritten = snprintf(pcPayloadBuf,
                               MQTT_PUBLISH_MAX_LEN,
@@ -393,6 +393,14 @@ void vEnvironmentSensorPublishTask(void *pvParameters)
                               xSensorData.fHumidity,
                               xSensorData.fTemperature1,
                               xSensorData.fBarometricPressure);
+#else
+      lbytesWritten = snprintf(pcPayloadBuf,
+                              MQTT_PUBLISH_MAX_LEN,
+                              "{ \"temp_0_c\": %f, \"rh_pct\": %f, \"baro_mbar\": %f }",
+                              (xSensorData.fTemperature0 + xSensorData.fTemperature1)/2,
+                              xSensorData.fHumidity,
+                              xSensorData.fBarometricPressure);
+#endif
 
       if( ( lbytesWritten < MQTT_PUBLISH_MAX_LEN ) && ( xIsMqttAgentConnected() == pdTRUE ) )
       {

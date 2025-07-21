@@ -190,8 +190,8 @@ void Error_Handler(void);
 #define DEMO_MOTION_SENSOR                      0   // Motion Sensor Example
 #define DEMO_SHADOW                             0   // AWS IoT Shadow Example
 #define DEMO_DEFENDER                           1   // AWS IoT Defender Example
-#define DEMO_LED                                1   // LED Control Example
-#define DEMO_BUTTON                             1   // Button Status Example
+#define DEMO_LED                                0   // LED Control Example
+#define DEMO_BUTTON                             0   // Button Status Example
 #if !defined(ST67W6X_NCP)
 #define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
 #endif
@@ -212,6 +212,8 @@ void Error_Handler(void);
 																		             DEMO_BUTTON        || \
                                                  defined(DEMO_FLEET_PROVISION))
 
+#define USE_AVG_TEMP                            1
+
 #define TASK_PRIO_OTA                           (tskIDLE_PRIORITY      + 1 )
 #define TASK_PRIO_fleetProvisioning             (tskIDLE_PRIORITY      + 1 )
 #define TASK_PRIO_SNTP                          (tskIDLE_PRIORITY      + 2 )
@@ -223,8 +225,8 @@ void Error_Handler(void);
 #define TASK_PRIO_SHADOW                        (tskIDLE_PRIORITY      + 7 )
 #define TASK_PRIO_LED                           (tskIDLE_PRIORITY      + 7 )
 #define TASK_PRIO_PUBLISH                       (tskIDLE_PRIORITY      + 8 )
-#define TASK_PRIO_ENV                           (tskIDLE_PRIORITY      + 9 )
-#define TASK_PRIO_LIGHT                         (tskIDLE_PRIORITY      + 10 )
+#define TASK_PRIO_LIGHT                         (tskIDLE_PRIORITY      + 9 )
+#define TASK_PRIO_ENV                           (tskIDLE_PRIORITY      + 10)
 #define TASK_PRIO_MOTION                        (tskIDLE_PRIORITY      + 11)
 #define TASK_PRIO_HS                            (tskIDLE_PRIORITY      + 12)
 #define TASK_PRIO_CLI                           (tskIDLE_PRIORITY      + 13)
