@@ -190,8 +190,8 @@ void Error_Handler(void);
 #define DEMO_MOTION_SENSOR                      0   // Motion Sensor Example
 #define DEMO_SHADOW                             0   // AWS IoT Shadow Example
 #define DEMO_DEFENDER                           1   // AWS IoT Defender Example
-#define DEMO_LED                                0   // LED Control Example
-#define DEMO_BUTTON                             0   // Button Status Example
+#define DEMO_LED                                1   // LED Control Example
+#define DEMO_BUTTON                             1   // Button Status Example
 #if !defined(ST67W6X_NCP)
 #define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
 #endif
