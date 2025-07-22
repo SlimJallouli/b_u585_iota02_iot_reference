@@ -20,7 +20,6 @@ from botocore.exceptions import *
 import logging
 from typing import Type, Dict
 
-
 ASSUME_ROLE_POLICY ={
   "Version": "2012-10-17",
   "Statement": [
@@ -50,8 +49,6 @@ class AwsHelper:
         Returns:
             None
         """
-
-        
 
         self.logger: Type[logging.Logger] = None
 
@@ -104,7 +101,6 @@ class AwsHelper:
         # Create a botocore logger
         botocore_logger = logging.getLogger('botocore')
         botocore_logger.setLevel(logging.INFO)
-
 
     def start_session(self):
         """
@@ -210,7 +206,6 @@ class AwsHelper:
 
         return self.thing.copy()
     
-    
     def register_thing_cert(self, thing_name:str, cert:str, policy:Dict):
         """
         - Imports a certificate, creates a thing, and defines an iot policy if they do not already exist
@@ -264,7 +259,6 @@ class AwsHelper:
 
         return self.thing.copy()
     
-
     def openDashboard(self, deviceName:str, bucketURL:str):
         """
         - Opens a device dashboard and exports a link shortcut in the working directory
@@ -585,4 +579,4 @@ class AwsHelper:
             return retVal
         except Exception as e:
             raise ValueError(e)
-            
+

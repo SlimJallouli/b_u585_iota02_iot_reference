@@ -30,7 +30,7 @@ fi
 export FILE_VERSION="$1"
 export BIN_LOCATION="../../project/MXCHIP_FleeProvisioning/"
 export BIN_FILE="b_u585_iota02_iot_reference.bin"
-export THING_NAME='eval3-02090046215AD42AC20139'
+export THING_NAME='stm32u585-0049001B3636500A20333342'
 export THING_GROUP_NAME="BU585MXFP"
 
 export AWS_CLI_PROFILE='default'

@@ -810,7 +810,7 @@ static BaseType_t prvEraseBank( uint32_t bankNumber )
     #else
             pEraseInit.TypeErase = FLASH_TYPEERASE_PAGES;
             pEraseInit.Banks     = FLASH_BANK_2;
-            pEraseInit.NbPages   = FLASH_PAGE_NB;
+            pEraseInit.NbPages   = RESERVED_OTA_SECTORS;
             pEraseInit.Page      = 0U;
     #endif
 
@@ -980,18 +980,23 @@ HAL_ICACHE_Enable();
 #if DEMO_HOME_ASSISTANT
 void extractVersionStructFromPath(AppVersion32_t *pNewAppFirmwareVersion, const char *filePath)
 {
-    if (pNewAppFirmwareVersion == NULL || filePath == NULL) {
+    if (pNewAppFirmwareVersion == NULL || filePath == NULL)
+    {
         return;
     }
 
     // Find the first slash to isolate version substring
     const char *slashPos = strchr(filePath, '/');
-    if (slashPos == NULL) {
+
+    if (slashPos == NULL)
+    {
         return;  // No slash found — invalid format
     }
 
     size_t versionLen = slashPos - filePath;
-    if (versionLen == 0 || versionLen > 15) {
+
+    if (versionLen == 0 || versionLen > 15)
+    {
         return; // Length check to avoid buffer overflow
     }
 
@@ -1002,12 +1007,13 @@ void extractVersionStructFromPath(AppVersion32_t *pNewAppFirmwareVersion, const 
 
     // Extract version components from "major.minor.build"
     int major, minor, build;
-    if (sscanf(versionStr, "%d.%d.%d", &major, &minor, &build) == 3) {
+
+    if (sscanf(versionStr, "%d.%d.%d", &major, &minor, &build) == 3)
+    {
         pNewAppFirmwareVersion->u.x.major = (uint8_t) major;
         pNewAppFirmwareVersion->u.x.minor = (uint8_t) minor;
         pNewAppFirmwareVersion->u.x.build = (uint16_t) build;
     }
-    // If sscanf fails, version stays uninitialized
 }
 
 void waitForOtaStart(void)

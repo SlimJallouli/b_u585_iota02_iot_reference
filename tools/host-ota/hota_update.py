@@ -147,8 +147,8 @@ def main(argv):
     aws.attach_inline_role_policy(role=args.role, policyName='get_pass_policy', policyDoc=get_pass_policy)
     aws.attach_inline_role_policy(role=args.role, policyName='bucket_policy', policyDoc=bucket_policy)
 
-    logger.debug("Target                 : " + args.thing if args.thing else args.thing_group)
-    logger.debug("Version                : " + args.version)
+    logger.info("Target                  : " + args.thing if args.thing else args.thing_group)
+    logger.info("New Firmware Version    : " + args.version)
     roleArn = aws.get_role_arn(role=args.role)
     logger.debug("Role Arn               : " + roleArn)
 

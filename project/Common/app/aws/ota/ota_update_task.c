@@ -92,13 +92,11 @@
 
 
 /*------------- Demo configurations -------------------------*/
-#if DEMO_HOME_ASSISTANT
+#if 0//DEMO_HOME_ASSISTANT
 #define OTA_UPDATE_AVAILABLE     (1 << 0)  // New OTA pending
-#define OTA_UPDATE_START   (2 << 0)  // Signal to start OTA
+#define OTA_UPDATE_START         (2 << 0)  // Signal to start OTA
 
 EventGroupHandle_t xOtaEventGroup;
-
-volatile AppVersion32_t newAppFirmwareVersion;
 #endif
 
 /**
@@ -1299,7 +1297,7 @@ static inline BaseType_t xIsOtaAgentActive( void )
 
     return xResult;
 }
-#if DEMO_HOME_ASSISTANT
+#if 0// DEMO_HOME_ASSISTANT
 static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength)
 {
   MQTTPublishInfo_t xPublishInfo = { 0UL };
@@ -1473,7 +1471,7 @@ static void prvHandleFwUpdateCommand(void *pxSubscriptionContext, MQTTPublishInf
     }
 }
 
-BaseType_t subscribeToFwUpdateTopic(MQTTAgentHandle_t xMQTTAgentHandle, const char *pcThingName)
+static BaseType_t subscribeToFwUpdateTopic(MQTTAgentHandle_t xMQTTAgentHandle, const char *pcThingName)
 {
     BaseType_t xResult = pdPASS;
     MQTTStatus_t xMQTTStatus;
@@ -1664,7 +1662,7 @@ void vOTAUpdateTask( void * pvParam )
     }
 
 
-#if defined DEMO_HOME_ASSISTANT
+#if 0// defined DEMO_HOME_ASSISTANT
     xOtaEventGroup = xEventGroupCreate();
 
     if (xOtaEventGroup == NULL)
@@ -1676,9 +1674,9 @@ void vOTAUpdateTask( void * pvParam )
     newAppFirmwareVersion.u.x.minor = appFirmwareVersion.u.x.minor;
     newAppFirmwareVersion.u.x.build = appFirmwareVersion.u.x.build;
 
-    subscribeToFwUpdateTopic(xMQTTAgentHandle, pcThingName);
+//    subscribeToFwUpdateTopic(xMQTTAgentHandle, pcThingName);
 
-    publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pcThingName);
+//    publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pcThingName);
 #endif
     /***************************Start OTA demo loop. ******************************/
 
@@ -1703,30 +1701,31 @@ void vOTAUpdateTask( void * pvParam )
                            otaStatistics.otaPacketsQueued,
                            otaStatistics.otaPacketsProcessed,
                            otaStatistics.otaPacketsDropped ) );
-
+#if 0// defined DEMO_HOME_ASSISTANT
                 if((otaStatistics.otaPacketsReceived + otaStatistics.otaPacketsQueued) > 0)
                 {
                   BaseType_t update_percentage = (otaStatistics.otaPacketsReceived  * 100)/(otaStatistics.otaPacketsReceived + otaStatistics.otaPacketsQueued);
                   publishFirmwareUpdateStatus(appFirmwareVersion, newAppFirmwareVersion,  pdTRUE, update_percentage, pcThingName);
                 }
+#endif
             }
-#if defined DEMO_HOME_ASSISTANT
+#if 0// defined DEMO_HOME_ASSISTANT
             else
             {
               if((appFirmwareVersion.u.x.major != newAppFirmwareVersion.u.x.major) ||
                  (appFirmwareVersion.u.x.minor != newAppFirmwareVersion.u.x.minor) ||
                  (appFirmwareVersion.u.x.build != newAppFirmwareVersion.u.x.build))
               {
-                  publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pcThingName);
+//                  publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pcThingName);
               }
             }
 #endif
-#if defined DEMO_HOME_ASSISTANT
+#if 0// defined DEMO_HOME_ASSISTANT
             xEventGroupWaitBits(
                 xOtaEventGroup,
-                OTA_UPDATE_AVAILABLE,               // Bit to wait for
-                pdTRUE,                             // Clear the bit on exit
-                pdFALSE,                            // Wait for any bit (just one in this case)
+                OTA_UPDATE_AVAILABLE,                  // Bit to wait for
+                pdTRUE,                                // Clear the bit on exit
+                pdFALSE,                               // Wait for any bit (just one in this case)
                 pdMS_TO_TICKS(otaexampleTASK_DELAY_MS) // Timeout after delay period
             );
 #else

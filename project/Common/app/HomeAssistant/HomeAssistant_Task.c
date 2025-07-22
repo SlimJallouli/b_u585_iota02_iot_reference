@@ -36,12 +36,16 @@
 /* Kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "event_groups.h"
 
 /* MQTT library includes. */
 #include "core_mqtt.h"
 
 /* MQTT agent include. */
 #include "core_mqtt_agent.h"
+
+/* Subscription manager header include. */
+#include "subscription_manager.h"
 
 /* MQTT agent task API. */
 #include "mqtt_agent_task.h"
@@ -113,18 +117,19 @@ typedef struct MotionSensorDescriptor_t{
     const char *label;
     const char *unit;
     const char *axis;
+    const BaseType_t enabled;
 } MotionSensorDescriptor_t;
 
 static const MotionSensorDescriptor_t xMotionSensors[] = {
-    { "acceleration", "Acceleration"  , "mG"     , "x" },
-    { "acceleration", "Acceleration"  , "mG"     , "y" },
-    { "acceleration", "Acceleration"  , "mG"     , "z" },
-    { "gyro"        , "Gyroscope"     , "mDPS"   , "x" },
-    { "gyro"        , "Gyroscope"     , "mDPS"   , "y" },
-    { "gyro"        , "Gyroscope"     , "mDPS"   , "z" },
-    { "magnetometer", "Magnetometer"  , "mGauss" , "x" },
-    { "magnetometer", "Magnetometer"  , "mGauss" , "y" },
-    { "magnetometer", "Magnetometer"  , "mGauss" , "z" },
+    { "acceleration", "Acceleration"  , "mG"     , "x", pdTRUE },
+    { "acceleration", "Acceleration"  , "mG"     , "y", pdTRUE },
+    { "acceleration", "Acceleration"  , "mG"     , "z", pdTRUE },
+    { "gyro"        , "Gyroscope"     , "mDPS"   , "x", pdTRUE },
+    { "gyro"        , "Gyroscope"     , "mDPS"   , "y", pdTRUE },
+    { "gyro"        , "Gyroscope"     , "mDPS"   , "z", pdTRUE },
+    { "magnetometer", "Magnetometer"  , "mGauss" , "x", pdTRUE },
+    { "magnetometer", "Magnetometer"  , "mGauss" , "y", pdTRUE },
+    { "magnetometer", "Magnetometer"  , "mGauss" , "z", pdTRUE },
 };
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
@@ -132,6 +137,17 @@ static const MotionSensorDescriptor_t xMotionSensors[] = {
 /*-----------------------------------------------------------*/
 
 static MQTTAgentHandle_t xMQTTAgentHandle = NULL;
+
+static char *pThingName = NULL;
+static char *cPayloadBuf = NULL;
+
+#if (DEMO_OTA == 1)
+#define OTA_UPDATE_AVAILABLE     (1 << 0)  // New OTA pending
+#define OTA_UPDATE_START         (2 << 0)  // Signal to start OTA
+
+EventGroupHandle_t xOtaEventGroup;
+volatile AppVersion32_t newAppFirmwareVersion;
+#endif
 
 /*-----------------------------------------------------------*/
 
@@ -271,18 +287,17 @@ static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopi
   return xMQTTStatus;
 }
 
+void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf, const char *availability);
 /*-----------------------------------------------------------*/
-#if ((DEMO_OTA == 0) || (DEMO_LED == 0) || (DEMO_BUTTON == 0) || (DEMO_LIGHT_SENSOR == 0) || (DEMO_ENV_SENSOR == 0) || (DEMO_MOTION_SENSOR == 0) )
+
 static MQTTStatus_t prvClearRetainedTopic(char *pcTopic)
 {
   configASSERT(pcTopic != NULL);
   LogInfo(("Clearing retained message on topic: %s", pcTopic));
   return prvPublishToTopic(MQTTQoS0, pdTRUE, pcTopic, NULL, 0);
 }
-#endif
 
 #if ((DEMO_OTA == 0) || (DEMO_LED == 0) || (DEMO_BUTTON == 0) || (DEMO_LIGHT_SENSOR == 0))
-/*-----------------------------------------------------------*/
 static void clearHA_Config(const char *domain, const char *thing, const char *suffix)
 {
     snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/%s/%s_%s/config", domain, thing, suffix);
@@ -309,11 +324,7 @@ void clearMotionSensorConfigs(const char *pThingName)
 {
     for (int i = 0; i < ARRAY_SIZE(xMotionSensors); i++)
     {
-        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
-                 "homeassistant/sensor/%s_%s_%s/config",
-                 pThingName,
-                 xMotionSensors[i].root,
-                 xMotionSensors[i].axis);
+        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s_%s/config", pThingName, xMotionSensors[i].root, xMotionSensors[i].axis);
 
         prvClearRetainedTopic(configPUBLISH_TOPIC);
         vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
@@ -321,12 +332,23 @@ void clearMotionSensorConfigs(const char *pThingName)
 }
 #endif
 
+/*-----------------------------------------------------------*/
+
 #if (DEMO_OTA == 1)
-static void publishHA_OtaConfig(const char *pThingName, const char *fwVersionStr, char *cPayloadBuf)
+static void publishHA_OtaConfig(const char *pThingName, char *cPayloadBuf)
 {
   size_t xPayloadLength = 0;
   MQTTQoS_t xQoS = MQTTQoS0;
   bool xRetain = pdTRUE;
+  char * fwVersionStr = (char*) pvPortMalloc(17);
+  configASSERT(fwVersionStr != NULL);
+
+  memset(fwVersionStr, 0, 17);
+
+  snprintf(fwVersionStr, 16, "%d.%d.%d",
+           appFirmwareVersion.u.x.major,
+           appFirmwareVersion.u.x.minor,
+           appFirmwareVersion.u.x.build);
 
   snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/update/%s_fw/config", pThingName);
 
@@ -374,10 +396,99 @@ static void publishHA_OtaConfig(const char *pThingName, const char *fwVersionStr
 
   vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 }
+
+static MQTTStatus_t publishFirmwareVersionStatus(const AppVersion32_t appFirmwareVersion, const AppVersion32_t newAppFirmwareVersion, const char * pcThingName)
+{
+    char cPayloadBuf[128];
+    char cTopicBuf[64];
+    int msgLen = 0;
+    MQTTQoS_t xQoS = MQTTQoS0;
+    bool xRetain = pdTRUE;
+
+    MQTTStatus_t xStatus = MQTTBadParameter;
+
+    // Compose topic: <ThingName>/fw/state
+    msgLen = snprintf(cTopicBuf, sizeof(cTopicBuf), "%s/fw/state", pcThingName);
+
+    if (msgLen < 0 || msgLen >= sizeof(cTopicBuf))
+    {
+        return MQTTBadParameter;
+    }
+
+    // Compose JSON payload
+    msgLen = snprintf(cPayloadBuf, sizeof(cPayloadBuf),
+                      "{\"installed_version\": \"%u.%u.%u\", \"latest_version\": \"%u.%u.%u\"}",
+                      appFirmwareVersion.u.x.major,
+                      appFirmwareVersion.u.x.minor,
+                      appFirmwareVersion.u.x.build,
+                      newAppFirmwareVersion.u.x.major,
+                      newAppFirmwareVersion.u.x.minor,
+                      newAppFirmwareVersion.u.x.build);
+
+    if (msgLen < 0 || msgLen >= sizeof(cPayloadBuf))
+    {
+        return MQTTBadParameter;
+    }
+
+    prvPublishToTopic(xQoS, xRetain, cTopicBuf, (uint8_t*) cPayloadBuf, msgLen);
+
+    vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+
+    return xStatus;
+}
+
+static void prvHandleFwUpdateCommand(void *pxSubscriptionContext, MQTTPublishInfo_t *pPublishInfo)
+{
+    if (pPublishInfo == NULL || pPublishInfo->pPayload == NULL || pPublishInfo->payloadLength == 0)
+    {
+        return;
+    }
+
+    const char *payload = (const char *)pPublishInfo->pPayload;
+
+    // Ensure payload is null-terminated for comparison
+    char tempPayload[32] = {0};  // Adjust size as needed
+
+    size_t copyLen = (pPublishInfo->payloadLength < sizeof(tempPayload) - 1) ? pPublishInfo->payloadLength : sizeof(tempPayload) - 1;
+
+    memcpy(tempPayload, payload, copyLen);
+
+    tempPayload[copyLen] = '\0';
+
+    if (strcmp(tempPayload, "start_update") == 0)
+    {
+        LogInfo("Starting Firmware update.");
+        xEventGroupSetBits(xOtaEventGroup, OTA_UPDATE_START);
+    }
+}
+
+static BaseType_t subscribeToFwUpdateTopic(MQTTAgentHandle_t xMQTTAgentHandle, const char *pcThingName)
+{
+    BaseType_t xResult = pdPASS;
+    MQTTStatus_t xMQTTStatus;
+
+    char topicBuf[128];
+    snprintf(topicBuf, sizeof(topicBuf), "%s/fw/update", pcThingName);
+
+    if ((xResult == pdPASS) && (xMQTTAgentHandle != NULL))
+    {
+        xMQTTStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle, topicBuf, MQTTQoS0, prvHandleFwUpdateCommand, NULL );
+
+        if (xMQTTStatus != MQTTSuccess)
+        {
+            LogError("Failed to subscribe to FW update topic: %s", topicBuf);
+            xResult = pdFAIL;
+        }
+    }
+
+    vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+
+    return xResult;
+}
 #endif
 
 #if (DEMO_LED == 1)
-static void publishHA_LedConfig(const char *pThingName, const char *fwVersionStr, char *cPayloadBuf)
+static void publishHA_LedConfig(const char *pThingName, char *cPayloadBuf)
 {
   size_t xPayloadLength = 0;
   MQTTQoS_t xQoS = MQTTQoS0;
@@ -403,8 +514,7 @@ static void publishHA_LedConfig(const char *pThingName, const char *fwVersionStr
       "\"identifiers\": [\"%s\"],"
       "\"manufacturer\": \"STMicroelectronics\","
       "\"model\": \"%s\","
-      "\"name\": \"%s\","
-      "\"sw_version\": \"%s\""
+      "\"name\": \"%s\""
       "}"
       "}",
       pThingName, // unique_id
@@ -413,8 +523,7 @@ static void publishHA_LedConfig(const char *pThingName, const char *fwVersionStr
       pThingName, // availability_topic
       pThingName, // identifiers
       BOARD,      // model
-      pThingName, // name
-      fwVersionStr// sw_version
+      pThingName  // name
       );
 
   if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
@@ -431,7 +540,7 @@ static void publishHA_LedConfig(const char *pThingName, const char *fwVersionStr
 #endif
 
 #if (DEMO_BUTTON == 1)
-static void publishHA_ButtonConfig(const char *pThingName, const char *fwVersionStr, char *cPayloadBuf)
+static void publishHA_ButtonConfig(const char *pThingName, char *cPayloadBuf)
 {
   size_t xPayloadLength = 0;
   MQTTQoS_t xQoS = MQTTQoS0;
@@ -455,8 +564,7 @@ static void publishHA_ButtonConfig(const char *pThingName, const char *fwVersion
       "\"identifiers\": [\"%s\"],"
       "\"manufacturer\": \"STMicroelectronics\","
       "\"model\": \"%s\","
-      "\"name\": \"%s\","
-      "\"sw_version\": \"%s\""
+      "\"name\": \"%s\""
       "}"
       "}",
       pThingName, // unique_id
@@ -464,8 +572,7 @@ static void publishHA_ButtonConfig(const char *pThingName, const char *fwVersion
       pThingName, // availability_topic
       pThingName, // identifiers
       BOARD,      // model
-      pThingName, // name
-      fwVersionStr// sw_version
+      pThingName  // name
       );
 
   if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
@@ -482,7 +589,7 @@ static void publishHA_ButtonConfig(const char *pThingName, const char *fwVersion
 #endif
 
 #if (DEMO_LIGHT_SENSOR == 1)
-static void publishHA_LuxSensorConfig(const char *pThingName, const char *fwVersionStr, char *cPayloadBuf)
+static void publishHA_LuxSensorConfig(const char *pThingName, char *cPayloadBuf)
 {
   size_t xPayloadLength = 0;
   MQTTQoS_t xQoS = MQTTQoS0;
@@ -506,8 +613,7 @@ static void publishHA_LuxSensorConfig(const char *pThingName, const char *fwVers
       "\"identifiers\": [\"%s\"],"
       "\"manufacturer\": \"STMicroelectronics\","
       "\"model\": \"%s\","
-      "\"name\": \"%s\","
-      "\"sw_version\": \"%s\""
+      "\"name\": \"%s\""
       "}"
       "}",
       pThingName,           // unique_id
@@ -515,8 +621,7 @@ static void publishHA_LuxSensorConfig(const char *pThingName, const char *fwVers
       pThingName,           // availability_topic
       pThingName,           // identifiers
       BOARD,                // model
-      pThingName,           // name
-      fwVersionStr);        // sw_version
+      pThingName);
 
   if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
   {
@@ -533,7 +638,7 @@ static void publishHA_LuxSensorConfig(const char *pThingName, const char *fwVers
 #endif
 
 #if (DEMO_ENV_SENSOR == 1)
-void publishEnvSensorConfigs(const char *pThingName, const char *fwVersionStr, char *cPayloadBuf)
+void publishEnvSensorConfigs(const char *pThingName, char *cPayloadBuf)
 {
   MQTTQoS_t xQoS = MQTTQoS0;
   bool xRetain = pdTRUE;
@@ -559,8 +664,7 @@ void publishEnvSensorConfigs(const char *pThingName, const char *fwVersionStr, c
               "\"identifiers\": [\"%s\"],"
               "\"manufacturer\": \"STMicroelectronics\","
               "\"model\": \"%s\","
-              "\"name\": \"%s\","
-              "\"sw_version\": \"%s\""
+              "\"name\": \"%s\""
               "}"
               "}",
               xEnvSensors[i].name,
@@ -573,8 +677,7 @@ void publishEnvSensorConfigs(const char *pThingName, const char *fwVersionStr, c
               pThingName,
               pThingName,
               BOARD,
-              pThingName,
-              fwVersionStr);
+              pThingName);
 
           if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
           {
@@ -596,20 +699,18 @@ void publishEnvSensorConfigs(const char *pThingName, const char *fwVersionStr, c
 #endif
 
 #if (DEMO_MOTION_SENSOR == 1)
-void publishMotionSensorConfigs(const char *pThingName, const char *fwVersionStr, char *cPayloadBuf)
+void publishMotionSensorConfigs(const char *pThingName, char *cPayloadBuf)
 {
     MQTTQoS_t xQoS = MQTTQoS0;
     bool xRetain = pdTRUE;
 
     for (int i = 0; i < ARRAY_SIZE(xMotionSensors); i++)
     {
-        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
-                 "homeassistant/sensor/%s_%s_%s/config",
-                 pThingName,
-                 xMotionSensors[i].root,
-                 xMotionSensors[i].axis);
+        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s_%s/config", pThingName, xMotionSensors[i].root, xMotionSensors[i].axis);
 
-        size_t xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+        if(pdTRUE == xMotionSensors[i].enabled)
+        {
+          size_t xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
             "\"name\": \"%s %s\","
             "\"unique_id\": \"%s_%s_%s\","
             "\"state_topic\": \"%s/sensor/motion\","
@@ -623,8 +724,7 @@ void publishMotionSensorConfigs(const char *pThingName, const char *fwVersionStr
             "\"identifiers\": [\"%s\"],"
             "\"manufacturer\": \"STMicroelectronics\","
             "\"model\": \"%s\","
-            "\"name\": \"%s\","
-            "\"sw_version\": \"%s\""
+            "\"name\": \"%s\""
             "}"
             "}",
             xMotionSensors[i].label,
@@ -639,19 +739,20 @@ void publishMotionSensorConfigs(const char *pThingName, const char *fwVersionStr
             pThingName,
             pThingName,
             BOARD,
-            pThingName,
-            fwVersionStr);
+            pThingName);
 
-        if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
-        {
-            prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC,
-                              (uint8_t *)cPayloadBuf, xPayloadLength);
+          if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+          {
+            prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t *)cPayloadBuf, xPayloadLength);
+          }
+          else
+          {
+            LogError(("Motion sensor %s %s payload truncated", xMotionSensors[i].label, xMotionSensors[i].axis));
+          }
         }
         else
         {
-            LogError(("Motion sensor %s %s payload truncated",
-                      xMotionSensors[i].label,
-                      xMotionSensors[i].axis));
+          prvClearRetainedTopic(configPUBLISH_TOPIC);
         }
 
         vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
@@ -659,21 +760,22 @@ void publishMotionSensorConfigs(const char *pThingName, const char *fwVersionStr
 }
 #endif
 
-void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf)
+void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf, const char *availability)
 {
     MQTTQoS_t xQoS = MQTTQoS0;
     bool xRetain = pdTRUE;
 
-    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
-             "%s/status/availability", pThingName);
+    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "%s/status/availability", pThingName);
 
-    strcpy(cPayloadBuf, "online");
+    // Copy the provided availability string ("online" or "offline") into the payload buffer
+    strncpy(cPayloadBuf, availability, configPAYLOAD_BUFFER_LENGTH - 1);
+    cPayloadBuf[configPAYLOAD_BUFFER_LENGTH - 1] = '\0'; // Ensure null-termination
+
     size_t xPayloadLength = strlen(cPayloadBuf);
 
     if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
     {
-        prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC,
-                          (uint8_t *)cPayloadBuf, xPayloadLength);
+        prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t *)cPayloadBuf, xPayloadLength);
     }
     else
     {
@@ -687,11 +789,7 @@ void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf)
 
 void vHAConfigPublishTask(void *pvParameters)
 {
-  char *cPayloadBuf = NULL;
-  char *pThingName = NULL;
   size_t uxThingNameLen = 0;
-  char * fwVersionStr = (char*) pvPortMalloc(17);
-  configASSERT(fwVersionStr != NULL);
 
   /* Wait until the MQTT agent is ready */
   vSleepUntilMQTTAgentReady();
@@ -711,54 +809,85 @@ void vHAConfigPublishTask(void *pvParameters)
 
   LogInfo(("Publishing Home Assistant discovery configuration for device: %s", pThingName));
 
-  memset(fwVersionStr, 0, 17);
-
-  snprintf(fwVersionStr, 16, "%d.%d.%d",
-           appFirmwareVersion.u.x.major,
-           appFirmwareVersion.u.x.minor,
-           appFirmwareVersion.u.x.build);
-
 #if (DEMO_OTA == 1)
-  publishHA_OtaConfig(pThingName, fwVersionStr, cPayloadBuf);
-#else
-  clearHA_Config("update", pThingName, "fw");
+  xOtaEventGroup = xEventGroupCreate();
+  configASSERT(xOtaEventGroup != NULL);
+
+  newAppFirmwareVersion.u.x.major = appFirmwareVersion.u.x.major;
+  newAppFirmwareVersion.u.x.minor = appFirmwareVersion.u.x.minor;
+  newAppFirmwareVersion.u.x.build = appFirmwareVersion.u.x.build;
+
+  subscribeToFwUpdateTopic(xMQTTAgentHandle, pThingName);
+
+  publishHA_OtaConfig(pThingName, cPayloadBuf);
+
+  publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pThingName);
 #endif
 
 #if (DEMO_LED == 1)
-  publishHA_LedConfig(pThingName, fwVersionStr, cPayloadBuf);
+  publishHA_LedConfig(pThingName, cPayloadBuf);
 #else
   clearHA_Config("switch", pThingName, "led");
 #endif
 
 #if (DEMO_BUTTON == 1)
-  publishHA_ButtonConfig(pThingName, fwVersionStr, cPayloadBuf);
+  publishHA_ButtonConfig(pThingName, cPayloadBuf);
 #else
   clearHA_Config("binary_sensor", pThingName, "button");
 #endif
 
 #if (DEMO_LIGHT_SENSOR == 1)
-  publishHA_LuxSensorConfig(pThingName, fwVersionStr, cPayloadBuf);
+  publishHA_LuxSensorConfig(pThingName, cPayloadBuf);
 #else
   clearHA_Config("sensor", pThingName, "lux_sensor");
 #endif
 
 #if (DEMO_ENV_SENSOR == 1)
-  publishEnvSensorConfigs(pThingName, fwVersionStr, cPayloadBuf);
+  publishEnvSensorConfigs(pThingName, cPayloadBuf);
 #else
   clearEnvSensorConfigs(pThingName);
 #endif
 
 #if (DEMO_MOTION_SENSOR == 1)
-  publishMotionSensorConfigs(pThingName, fwVersionStr, cPayloadBuf);
+  publishMotionSensorConfigs(pThingName, cPayloadBuf);
 #else
   clearMotionSensorConfigs(pThingName);
 #endif
 
   /* Send availability message  */
-  publishAvailabilityStatus(pThingName, cPayloadBuf);
+  publishAvailabilityStatus(pThingName, cPayloadBuf, "online");
 
+#if (DEMO_OTA == 1)
+  LogInfo("Discovery config task completed.");
+
+  while(1)
+  {
+    xEventGroupWaitBits(
+        xOtaEventGroup,
+        OTA_UPDATE_AVAILABLE,                       // Bit to wait for
+        pdTRUE,                                     // Clear the bit on exit
+        pdFALSE,                                    // Wait for any bit (just one in this case)
+        portMAX_DELAY                               // Timeout after delay period
+    );
+
+    LogInfo("New Firmware available.");
+    publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pThingName);
+
+    xEventGroupWaitBits(
+        xOtaEventGroup,
+        OTA_UPDATE_START,                           // Bit to wait for
+        pdTRUE,                                     // Clear the bit on exit
+        pdFALSE,                                    // Wait for any bit (just one in this case)
+        portMAX_DELAY                               // Timeout after delay period
+    );
+
+    publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
+    vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+  }
+#else
   vPortFree(cPayloadBuf);
   vPortFree(pThingName);
   LogInfo("Discovery config task completed. Deleting itself.");
   vTaskDelete(NULL);
+#endif
 }
