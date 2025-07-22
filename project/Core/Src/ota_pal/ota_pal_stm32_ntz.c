@@ -57,10 +57,10 @@
 #include "ota_appversion32.h"
 
 #if DEMO_HOME_ASSISTANT
-#define OTA_UPDATE_AVAILABLE     (1 << 0)  // New OTA pending
-#define OTA_UPDATE_START   (2 << 0)  // Signal to start OTA
+#define HA_OTA_UPDATE_AVAILABLE     (1 << 0)  // New OTA pending
+#define HA_OTA_UPDATE_START   (2 << 0)  // Signal to start OTA
 
-extern EventGroupHandle_t xOtaEventGroup;
+extern EventGroupHandle_t xHAEventGroup;
 extern AppVersion32_t newAppFirmwareVersion;
 #endif
 
@@ -1018,16 +1018,16 @@ void extractVersionStructFromPath(AppVersion32_t *pNewAppFirmwareVersion, const 
 
 void waitForOtaStart(void)
 {
-    // Wait indefinitely for OTA_UPDATE_START to be set
+    // Wait indefinitely for HA_OTA_UPDATE_START to be set
     EventBits_t uxBits = xEventGroupWaitBits(
-        xOtaEventGroup,
-        OTA_UPDATE_START,   // Bit to wait for
+        xHAEventGroup,
+        HA_OTA_UPDATE_START,   // Bit to wait for
         pdTRUE,             // Clear bit on exit
         pdFALSE,            // Wait for ANY bit (only one here)
         portMAX_DELAY       // Block forever
     );
 
-    if ((uxBits & OTA_UPDATE_AVAILABLE) != 0) {
+    if ((uxBits & HA_OTA_UPDATE_AVAILABLE) != 0) {
         LogInfo("OTA start bit received — beginning OTA process...");
         // Proceed with your OTA workflow here
     }
@@ -1092,7 +1092,7 @@ HAL_ICACHE_Enable();
             newAppFirmwareVersion.u.x.minor,
             newAppFirmwareVersion.u.x.build ) );
 
-        xEventGroupSetBits(xOtaEventGroup, OTA_UPDATE_AVAILABLE);
+        xEventGroupSetBits(xHAEventGroup, HA_OTA_UPDATE_AVAILABLE);
 
         waitForOtaStart();
         vTaskDelay(10);

@@ -57,7 +57,7 @@
 # define MAXT_TOPIC_LENGTH 128
 static char publish_topic[MAXT_TOPIC_LENGTH];
 
-#define MQTT_PUBLISH_TIME_BETWEEN_MS         ( 300 )
+#define MQTT_PUBLISH_TIME_BETWEEN_MS         ( 30 )
 /**
  * @brief The maximum amount of time in milliseconds to wait for the commands
  * to be posted to the MQTT agent should the MQTT agent's command queue be full.
@@ -142,10 +142,11 @@ static char *pThingName = NULL;
 static char *cPayloadBuf = NULL;
 
 #if (DEMO_OTA == 1)
-#define OTA_UPDATE_AVAILABLE     (1 << 0)  // New OTA pending
-#define OTA_UPDATE_START         (2 << 0)  // Signal to start OTA
+#define HA_OTA_UPDATE_AVAILABLE     (1 << 0)  // Bit 0
+#define HA_OTA_UPDATE_START         (1 << 1)  // Bit 1
+#define HA_COMMAND_RESET            (1 << 2)  // Bit 2
 
-EventGroupHandle_t xOtaEventGroup;
+EventGroupHandle_t xHAEventGroup;
 volatile AppVersion32_t newAppFirmwareVersion;
 #endif
 
@@ -366,24 +367,25 @@ static void publishHA_OtaConfig(const char *pThingName, char *cPayloadBuf)
       "\"payload_not_available\": \"offline\","
       "\"retain\": false,"
       "\"device_class\": \"firmware\","
+      "\"entity_category\": \"diagnostic\","
       "\"device\": {"
-      "\"identifiers\": [\"%s\"],"
-      "\"manufacturer\": \"STMicroelectronics\","
-      "\"model\": \"%s\","
-      "\"name\": \"%s\","
-      "\"sw_version\": \"%s\""
+        "\"identifiers\": [\"%s\"],"
+        "\"manufacturer\": \"STMicroelectronics\","
+        "\"model\": \"%s\","
+        "\"name\": \"%s\","
+        "\"sw_version\": \"%s\""
       "}"
-      "}",
-      pThingName, // unique_id
-      pThingName, // state_topic
-      pThingName, // latest_version_topic
-      pThingName, // command_topic
-      pThingName, // availability_topic
-      pThingName, // identifiers
-      BOARD,      // model
-      pThingName, // name
-      fwVersionStr// sw_version
-      );
+    "}",
+    pThingName,     // unique_id
+    pThingName,     // state_topic
+    pThingName,     // latest_version_topic
+    pThingName,     // command_topic
+    pThingName,     // availability_topic
+    pThingName,     // identifiers
+    BOARD,          // model
+    pThingName,     // name
+    fwVersionStr    // sw_version
+  );
 
   if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
   {
@@ -458,7 +460,7 @@ static void prvHandleFwUpdateCommand(void *pxSubscriptionContext, MQTTPublishInf
     if (strcmp(tempPayload, "start_update") == 0)
     {
         LogInfo("Starting Firmware update.");
-        xEventGroupSetBits(xOtaEventGroup, OTA_UPDATE_START);
+        xEventGroupSetBits(xHAEventGroup, HA_OTA_UPDATE_START);
     }
 }
 
@@ -467,21 +469,24 @@ static BaseType_t subscribeToFwUpdateTopic(MQTTAgentHandle_t xMQTTAgentHandle, c
     BaseType_t xResult = pdPASS;
     MQTTStatus_t xMQTTStatus;
 
-    char topicBuf[128];
-    snprintf(topicBuf, sizeof(topicBuf), "%s/fw/update", pcThingName);
+    char *pTopicBuf = pvPortMalloc(MAXT_TOPIC_LENGTH);
+
+    snprintf(pTopicBuf,MAXT_TOPIC_LENGTH, "%s/fw/update", pcThingName);
 
     if ((xResult == pdPASS) && (xMQTTAgentHandle != NULL))
     {
-        xMQTTStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle, topicBuf, MQTTQoS0, prvHandleFwUpdateCommand, NULL );
+        xMQTTStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle, pTopicBuf, MQTTQoS0, prvHandleFwUpdateCommand, NULL );
 
         if (xMQTTStatus != MQTTSuccess)
         {
-            LogError("Failed to subscribe to FW update topic: %s", topicBuf);
+            LogError("Failed to subscribe to FW update topic: %s", pTopicBuf);
             xResult = pdFAIL;
         }
     }
 
     vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+
+    vPortFree(pTopicBuf);
 
     return xResult;
 }
@@ -510,6 +515,7 @@ static void publishHA_LedConfig(const char *pThingName, char *cPayloadBuf)
       "\"payload_available\": \"online\","
       "\"payload_not_available\": \"offline\","
       "\"retain\": true,"
+      "\"entity_category\": \"diagnostic\","
       "\"device\": {"
       "\"identifiers\": [\"%s\"],"
       "\"manufacturer\": \"STMicroelectronics\","
@@ -785,6 +791,115 @@ void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf, const 
     vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 }
 
+extern EventGroupHandle_t xHAEventGroup;
+
+static void prvHandleRebootCommand(void *pxSubscriptionContext, MQTTPublishInfo_t *pPublishInfo)
+{
+    if (pPublishInfo == NULL || pPublishInfo->pPayload == NULL || pPublishInfo->payloadLength == 0)
+    {
+        return;
+    }
+
+    const char *payload = (const char *)pPublishInfo->pPayload;
+
+    // Ensure payload is null-terminated for comparison
+    char tempPayload[32] = {0};  // Adjust size as needed
+    size_t copyLen = (pPublishInfo->payloadLength < sizeof(tempPayload) - 1) ? pPublishInfo->payloadLength : sizeof(tempPayload) - 1;
+
+    memcpy(tempPayload, payload, copyLen);
+    tempPayload[copyLen] = '\0';
+
+    // Accept either raw string "reboot" or JSON-style {"action":"reboot"}
+    if (strcmp(tempPayload, "reboot") == 0 || strstr(tempPayload, "\"reboot\"") != NULL)
+    {
+        LogInfo("Reboot command received. Setting HA_COMMAND_RESET flag.");
+        xEventGroupSetBits(xHAEventGroup, HA_COMMAND_RESET);
+    }
+    else
+    {
+        LogWarn("Received unknown reboot command: %s", tempPayload);
+    }
+}
+
+static BaseType_t subscribeToRebootCommandTopic(MQTTAgentHandle_t xMQTTAgentHandle, const char *pcThingName)
+{
+    BaseType_t xResult = pdPASS;
+    MQTTStatus_t xMQTTStatus;
+
+    char *pTopicBuf = pvPortMalloc(MAXT_TOPIC_LENGTH);
+
+    if (pTopicBuf != NULL)
+    {
+        snprintf(pTopicBuf, MAXT_TOPIC_LENGTH, "%s/cmd/action", pcThingName);
+
+        if ((xResult == pdPASS) && (xMQTTAgentHandle != NULL))
+        {
+            xMQTTStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle, pTopicBuf, MQTTQoS0, prvHandleRebootCommand, NULL);
+
+            if (xMQTTStatus != MQTTSuccess)
+            {
+                LogError("Failed to subscribe to reboot command topic: %s", pTopicBuf);
+                xResult = pdFAIL;
+            }
+        }
+
+        vPortFree(pTopicBuf);
+    }
+    else
+    {
+        LogError("Failed to allocate topic buffer for reboot subscription");
+        xResult = pdFAIL;
+    }
+
+    vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+    return xResult;
+}
+
+static void publishHA_RebootButton(const char *pThingName, char *cPayloadBuf)
+{
+  size_t xPayloadLength = 0;
+  MQTTQoS_t xQoS = MQTTQoS0;
+  bool xRetain = pdTRUE;
+
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/button/%s_reboot/config", pThingName);
+
+  xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+      "\"name\": \"Reboot\","
+      "\"unique_id\": \"%s_reboot\","
+      "\"command_topic\": \"%s/cmd/action\","
+      "\"payload_press\": \"{\\\"action\\\":\\\"reboot\\\"}\","
+      "\"retain\": false,"
+      "\"availability_topic\": \"%s/status/availability\","
+      "\"payload_available\": \"online\","
+      "\"payload_not_available\": \"offline\","
+      "\"entity_category\": \"diagnostic\","
+      "\"device\": {"
+        "\"identifiers\": [\"%s\"],"
+        "\"manufacturer\": \"STMicroelectronics\","
+        "\"model\": \"%s\","
+        "\"name\": \"%s\""
+      "}"
+    "}",
+    pThingName, // unique_id
+    pThingName, // command_topic
+    pThingName, // availability_topic
+    pThingName, // identifiers
+    BOARD,      // model
+    pThingName  // name
+  );
+
+  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+  {
+    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+  }
+  else
+  {
+    LogError(("Reboot button payload truncated"));
+  }
+
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+}
+
 /*-----------------------------------------------------------*/
 
 void vHAConfigPublishTask(void *pvParameters)
@@ -810,8 +925,8 @@ void vHAConfigPublishTask(void *pvParameters)
   LogInfo(("Publishing Home Assistant discovery configuration for device: %s", pThingName));
 
 #if (DEMO_OTA == 1)
-  xOtaEventGroup = xEventGroupCreate();
-  configASSERT(xOtaEventGroup != NULL);
+  xHAEventGroup = xEventGroupCreate();
+  configASSERT(xHAEventGroup != NULL);
 
   newAppFirmwareVersion.u.x.major = appFirmwareVersion.u.x.major;
   newAppFirmwareVersion.u.x.minor = appFirmwareVersion.u.x.minor;
@@ -854,40 +969,44 @@ void vHAConfigPublishTask(void *pvParameters)
   clearMotionSensorConfigs(pThingName);
 #endif
 
+  subscribeToRebootCommandTopic(xMQTTAgentHandle, pThingName);
+  publishHA_RebootButton(pThingName, cPayloadBuf);
+
   /* Send availability message  */
   publishAvailabilityStatus(pThingName, cPayloadBuf, "online");
 
-#if (DEMO_OTA == 1)
   LogInfo("Discovery config task completed.");
 
-  while(1)
+  while (1)
   {
-    xEventGroupWaitBits(
-        xOtaEventGroup,
-        OTA_UPDATE_AVAILABLE,                       // Bit to wait for
-        pdTRUE,                                     // Clear the bit on exit
-        pdFALSE,                                    // Wait for any bit (just one in this case)
-        portMAX_DELAY                               // Timeout after delay period
+    EventBits_t uxBits = xEventGroupWaitBits(
+        xHAEventGroup,
+        HA_OTA_UPDATE_AVAILABLE | HA_OTA_UPDATE_START | HA_COMMAND_RESET,
+        pdTRUE,     // Clear bits
+        pdFALSE,    // Wait for any
+        portMAX_DELAY
     );
 
-    LogInfo("New Firmware available.");
-    publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pThingName);
 
-    xEventGroupWaitBits(
-        xOtaEventGroup,
-        OTA_UPDATE_START,                           // Bit to wait for
-        pdTRUE,                                     // Clear the bit on exit
-        pdFALSE,                                    // Wait for any bit (just one in this case)
-        portMAX_DELAY                               // Timeout after delay period
-    );
+      if ((uxBits & HA_OTA_UPDATE_AVAILABLE) != 0)
+      {
+          LogInfo("New Firmware available.");
+          publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pThingName);
+      }
 
-    publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
-    vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+      if ((uxBits & HA_OTA_UPDATE_START) != 0)
+      {
+          LogInfo("Firmware update starting...");
+          publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
+          vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+      }
+
+      if (uxBits & HA_COMMAND_RESET)
+      {
+        LogInfo("Reboot command");
+        publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
+        vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+        vDoSystemReset();
+      }
   }
-#else
-  vPortFree(cPayloadBuf);
-  vPortFree(pThingName);
-  LogInfo("Discovery config task completed. Deleting itself.");
-  vTaskDelete(NULL);
-#endif
 }
