@@ -36,7 +36,8 @@
 /* Kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "event_groups.h"
+#include "sys_evt.h"
+
 
 /* MQTT library includes. */
 #include "core_mqtt.h"
@@ -57,7 +58,7 @@
 # define MAXT_TOPIC_LENGTH 128
 static char publish_topic[MAXT_TOPIC_LENGTH];
 
-#define MQTT_PUBLISH_TIME_BETWEEN_MS         ( 30 )
+#define MQTT_PUBLISH_TIME_BETWEEN_MS                 ( 10 )
 /**
  * @brief The maximum amount of time in milliseconds to wait for the commands
  * to be posted to the MQTT agent should the MQTT agent's command queue be full.
@@ -92,6 +93,13 @@ struct MQTTAgentCommandContext
   TaskHandle_t xTaskToNotify;
   void *pArgs;
 };
+
+typedef enum
+{
+    FW_UPDATE_STATUS_IDLE = 0,
+    FW_UPDATE_STATUS_UPDATING,
+    FW_UPDATE_STATUS_COMPLETED
+} FwUpdateStatus_t;
 
 typedef struct EnvSensorDescriptor_t{
     const char *field;
@@ -142,10 +150,6 @@ static char *pThingName = NULL;
 static char *cPayloadBuf = NULL;
 
 #if (DEMO_OTA == 1)
-#define HA_OTA_UPDATE_AVAILABLE     (1 << 0)  // Bit 0
-#define HA_OTA_UPDATE_START         (1 << 1)  // Bit 1
-#define HA_COMMAND_RESET            (1 << 2)  // Bit 2
-
 EventGroupHandle_t xHAEventGroup;
 volatile AppVersion32_t newAppFirmwareVersion;
 #endif
@@ -307,32 +311,6 @@ static void clearHA_Config(const char *domain, const char *thing, const char *su
 }
 #endif
 
-#if !(DEMO_ENV_SENSOR == 1)
-void clearEnvSensorConfigs(const char *pThingName)
-{
-    for (int i = 0; i < ARRAY_SIZE(xEnvSensors); i++)
-    {
-        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s/config", pThingName, xEnvSensors[i].field);
-
-        prvClearRetainedTopic(configPUBLISH_TOPIC);
-        vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
-    }
-}
-#endif
-
-#if !(DEMO_MOTION_SENSOR == 1)
-void clearMotionSensorConfigs(const char *pThingName)
-{
-    for (int i = 0; i < ARRAY_SIZE(xMotionSensors); i++)
-    {
-        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s_%s/config", pThingName, xMotionSensors[i].root, xMotionSensors[i].axis);
-
-        prvClearRetainedTopic(configPUBLISH_TOPIC);
-        vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
-    }
-}
-#endif
-
 /*-----------------------------------------------------------*/
 
 #if (DEMO_OTA == 1)
@@ -399,7 +377,22 @@ static void publishHA_OtaConfig(const char *pThingName, char *cPayloadBuf)
   vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 }
 
-static MQTTStatus_t publishFirmwareVersionStatus(const AppVersion32_t appFirmwareVersion, const AppVersion32_t newAppFirmwareVersion, const char * pcThingName)
+static const char * fwUpdateStatusToString(FwUpdateStatus_t status)
+{
+    switch (status)
+    {
+        case FW_UPDATE_STATUS_IDLE:      return "idle";
+        case FW_UPDATE_STATUS_UPDATING:  return "updating";
+        case FW_UPDATE_STATUS_COMPLETED: return "completed";
+        default:                         return "unknown";
+    }
+}
+
+static MQTTStatus_t publishFirmwareVersionStatus(const AppVersion32_t appFirmwareVersion,
+                                                 const AppVersion32_t newAppFirmwareVersion,
+                                                 const char *pcThingName,
+                                                 FwUpdateStatus_t status)
+
 {
     char cPayloadBuf[128];
     char cTopicBuf[64];
@@ -411,28 +404,31 @@ static MQTTStatus_t publishFirmwareVersionStatus(const AppVersion32_t appFirmwar
 
     // Compose topic: <ThingName>/fw/state
     msgLen = snprintf(cTopicBuf, sizeof(cTopicBuf), "%s/fw/state", pcThingName);
-
     if (msgLen < 0 || msgLen >= sizeof(cTopicBuf))
     {
         return MQTTBadParameter;
     }
 
-    // Compose JSON payload
+    // Compose JSON payload with status
+    const char *statusStr = fwUpdateStatusToString(status);
+
     msgLen = snprintf(cPayloadBuf, sizeof(cPayloadBuf),
-                      "{\"installed_version\": \"%u.%u.%u\", \"latest_version\": \"%u.%u.%u\"}",
+                      "{\"installed_version\": \"%u.%u.%u\", \"latest_version\": \"%u.%u.%u\", \"status\": \"%s\"}",
                       appFirmwareVersion.u.x.major,
                       appFirmwareVersion.u.x.minor,
                       appFirmwareVersion.u.x.build,
                       newAppFirmwareVersion.u.x.major,
                       newAppFirmwareVersion.u.x.minor,
-                      newAppFirmwareVersion.u.x.build);
+                      newAppFirmwareVersion.u.x.build,
+                      statusStr);
+
 
     if (msgLen < 0 || msgLen >= sizeof(cPayloadBuf))
     {
         return MQTTBadParameter;
     }
 
-    prvPublishToTopic(xQoS, xRetain, cTopicBuf, (uint8_t*) cPayloadBuf, msgLen);
+    xStatus = prvPublishToTopic(xQoS, xRetain, cTopicBuf, (uint8_t*) cPayloadBuf, msgLen);
 
     vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 
@@ -460,7 +456,7 @@ static void prvHandleFwUpdateCommand(void *pxSubscriptionContext, MQTTPublishInf
     if (strcmp(tempPayload, "start_update") == 0)
     {
         LogInfo("Starting Firmware update.");
-        xEventGroupSetBits(xHAEventGroup, HA_OTA_UPDATE_START);
+        xEventGroupSetBits(xHAEventGroup, EVT_OTA_UPDATE_START);
     }
 }
 
@@ -702,6 +698,17 @@ void publishEnvSensorConfigs(const char *pThingName, char *cPayloadBuf)
         vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
     }
 }
+#else
+void clearEnvSensorConfigs(const char *pThingName)
+{
+    for (int i = 0; i < ARRAY_SIZE(xEnvSensors); i++)
+    {
+        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s/config", pThingName, xEnvSensors[i].field);
+
+        prvClearRetainedTopic(configPUBLISH_TOPIC);
+        vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+    }
+}
 #endif
 
 #if (DEMO_MOTION_SENSOR == 1)
@@ -764,6 +771,17 @@ void publishMotionSensorConfigs(const char *pThingName, char *cPayloadBuf)
         vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
     }
 }
+#else
+void clearMotionSensorConfigs(const char *pThingName)
+{
+    for (int i = 0; i < ARRAY_SIZE(xMotionSensors); i++)
+    {
+        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s_%s/config", pThingName, xMotionSensors[i].root, xMotionSensors[i].axis);
+
+        prvClearRetainedTopic(configPUBLISH_TOPIC);
+        vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+    }
+}
 #endif
 
 void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf, const char *availability)
@@ -812,8 +830,8 @@ static void prvHandleRebootCommand(void *pxSubscriptionContext, MQTTPublishInfo_
     // Accept either raw string "reboot" or JSON-style {"action":"reboot"}
     if (strcmp(tempPayload, "reboot") == 0 || strstr(tempPayload, "\"reboot\"") != NULL)
     {
-        LogInfo("Reboot command received. Setting HA_COMMAND_RESET flag.");
-        xEventGroupSetBits(xHAEventGroup, HA_COMMAND_RESET);
+        LogInfo("Reboot command received. Setting EVT_COMMAND_RESET flag.");
+        xEventGroupSetBits(xHAEventGroup, EVT_COMMAND_RESET);
     }
     else
     {
@@ -936,7 +954,7 @@ void vHAConfigPublishTask(void *pvParameters)
 
   publishHA_OtaConfig(pThingName, cPayloadBuf);
 
-  publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pThingName);
+  publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pThingName, FW_UPDATE_STATUS_COMPLETED);
 #endif
 
 #if (DEMO_LED == 1)
@@ -972,6 +990,8 @@ void vHAConfigPublishTask(void *pvParameters)
   subscribeToRebootCommandTopic(xMQTTAgentHandle, pThingName);
   publishHA_RebootButton(pThingName, cPayloadBuf);
 
+  vTaskDelay(1000);
+
   /* Send availability message  */
   publishAvailabilityStatus(pThingName, cPayloadBuf, "online");
 
@@ -979,34 +999,36 @@ void vHAConfigPublishTask(void *pvParameters)
 
   while (1)
   {
-    EventBits_t uxBits = xEventGroupWaitBits(
-        xHAEventGroup,
-        HA_OTA_UPDATE_AVAILABLE | HA_OTA_UPDATE_START | HA_COMMAND_RESET,
-        pdTRUE,     // Clear bits
-        pdFALSE,    // Wait for any
-        portMAX_DELAY
-    );
+    EventBits_t uxBits = xEventGroupWaitBits(xHAEventGroup, EVT_OTA_UPDATE_AVAILABLE | EVT_OTA_UPDATE_START | EVT_OTA_COMPLETED | EVT_COMMAND_RESET, pdTRUE, pdFALSE, portMAX_DELAY);
 
+    if ((uxBits & EVT_OTA_UPDATE_AVAILABLE) != 0)
+    {
+      LogInfo("New Firmware available.");
+      publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pThingName, FW_UPDATE_STATUS_IDLE);
+    }
 
-      if ((uxBits & HA_OTA_UPDATE_AVAILABLE) != 0)
-      {
-          LogInfo("New Firmware available.");
-          publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pThingName);
-      }
+    if ((uxBits & EVT_OTA_UPDATE_START) != 0)
+    {
+      LogInfo("Firmware update starting...");
+      publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pThingName, FW_UPDATE_STATUS_UPDATING);
+      publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
+    }
 
-      if ((uxBits & HA_OTA_UPDATE_START) != 0)
-      {
-          LogInfo("Firmware update starting...");
-          publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
-          vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
-      }
+    if (uxBits & EVT_OTA_COMPLETED)
+    {
+      LogInfo("OTA completed");
+      publishFirmwareVersionStatus(newAppFirmwareVersion, newAppFirmwareVersion, pThingName, FW_UPDATE_STATUS_COMPLETED);
+      publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
+      vTaskDelay(1000);
+      vDoSystemReset();
+    }
 
-      if (uxBits & HA_COMMAND_RESET)
-      {
-        LogInfo("Reboot command");
-        publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
-        vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
-        vDoSystemReset();
-      }
+    if (uxBits & EVT_COMMAND_RESET)
+    {
+      LogInfo("Reboot command");
+      publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
+      vTaskDelay(1000);
+      vDoSystemReset();
+    }
   }
 }
