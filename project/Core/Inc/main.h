@@ -240,13 +240,13 @@ void Error_Handler(void);
 #define TASK_STACK_SIZE_SNTP                    2024/** Stack size of the vSNTPTask process task         */
 #define TASK_STACK_SIZE_DEFENDER                2024/** Stack size of the AWSDefender process task       */
 #define TASK_STACK_SIZE_SHADOW                  2024/** Stack size of the ShadowDevice process task      */
-#define TASK_STACK_SIZE_LED                     2024/** Stack size of the LED process task               */
-#define TASK_STACK_SIZE_BUTTON                  2024/** Stack size of the Button process task            */
+#define TASK_STACK_SIZE_LED                     1024/** Stack size of the LED process task               */
+#define TASK_STACK_SIZE_BUTTON                  1024/** Stack size of the Button process task            */
 #define TASK_STACK_SIZE_PUBLISH                 2024/** Stack size of the publish process task           */
-#define TASK_STACK_SIZE_ENV                     2024/** Stack size of the EnvSense process task          */
-#define TASK_STACK_SIZE_LIGHT                   2024/** Stack size of the LightSense process task        */
-#define TASK_STACK_SIZE_MOTION                  2024/** Stack size of the MotionS process task           */
-#define TASK_STACK_SIZE_HS                      2024/** Stack size of the Home Assistant process task    */
+#define TASK_STACK_SIZE_ENV                     1024/** Stack size of the EnvSense process task          */
+#define TASK_STACK_SIZE_LIGHT                   1024/** Stack size of the LightSense process task        */
+#define TASK_STACK_SIZE_MOTION                  1024/** Stack size of the MotionS process task           */
+#define TASK_STACK_SIZE_HS                      1024/** Stack size of the Home Assistant process task    */
 #define TASK_STACK_SIZE_CLI                     2048/** Stack size of the CLI process task               */
 #define TASK_STACK_SIZE_MQTT_AGENT              2048/** Stack size of the MQTTAgent process task         */
 #define TASK_STACK_SIZE_W6X                     2048/** Stack size of the W6X process task               */
