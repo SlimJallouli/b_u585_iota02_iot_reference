@@ -717,6 +717,7 @@
 							<option id="com.st.stm32cube.ide.mcu.debug.option.cpuclock.582870274" name="Cpu clock frequence" superClass="com.st.stm32cube.ide.mcu.debug.option.cpuclock" useByScannerDiscovery="false" value="160" valueType="string"/>
 							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.nanoprintffloat.1499500885" name="Use float with printf from newlib-nano (-u _printf_float)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.nanoprintffloat" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.convertbinary.568740287" name="Convert to binary file (-O binary)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.convertbinary" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.converthex.872491216" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.converthex" value="true" valueType="boolean"/>
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.targetplatform.188370619" isAbstract="false" osList="all" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.targetplatform"/>
 							<builder buildPath="${workspace_loc:/b_u585_iota02_iot_reference}/Debug" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.builder.388169433" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.builder"/>
 							<tool id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.745976896" name="MCU/MPU GCC Assembler" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler">
@@ -885,10 +886,10 @@
 		<configuration configurationName="Ethernet_FleetProvisioning">
 			<resource resourceType="PROJECT" workspacePath="/b_u585_iota02_iot_reference"/>
 		</configuration>
-		<configuration configurationName="ST67"/>
 		<configuration configurationName="MXCHIP_STSAFEA120">
 			<resource resourceType="PROJECT" workspacePath="/b_u585_iota02_iot_reference"/>
 		</configuration>
+		<configuration configurationName="ST67"/>
 		<configuration configurationName="MXCHIP_STSAFEA110">
 			<resource resourceType="PROJECT" workspacePath="/b_u585_iota02_iot_reference"/>
 		</configuration>
@@ -900,12 +901,16 @@
 		<configuration configurationName="ST67 Single (Create single thing)">
 			<resource resourceType="PROJECT" workspacePath="/b_u585_iota02_iot_reference"/>
 		</configuration>
+		<configuration configurationName="Multiple configurations">
+			<resource resourceType="PROJECT" workspacePath="/b_u585_iota02_iot_reference"/>
+		</configuration>
 		<configuration configurationName="MXCHIP_FleeProvisioning">
 			<resource resourceType="PROJECT" workspacePath="/b_u585_iota02_iot_reference"/>
 		</configuration>
 		<configuration configurationName="ST67 Single"/>
 		<configuration configurationName="Ethernet Single"/>
 		<configuration configurationName="Ethernet"/>
+		<configuration configurationName="ST67_NCP"/>
 		<configuration configurationName="Ethernet Single (Create single thing)">
 			<resource resourceType="PROJECT" workspacePath="/b_u585_iota02_iot_reference"/>
 		</configuration>
