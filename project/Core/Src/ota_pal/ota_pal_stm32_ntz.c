@@ -39,7 +39,7 @@
 #include "task.h"
 
 #if DEMO_HOME_ASSISTANT
-#include "event_groups.h"
+#include "sys_evt.h"
 #endif
 
 #include "ota.h"
@@ -57,9 +57,6 @@
 #include "ota_appversion32.h"
 
 #if DEMO_HOME_ASSISTANT
-#define HA_OTA_UPDATE_AVAILABLE     (1 << 0)  // New OTA pending
-#define HA_OTA_UPDATE_START   (2 << 0)  // Signal to start OTA
-
 extern EventGroupHandle_t xHAEventGroup;
 extern AppVersion32_t newAppFirmwareVersion;
 #endif
@@ -1018,16 +1015,16 @@ void extractVersionStructFromPath(AppVersion32_t *pNewAppFirmwareVersion, const 
 
 void waitForOtaStart(void)
 {
-    // Wait indefinitely for HA_OTA_UPDATE_START to be set
+    // Wait indefinitely for EVT_OTA_UPDATE_START to be set
     EventBits_t uxBits = xEventGroupWaitBits(
         xHAEventGroup,
-        HA_OTA_UPDATE_START,   // Bit to wait for
+        EVT_OTA_UPDATE_START,   // Bit to wait for
         pdTRUE,             // Clear bit on exit
         pdFALSE,            // Wait for ANY bit (only one here)
         portMAX_DELAY       // Block forever
     );
 
-    if ((uxBits & HA_OTA_UPDATE_AVAILABLE) != 0) {
+    if ((uxBits & EVT_OTA_UPDATE_AVAILABLE) != 0) {
         LogInfo("OTA start bit received — beginning OTA process...");
         // Proceed with your OTA workflow here
     }
@@ -1092,7 +1089,7 @@ HAL_ICACHE_Enable();
             newAppFirmwareVersion.u.x.minor,
             newAppFirmwareVersion.u.x.build ) );
 
-        xEventGroupSetBits(xHAEventGroup, HA_OTA_UPDATE_AVAILABLE);
+        xEventGroupSetBits(xHAEventGroup, EVT_OTA_UPDATE_AVAILABLE);
 
         waitForOtaStart();
         vTaskDelay(10);
@@ -1262,7 +1259,6 @@ OtaPalStatus_t otaPal_ActivateNewImage( OtaFileContext_t * const pxFileContext )
 
     return uxOtaStatus;
 }
-
 
 void otaPal_EarlyInit( void )
 {
@@ -1708,11 +1704,16 @@ OtaPalStatus_t otaPal_ResetDevice( OtaFileContext_t * const pxFileContext )
 
     if( OTA_PAL_MAIN_ERR( uxStatus ) == OtaPalSuccess )
     {
+#if  DEMO_HOME_ASSISTANT
+      xEventGroupSetBits(xHAEventGroup, EVT_OTA_COMPLETED);
+      vTaskDelay(portMAX_DELAY);
+#else
         vDoSystemReset();
 
         LogError( "System reset failed" );
 
         uxStatus = OTA_PAL_COMBINE_ERR( OtaPalUninitialized, 0 );
+#endif
     }
 
     return uxStatus;
