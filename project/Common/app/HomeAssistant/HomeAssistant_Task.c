@@ -82,6 +82,10 @@ static char publish_topic[MAXT_TOPIC_LENGTH];
  */
 #define configSUBSCRIBE_TOPIC_FORMAT   configPUBLISH_TOPIC_FORMAT
 
+#define MS_PER_HOUR       (60UL * 60UL * 1000UL)
+#define BASE_TIMEOUT_MS   (24UL * MS_PER_HOUR)
+#define JITTER_RANGE_MS   (6UL * MS_PER_HOUR)
+
 /*-----------------------------------------------------------*/
 
 /**
@@ -215,6 +219,24 @@ static MQTTStatus_t prvClearRetainedTopic(char *pcTopic);
  * context used by this demo.
  */
 extern MQTTAgentContext_t xGlobalMqttAgentContext;
+
+/*-----------------------------------------------------------*/
+
+TickType_t GetJitteredTimeout(void)
+{
+    // uxRand() returns a 32-bit unsigned random number
+    // We want a jitter in the range [-6h, +6h]
+    int32_t iJitter = (int32_t)(uxRand() % (2 * JITTER_RANGE_MS)) - (int32_t)JITTER_RANGE_MS;
+
+    uint32_t ulFinalTimeoutMs = BASE_TIMEOUT_MS + iJitter;
+
+    // Ensure timeout is at least 1 tick
+    if (ulFinalTimeoutMs < 1) {
+        ulFinalTimeoutMs = 1;
+    }
+
+    return pdMS_TO_TICKS(ulFinalTimeoutMs);
+}
 
 /*-----------------------------------------------------------*/
 
@@ -591,6 +613,54 @@ static void publishHA_ButtonConfig(const char *pThingName, char *cPayloadBuf)
 #endif
 
 #if (DEMO_LIGHT_SENSOR == 1)
+static void publishHA_WhiteLuxSensorConfig(const char *pThingName, char *cPayloadBuf)
+{
+  size_t xPayloadLength = 0;
+  MQTTQoS_t xQoS = MQTTQoS0;
+  bool xRetain = pdTRUE;
+
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
+           "homeassistant/sensor/%s_white_lux/config", pThingName);
+
+  xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+      "\"name\": \"White Light\","
+      "\"unique_id\": \"%s_white_lux\","
+      "\"state_topic\": \"%s/sensor/env\","
+      "\"value_template\": \"{{ value_json.white_lux }}\","
+      "\"device_class\": \"illuminance\","
+      "\"unit_of_measurement\": \"lx\","
+      "\"availability_topic\": \"%s/status/availability\","
+      "\"payload_available\": \"online\","
+      "\"payload_not_available\": \"offline\","
+      "\"retain\": false,"
+      "\"device\": {"
+      "\"identifiers\": [\"%s\"],"
+      "\"manufacturer\": \"STMicroelectronics\","
+      "\"model\": \"%s\","
+      "\"name\": \"%s\""
+      "}"
+      "}",
+      pThingName,           // unique_id
+      pThingName,           // state_topic
+      pThingName,           // availability_topic
+      pThingName,           // identifiers
+      BOARD,                // model
+      pThingName);
+
+  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+  {
+    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC,
+                      (uint8_t*) cPayloadBuf, xPayloadLength);
+  }
+  else
+  {
+    LogError(("White lux payload truncated"));
+  }
+
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+}
+
+
 static void publishHA_LuxSensorConfig(const char *pThingName, char *cPayloadBuf)
 {
   size_t xPayloadLength = 0;
@@ -603,8 +673,10 @@ static void publishHA_LuxSensorConfig(const char *pThingName, char *cPayloadBuf)
   xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
       "\"name\": \"Ambient Light\","
       "\"unique_id\": \"%s_lux_sensor\","
-      "\"state_topic\": \"%s/sensor/lux_sensor\","
-      "\"value_template\": \"{{ value_json.lux }}\","
+      //"\"state_topic\": \"%s/sensor/lux_sensor\","
+      "\"state_topic\": \"%s/sensor/env\","
+      //"\"value_template\": \"{{ value_json.lux }}\","
+      "\"value_template\": \"{{ value_json.als_lux }}\","
       "\"device_class\": \"illuminance\","
       "\"unit_of_measurement\": \"lx\","
       "\"availability_topic\": \"%s/status/availability\","
@@ -920,6 +992,72 @@ static void publishHA_RebootButton(const char *pThingName, char *cPayloadBuf)
 
 /*-----------------------------------------------------------*/
 
+static void publishHA_DeviceIDSensor(const char *pThingName, const char *pDeviceID, char *cPayloadBuf)
+{
+  size_t xPayloadLength = 0;
+  MQTTQoS_t xQoS = MQTTQoS0;
+  bool xRetain = pdTRUE;
+
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_device_id/config", pThingName);
+
+  xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+      "\"name\": \"Device ID\","
+      "\"unique_id\": \"%s_device_id\","
+      "\"state_topic\": \"%s/status/device_id\","
+      "\"retain\": true,"
+      "\"entity_category\": \"diagnostic\","
+      "\"device_class\": \"diagnostic\","
+      "\"device\": {"
+        "\"identifiers\": [\"%s\"],"
+        "\"manufacturer\": \"STMicroelectronics\","
+        "\"model\": \"%s\","
+        "\"name\": \"%s\""
+      "}"
+    "}",
+    pThingName,     // unique_id
+    pThingName,     // state_topic
+    pThingName,     // identifiers
+    BOARD,          // model
+    pThingName      // name
+  );
+
+  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+  {
+    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+  }
+  else
+  {
+    LogError(("Device ID config payload truncated"));
+  }
+
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+}
+
+static void publishDeviceIDState(const char *pThingName, const char *pDeviceID, char *cPayloadBuf)
+{
+  MQTTQoS_t xQoS = MQTTQoS0;
+  bool xRetain = pdTRUE;
+
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "%s/status/device_id", pThingName);
+
+  snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "\"%s\"", pDeviceID);  // JSON string
+
+  size_t xPayloadLength = strlen(cPayloadBuf);
+
+  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+  {
+    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t *)cPayloadBuf, xPayloadLength);
+  }
+  else
+  {
+    LogError(("Device ID state payload truncated"));
+  }
+
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+}
+
+/*-----------------------------------------------------------*/
+
 void vHAConfigPublishTask(void *pvParameters)
 {
   size_t uxThingNameLen = 0;
@@ -970,9 +1108,11 @@ void vHAConfigPublishTask(void *pvParameters)
 #endif
 
 #if (DEMO_LIGHT_SENSOR == 1)
-  publishHA_LuxSensorConfig(pThingName, cPayloadBuf);
+  publishHA_LuxSensorConfig     (pThingName, cPayloadBuf);
+  publishHA_WhiteLuxSensorConfig(pThingName, cPayloadBuf);
 #else
   clearHA_Config("sensor", pThingName, "lux_sensor");
+  clearHA_Config("sensor", pThingName, "white_lux");
 #endif
 
 #if (DEMO_ENV_SENSOR == 1)
@@ -999,7 +1139,13 @@ void vHAConfigPublishTask(void *pvParameters)
 
   while (1)
   {
-    EventBits_t uxBits = xEventGroupWaitBits(xHAEventGroup, EVT_OTA_UPDATE_AVAILABLE | EVT_OTA_UPDATE_START | EVT_OTA_COMPLETED | EVT_COMMAND_RESET, pdTRUE, pdFALSE, portMAX_DELAY);
+    EventBits_t uxBits = xEventGroupWaitBits(xHAEventGroup, EVT_OTA_UPDATE_AVAILABLE |
+                                                            EVT_OTA_UPDATE_START     |
+                                                            EVT_OTA_COMPLETED        |
+                                                            EVT_COMMAND_RESET,
+                                                            pdTRUE,
+                                                            pdFALSE,
+                                                            GetJitteredTimeout());
 
     if ((uxBits & EVT_OTA_UPDATE_AVAILABLE) != 0)
     {
@@ -1023,7 +1169,7 @@ void vHAConfigPublishTask(void *pvParameters)
       vDoSystemReset();
     }
 
-    if (uxBits & EVT_COMMAND_RESET)
+    if ((uxBits & EVT_COMMAND_RESET) || (0 == uxBits))
     {
       LogInfo("Reboot command");
       publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");

@@ -392,7 +392,7 @@ void StartDefaultTask(void *argument)
 #endif
 
 #if DEMO_LIGHT_SENSOR
-  xTaskCreate(vLightSensorPublishTask, "LightSense", TASK_STACK_SIZE_LIGHT, NULL, TASK_PRIO_LIGHT, NULL);
+//  xTaskCreate(vLightSensorPublishTask, "LightSense", TASK_STACK_SIZE_LIGHT, NULL, TASK_PRIO_LIGHT, NULL);
 #endif
 
 #if DEMO_MOTION_SENSOR

@@ -60,7 +60,7 @@
 #include "custom_bus_os.h"
 #include "custom_errno.h"
 /* USER CODE BEGIN PV */
-VEML3235_Object_t  VEML3235_Obj;
+static VEML3235_Object_t  VEML3235_Obj;
 #else
 #define BSP_ERROR_NONE 0
 #endif

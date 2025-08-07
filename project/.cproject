@@ -717,7 +717,7 @@
 							<option id="com.st.stm32cube.ide.mcu.debug.option.cpuclock.582870274" name="Cpu clock frequence" superClass="com.st.stm32cube.ide.mcu.debug.option.cpuclock" useByScannerDiscovery="false" value="160" valueType="string"/>
 							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.nanoprintffloat.1499500885" name="Use float with printf from newlib-nano (-u _printf_float)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.nanoprintffloat" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.convertbinary.568740287" name="Convert to binary file (-O binary)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.convertbinary" useByScannerDiscovery="false" value="true" valueType="boolean"/>
-							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.converthex.872491216" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.converthex" value="true" valueType="boolean"/>
+							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.converthex.872491216" name="Convert to Intel Hex file (-O ihex)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.converthex" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.targetplatform.188370619" isAbstract="false" osList="all" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.targetplatform"/>
 							<builder buildPath="${workspace_loc:/b_u585_iota02_iot_reference}/Debug" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.builder.388169433" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.builder"/>
 							<tool id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.745976896" name="MCU/MPU GCC Assembler" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler">
@@ -851,16 +851,19 @@
 							<tool id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.objcopy.symbolsrec.1733815691" name="MCU Output Converter Motorola S-rec with symbols" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.objcopy.symbolsrec"/>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1727283771.1163029401.908853188.1522376300.1905709247" name="light_sensor_publish.c" rcbsApplicability="disable" resourcePath="Common/app/sensors/light_sensor_publish.c" toolsToInvoke="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.45484641.941930122">
+						<tool id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.45484641.941930122" name="MCU/MPU GCC Compiler" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.45484641"/>
+					</fileInfo>
 					<sourceEntries>
-						<entry excluding="ST/ST67W6X_Network_Driver|ST/ST67W6X_Network_Driver/Core/w6x_mqtt_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_net_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_sys_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_wifi_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_ble_shell.c|ST/ST67W6X_Network_Driver/Utils/Shell|ST/ST67W6X_Network_Driver/Utils/Performance|ST/ST67W6X_Network_Driver/Utils/Logging|ST/ST67W6X_Network_Driver/Conf" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ST67W6X_Network_Driver"/>
-						<entry excluding="app/echo_client|net/eth|app/sntp|cli/cli_w6x_fs.c|net/ST67W6X" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Common"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ST67W6X"/>
+						<entry excluding="app/sensors/light_sensor_publish.c|app/echo_client|net/eth|app/sntp|cli/cli_w6x_fs.c|net/ST67W6X" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Common"/>
 						<entry excluding="Src/ota_pal/ota_pal_stm32u5_ntz.c|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 						<entry excluding="fs/lfs_port_internal_nor_stm32h5_old.c|w6x_fs|w6x_mqtt|tinycbor/src/open_memstream.c|tinycbor/tools|tinycbor/tests|tinycbor/examples|littlefs/runners|littlefs/bd|corePKCS11/source/portable|corePKCS11/test" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Libraries"/>
+						<entry excluding="ST/ST67W6X_Network_Driver|ST/ST67W6X_Network_Driver/Core/w6x_mqtt_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_net_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_sys_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_wifi_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_ble_shell.c|ST/ST67W6X_Network_Driver/Utils/Shell|ST/ST67W6X_Network_Driver/Utils/Performance|ST/ST67W6X_Network_Driver/Utils/Logging|ST/ST67W6X_Network_Driver/Conf" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ST67W6X"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ST67W6X_Network_Driver"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="STSAFE"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="X-CUBE-MEMS1"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

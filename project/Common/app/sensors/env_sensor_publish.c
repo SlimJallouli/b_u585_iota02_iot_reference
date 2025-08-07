@@ -55,6 +55,7 @@
 #if USE_SENSORS
 #include "hts221.h"
 #include "lps22hh.h"
+#include "veml3235.h"
 #endif
 
 #if USE_SENSORS
@@ -62,6 +63,8 @@
 #include "custom_errno.h"
 static HTS221_Object_t HTS221_Obj;
 static LPS22HH_Object_t LPS22HH_Obj;
+static VEML3235_Object_t  VEML3235_Obj;
+
 #else
 #define BSP_ERROR_NONE 0
 #endif
@@ -74,6 +77,8 @@ typedef struct
   float_t fTemperature1;
   float_t fHumidity;
   float_t fBarometricPressure;
+  uint32_t ALS_Lux;
+  uint32_t WHITE_lux;
 } EnvironmentalSensorData_t;
 
 #define MQTT_PUBLISH_MAX_LEN                 ( 512 )
@@ -99,6 +104,9 @@ struct MQTTAgentCommandContext
   MQTTStatus_t xReturnStatus;
   TaskHandle_t xTaskToNotify;
 };
+
+static int32_t  LIGHT_SENSOR_ConvertToLUX(VEML3235_Object_t *pObj, uint32_t Value, uint32_t *LuxLevel);
+static uint32_t LIGHT_SENSOR_LuxCompensation(uint32_t Value);
 
 /*-----------------------------------------------------------*/
 
@@ -180,18 +188,67 @@ static BaseType_t xIsMqttConnected(void)
 }
 
 /*-----------------------------------------------------------*/
-
-static BaseType_t xInitSensors(void)
+static BaseType_t VEML3235_SensorsInit(void)
 {
 #if USE_SENSORS
-  uint8_t HTS221_Id;
-  uint8_t Status;
-  HTS221_IO_t HTS221_io_ctx =
-  { 0 };
+  uint32_t VEML3235_Id;
+  int32_t Status;
+  VEML3235_IO_t VEML3235_io_ctx = { 0 };
 
-  uint8_t LPS22HH_Id;
-  LPS22HH_IO_t LPS22HH_io_ctx =
-  { 0 };
+  VEML3235_io_ctx.ReadAddress   = VEML3235_I2C_READ_ADD;
+  VEML3235_io_ctx.WriteAddress  = VEML3235_I2C_WRITE_ADD;
+  VEML3235_io_ctx.GetTick       = BSP_GetTick;
+
+#if defined(BUS_I2C1_INSTANCE)
+  /* Configure the driver */
+  VEML3235_io_ctx.Init     = BSP_I2C1_Init_OS;
+  VEML3235_io_ctx.DeInit   = BSP_I2C1_DeInit_OS;
+  VEML3235_io_ctx.ReadReg  = BSP_I2C1_ReadReg_OS;
+  VEML3235_io_ctx.WriteReg = BSP_I2C1_WriteReg_OS;
+#elif defined(BUS_I2C2_INSTANCE)
+  VEML3235_io_ctx.Init     = BSP_I2C2_Init_OS;
+  VEML3235_io_ctx.DeInit   = BSP_I2C2_DeInit_OS;
+  VEML3235_io_ctx.IsReady  = BSP_I2C2_IsReady_OS;
+  VEML3235_io_ctx.ReadReg  = BSP_I2C2_ReadReg_OS;
+  VEML3235_io_ctx.WriteReg = BSP_I2C2_WriteReg_OS;
+#endif
+
+  Status = VEML3235_RegisterBusIO(&VEML3235_Obj, &VEML3235_io_ctx);
+  Status = VEML3235_Init         (&VEML3235_Obj);
+  Status = VEML3235_ReadID       (&VEML3235_Obj, &VEML3235_Id);
+
+  if (VEML3235_ID != VEML3235_Id)
+  {
+    Status = VEML3235_ERROR;
+  }
+
+  if(VEML3235_OK == Status)
+  {
+    Status = VEML3235_Stop(&VEML3235_Obj);
+  }
+
+  if(VEML3235_OK == Status)
+  {
+    Status = VEML3235_SetGain(&VEML3235_Obj, VEML3235_ALS_CHANNEL, VEML3235_CONF_GAIN_1);
+  }
+
+  if(VEML3235_OK == Status)
+  {
+    Status = VEML3235_SetExposureTime(&VEML3235_Obj, VEML3235_CONF_IT100);
+  }
+
+  return Status == VEML3235_OK;
+#else
+  return pdTRUE;
+#endif
+}
+
+static BaseType_t HTS221_SensorsInit(void)
+{
+#if USE_SENSORS
+  uint8_t Status;
+  uint8_t HTS221_Id;
+  HTS221_IO_t HTS221_io_ctx = { 0 };
 
 #if defined(BUS_I2C1_INSTANCE)
   /* Configure the driver */
@@ -233,6 +290,17 @@ static BaseType_t xInitSensors(void)
     vTaskDelay(5);
     HTS221_TEMP_Get_DRDY_Status(&HTS221_Obj, &Status);
   } while (Status != 1);
+#endif
+
+  return pdTRUE;
+}
+
+static BaseType_t LPS22HH_SensorsInit(void)
+{
+#if USE_SENSORS
+  uint8_t Status;
+  uint8_t LPS22HH_Id;
+  LPS22HH_IO_t LPS22HH_io_ctx = { 0 };
 
 #define LPS22HH_I2C_ADDRESS 0xBB
 #if defined(BUS_I2C1_INSTANCE)
@@ -275,25 +343,188 @@ static BaseType_t xInitSensors(void)
     vTaskDelay(5);
     LPS22HH_TEMP_Get_DRDY_Status(&LPS22HH_Obj, &Status);
   } while (Status != 1);
-
 #endif
+
+  return pdTRUE;
+}
+
+static BaseType_t xInitSensors(void)
+{
+  HTS221_SensorsInit();
+  LPS22HH_SensorsInit();
+  VEML3235_SensorsInit();
+
   return pdTRUE;
 }
 
 /*-----------------------------------------------------------*/
+static float IntegrationTime_800[3]     = {0.00426, 0.00852, 0.01704};
+static float IntegrationTime_400[3]     = {0.00852, 0.01704, 0.03408};
+static float IntegrationTime_200[3]     = {0.01704, 0.03408, 0.06816};
+static float IntegrationTime_100[3]     = {0.03408, 0.06816, 0.13632};
+static float IntegrationTime_50[3]      = {0.06816, 0.13632, 0.27264};
+
+static int32_t LIGHT_SENSOR_ConvertToLUX(VEML3235_Object_t *pObj, uint32_t Value, uint32_t *LuxLevel)
+{
+  int32_t ret = VEML3235_OK;
+  float luxConv = 0;
+  uint8_t convPos = 0;
+  uint32_t pGain;
+  uint32_t pExposureTime;
+  int32_t Status;
+
+  Status = VEML3235_GetGain(pObj, VEML3235_ALS_CHANNEL, &pGain);
+
+  if(VEML3235_OK == Status)
+  {
+    Status = VEML3235_GetExposureTime(pObj, &pExposureTime);
+  }
+
+  if(VEML3235_OK == Status)
+  {
+    if (pGain == VEML3235_CONF_GAIN_1)
+    {
+      convPos = 2;
+    }
+    else if (pGain == VEML3235_CONF_GAIN_2)
+    {
+      convPos = 1;
+    }
+    else if (pGain == VEML3235_CONF_GAIN_4)
+    {
+      convPos = 0;
+    }
+    else
+    {
+      Status = VEML3235_INVALID_PARAM;
+    }
+  }
+
+  if(VEML3235_OK == Status)
+  {
+    if(pExposureTime == VEML3235_CONF_IT800)
+    {
+      luxConv = IntegrationTime_800[convPos];
+    }
+    else if(pExposureTime == VEML3235_CONF_IT400)
+    {
+      luxConv = IntegrationTime_400[convPos];
+    }
+    else if(pExposureTime == VEML3235_CONF_IT200)
+    {
+      luxConv = IntegrationTime_200[convPos];
+    }
+    else if(pExposureTime == VEML3235_CONF_IT100)
+    {
+      luxConv = IntegrationTime_100[convPos];
+    }
+    else if(pExposureTime == VEML3235_CONF_IT50)
+    {
+      luxConv = IntegrationTime_50[convPos];
+    }
+    else
+    {
+      Status = VEML3235_INVALID_PARAM;
+    }
+  }
+
+  *LuxLevel =(uint32_t)(luxConv * Value);
+
+  return ret;
+}
+
+static uint32_t LIGHT_SENSOR_LuxCompensation(uint32_t Value)
+{
+
+  /* Polynomial is pulled from the datasheet */
+  float compLux = (.00000000000060135 * (pow(Value, 4))) -
+                      (.0000000093924 * (pow(Value, 3))) +
+                      (.000081488 * (pow(Value,2))) +
+                      (1.0023 * Value);
+  return (uint32_t)compLux;
+}
+
+static BaseType_t  VEML3235_UpdateSensorData(EnvironmentalSensorData_t *pxData)
+{
+  int32_t lBspError = BSP_ERROR_NONE;
+
+    int32_t Status = VEML3235_OK;
+    uint32_t pResult[2] = {0}; // [0] ALS, [1] WHITE
+
+    // Start sensor in continuous mode
+    Status = VEML3235_Start(&VEML3235_Obj, VEML3235_MODE_CONTINUOUS);
+
+    if (Status != VEML3235_OK)
+    {
+        return pdFAIL;
+    }
+
+    // Read raw values
+    Status = VEML3235_GetValues(&VEML3235_Obj, pResult);
+
+    if (Status != VEML3235_OK)
+    {
+        VEML3235_Stop(&VEML3235_Obj); // Cleanup attempt
+        return pdFAIL;
+    }
+
+    // Convert raw values to lux
+    if (LIGHT_SENSOR_ConvertToLUX(&VEML3235_Obj, pResult[0], &pxData->ALS_Lux) != VEML3235_OK ||
+        LIGHT_SENSOR_ConvertToLUX(&VEML3235_Obj, pResult[1], &pxData->WHITE_lux) != VEML3235_OK)
+    {
+        VEML3235_Stop(&VEML3235_Obj);
+        return pdFAIL;
+    }
+
+    // Apply compensation if needed
+    if (pxData->ALS_Lux > 10000)
+    {
+        pxData->ALS_Lux = LIGHT_SENSOR_LuxCompensation(pxData->ALS_Lux);
+    }
+
+    if (pxData->WHITE_lux > 10000)
+    {
+        pxData->WHITE_lux = LIGHT_SENSOR_LuxCompensation(pxData->WHITE_lux);
+    }
+
+    // Stop sensor after read
+    VEML3235_Stop(&VEML3235_Obj);
+
+    return lBspError;
+}
+
+static BaseType_t  HTS221_UpdateSensorData(EnvironmentalSensorData_t *pxData)
+{
+  int32_t lBspError = BSP_ERROR_NONE;
+
+  lBspError += HTS221_TEMP_GetTemperature (&HTS221_Obj,  &pxData->fTemperature0);
+  lBspError  = HTS221_HUM_GetHumidity     (&HTS221_Obj,  &pxData->fHumidity);
+
+  pxData->fTemperature0 -= TEMP_OFFSET;
+
+  return lBspError;
+}
+
+static BaseType_t  LPS22HH_UpdateSensorData(EnvironmentalSensorData_t *pxData)
+{
+  int32_t lBspError = BSP_ERROR_NONE;
+
+  lBspError += LPS22HH_PRESS_GetPressure  (&LPS22HH_Obj, &pxData->fBarometricPressure);
+  lBspError += LPS22HH_TEMP_GetTemperature(&LPS22HH_Obj, &pxData->fTemperature1);
+
+  pxData->fTemperature1 -= TEMP_OFFSET;
+
+  return lBspError;
+}
 
 static BaseType_t xUpdateSensorData(EnvironmentalSensorData_t *pxData)
 {
   int32_t lBspError = BSP_ERROR_NONE;
 
 #if USE_SENSORS
-  lBspError  = HTS221_HUM_GetHumidity     (&HTS221_Obj,  &pxData->fHumidity);
-  lBspError += HTS221_TEMP_GetTemperature (&HTS221_Obj,  &pxData->fTemperature0);
-  lBspError += LPS22HH_PRESS_GetPressure  (&LPS22HH_Obj, &pxData->fBarometricPressure);
-  lBspError += LPS22HH_TEMP_GetTemperature(&LPS22HH_Obj, &pxData->fTemperature1);
-
-  pxData->fTemperature0 -= TEMP_OFFSET;
-  pxData->fTemperature1 -= TEMP_OFFSET;
+  lBspError += HTS221_UpdateSensorData  (pxData);
+  lBspError += LPS22HH_UpdateSensorData (pxData);
+  lBspError += VEML3235_UpdateSensorData(pxData);
 
 #else
   pxData->fHumidity           += 5.0f;
@@ -395,11 +626,13 @@ void vEnvironmentSensorPublishTask(void *pvParameters)
                               xSensorData.fBarometricPressure);
 #else
       lbytesWritten = snprintf(pcPayloadBuf,
-                              MQTT_PUBLISH_MAX_LEN,
-                              "{ \"temp_0_c\": %f, \"rh_pct\": %f, \"baro_mbar\": %f }",
-                              (xSensorData.fTemperature0 + xSensorData.fTemperature1)/2,
-                              xSensorData.fHumidity,
-                              xSensorData.fBarometricPressure);
+                               MQTT_PUBLISH_MAX_LEN,
+                               "{ \"temp_0_c\": %.1f, \"rh_pct\": %.1f, \"baro_mbar\": %.1f, \"als_lux\": %u, \"white_lux\": %u }",
+                               (xSensorData.fTemperature0 + xSensorData.fTemperature1) / 2.0f,
+                               xSensorData.fHumidity,
+                               xSensorData.fBarometricPressure,
+                               xSensorData.ALS_Lux,
+                               xSensorData.WHITE_lux);
 #endif
 
       if( ( lbytesWritten < MQTT_PUBLISH_MAX_LEN ) && ( xIsMqttAgentConnected() == pdTRUE ) )
