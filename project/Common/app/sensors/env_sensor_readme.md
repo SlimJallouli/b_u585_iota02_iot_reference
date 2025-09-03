@@ -50,7 +50,7 @@ This example demonstrates how to publish environmental sensor data (such as temp
    (replace `xxxxxxxxxxxxxxxx` with your board's unique ID, e.g. `stm32h573-002C005B3332511738363236/sensor/env`)
 4. You will see messages published by your board.
 
-![alt text](../../../assets/mqtt_cool_sensor_env.png)
+![alt text](../../../../assets/mqtt_cool_sensor_env.png)
 
 </details>
 
@@ -61,7 +61,7 @@ This example demonstrates how to publish environmental sensor data (such as temp
 
 1. Connect to [broker.emqx.io](https://mqttx.app/web-client) on port `8084`.
 
-![alt text](../../../assets/emqx_mqtt_connect.png)
+![alt text](../../../../assets/emqx_mqtt_connect.png)
 
 3. Subscribe to the topic:  
    `stm32h573-xxxxxxxxxxxxxxxx/sensor/env`  
