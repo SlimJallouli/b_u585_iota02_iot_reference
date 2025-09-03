@@ -58,7 +58,7 @@ You can use any MQTT client to monitor the button status. Below are two recommen
 4. Press the USER_Button on your board.
 5. You will see messages published by your board.
 
-![alt text](../../../assets/mqtt_cool_button_reported.png)
+![alt text](../../../../assets/mqtt_cool_button_reported.png)
 
 </details>
 
@@ -69,7 +69,7 @@ You can use any MQTT client to monitor the button status. Below are two recommen
 
 1. Connect to [mqttx.app web-client](https://mqttx.app/web-client) and connect to `broker.emqx.io` on port `1883`.
 
-![alt text](../../../assets/emqx_mqtt_connect.png)
+![alt text](../../../../assets/emqx_mqtt_connect.png)
 
 2. Subscribe to the topic:  
    `< ThingName >/sensor/button/reported`  
@@ -79,7 +79,7 @@ You can use any MQTT client to monitor the button status. Below are two recommen
 
 4. You will see messages published by your board.
 
-![alt text](../../../assets/emqx_mqtt_button_reported.png)
+![alt text](../../../../assets/emqx_mqtt_button_reported.png)
 
 </details>
 
