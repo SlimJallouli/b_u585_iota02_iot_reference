@@ -2,15 +2,13 @@
 
 This document describes the MQTT topic structure and Home Assistant discovery configuration for your STM32-based IoT device.
 
----
-
 ## 1. Home Assistant MQTT Discovery Topics
+
 Home Assistant uses MQTT discovery to automatically register devices and sensors. Each discovery message must be published to:
 
 ```
 homeassistant/< component >/< device_id >_< sensor >/config
 ```
-
 ## 2. Device Identity
 
 All STM32 device IDs follow the pattern: `stm32x123-< serial_number >`
@@ -18,11 +16,9 @@ All STM32 device IDs follow the pattern: `stm32x123-< serial_number >`
 Example:
 
 - Without STSAFE : `stm32h573-002C005B3332511738363236`
-- With STSAFEA-110: `eval3-0209203A825AD42AC20139`
-- With STSAFEA-120: `eval5-0209203A825AD42AC20139`
+- With STSAFEA-110: `eval3-0209203A825AD52AC20139`
+- With STSAFEA-120: `eval5-0209203A825AD52AC20139`
 - With STSAFEA-TPM: `ST1-TPM-TCA01-EBD60101EE7B88`
----
-
 
 ## 3. Home Assistant MQTT Bridge to AWS IoT Core with Auto Discovery
 
@@ -36,9 +32,16 @@ This guide outlines the steps to configure Home Assistant (HA) to connect to AWS
   - MQTT topics for config and state
 - Devices publishing retained MQTT discovery messages
 
----
+### 3.2. Step 1: Create a device in AWS
+![AWS_HomeAssistant_Thing.png](../../../../assets/AWS_HomeAssistant_Thing.png)
 
-### 3.2. Step 1: Install File Editor Add-on
+- Download the Thing certificate, the thing private key and [AmazonRootCA1.pem](https://www.amazontrust.com/repository/AmazonRootCA1.pem)
+- Rename the Thing certificate to `certificate.pem.crt`
+- Rename the thing private key to `private.pem.key`
+
+![AWS_HomeAssistant_Certs.png](../../../../assets/AWS_HomeAssistant_Certs.png)
+
+### 3.3. Step 2: Install File Editor Add-on
 
 1. Go to **Settings → Add-ons → Add-on Store**
 2. Search for **File Editor** and install it
@@ -49,33 +52,27 @@ This guide outlines the steps to configure Home Assistant (HA) to connect to AWS
    - Enable `Show in sidebar`
    - Click **Start**
 
----
+### 3.4. Step 3: Add the certs to the SSL folder
+1. Open **File Editor**
+2. Navigate to `/ssl`
+3. Upload the certificates
 
-### 3.3. Step 2: Install Mosquitto Broker Add-on
+![HomeAssistant_Upload_Certs.png](../../../../assets/HomeAssistant_Upload_Certs.png)
 
-1. Go to **Settings → Add-ons → Add-on Store**
-2. Search for **Mosquitto Broker** and install it
-3. Under the **Configuration** tab:
-   - Enable `Customize configuration`
-   - This allows Mosquitto to load configs from `/share/mosquitto`
-4. Under the **Info** tab:
-   - Enable `Start on boot`
-   - Click **Start**
-
----
-
-### 3.4. Step 3: Create Mosquitto Bridge Config
-
+### 3.5. Step 4: Create Mosquitto Bridge Config
 1. Open **File Editor**
 2. Navigate to `/share`
 3. Create a folder named `mosquitto`
 4. Inside `mosquitto`, create a file named `aws_bridge.conf`
 5. Paste the following configuration:
+6. Make sure to update the aws endpoint `address` and the `clientid`
 
 ```ini
 connection aws_bridge
 address <your-aws-endpoint>:8883
-clientid home-assistant-bridge
+clientid HomeAssistant
+
+bridge_protocol_version mqttv311
 
 bridge_cafile /ssl/AmazonRootCA1.pem
 bridge_certfile /ssl/certificate.pem.crt
@@ -90,17 +87,29 @@ topic homeassistant/# both 0
 start_type automatic
 try_private false
 notifications false
+
 ```
 
->***Replace `< your-aws-endpoint >` with your actual AWS IoT Core endpoint.***
+![HomeAssistant_aws_bridge.png](../../../../assets/HomeAssistant_aws_bridge.png)
 
-### Step 4: Restart Mosquitto Broker
+### 3.6. Step 5: Install Mosquitto Broker Add-on
+
+1. Go to **Settings → Add-ons → Add-on Store**
+2. Search for **Mosquitto Broker** and install it
+3. Under the **Configuration** tab:
+   - Enable `Customize configuration`
+   - This allows Mosquitto to load configs from `/share/mosquitto`
+4. Under the **Info** tab:
+   - Enable `Start on boot`
+   - Click **Start**
+
+### 3.7 Step 6: Restart Mosquitto Broker
 * Go to **Settings → Add-ons → Mosquitto Broker**
 
 1. Click Restart
 2. Under the Log tab, confirm that `aws_bridge.conf` was loaded successfully
 
-### Step 5: Enable MQTT Integration in Home Assistant
+### 3.8 Step 7: Enable MQTT Integration in Home Assistant
 1. Go to **Settings → Devices & Services**
 2. Locate the MQTT integration (or add it if not present)
 3. Click Configure
@@ -111,7 +120,7 @@ notifications false
 2. Discovery Prefix: `homeassistant`
 3. Click Submit
 
-### Step 6: Validate Discovery
+### 3.9 Step 8: Validate Discovery
 Go to **Developer Tools → MQTT**
 
 1. Subscribe to `homeassistant/#`
@@ -120,18 +129,26 @@ Go to **Developer Tools → MQTT**
 
 Entities should appear automatically under **Settings → Devices & Services → MQTT**
 
----
+## 4. Home Assistant
 
-## 4. MQTT Topics
+Reset your STM32 boards
 
-### 4.1. Firmware state and revision
+Home Assistant will pick the divices and you shoud be able to see them on the dash board
 
-#### 4.1.1. HomeAssistant discovery
+![HomeAssistant_OverView.png](../../../../assets/HomeAssistant_OverView.png)
+
+## 5. MQTT Topics
+
+This is a description of the MQTT messages sent by STM32 to AWS IoT Core.
+
+### 5.1. Firmware state and revision
+
+#### 5.1.1. HomeAssistant discovery
 - **Topic**: `homeassistant/update/< device_id >_fw/config`
 - **Example**: `homeassistant/update/stm32u585-003000523636500A20333342_fw/config`
 - **Category**: Diagnosic
 
-#### 4.1.2. Config Payload Example:
+#### 5.1.2. Config Payload Example:
 ```json
 {
   "name": "Firmware",
@@ -160,7 +177,7 @@ Entities should appear automatically under **Settings → Devices & Services →
 }
 ```
 
-#### 4.1.3. Device Message
+#### 5.1.3. Device Message
 - **Topic**: `< device_id >/fw/state`
 - **Retained**: True
 
@@ -170,7 +187,7 @@ The message Sent by the device contains:
   - New firmware revision available to install
   - Firmware update status
 
-#### 4.1.4. Example Payload:
+#### 5.1.4. Example Payload:
 ```json
 {
   "installed_version": "1.25.0",
@@ -179,10 +196,10 @@ The message Sent by the device contains:
 }
 ```
 
-#### 4.1.5. Firmware version
+#### 5.1.5. Firmware version
 * If `latest_version` > `installed_version` means a new firmware is available
 
-#### 4.1.6. Firmware status states:
+#### 5.1.6. Firmware status states:
 ```
 * idle
 * updating
@@ -190,7 +207,7 @@ The message Sent by the device contains:
 * unknown
 ```
 
-#### 4.1.7. HomeAssistant Message
+#### 5.1.7. HomeAssistant Message
 - **Topic**: `< device_id >/fw/update`
 - **Retained**: False
 
@@ -200,14 +217,14 @@ A raw message sent by the HomeAssistant to start the firmware update:
 start_update
 ```
 
-### 4.2. LED Status and Control
+### 5.2. LED Status and Control
 
-#### 4.2.1. HomeAssistant discovery
+#### 5.2.1. HomeAssistant discovery
 - **Topic**: `homeassistant/switch/< device_id >_led/config`
 - **Example**: `homeassistant/switch/stm32u585-003000523636500A20333342_led/config`
 - **Category**: Diagnosic
 
-#### 4.2.2. Config Payload Example:
+#### 5.2.2. Config Payload Example:
 ```json
 {
   "name": "LED",
@@ -235,14 +252,14 @@ start_update
 }
 ```
 
-#### 4.2.3. Device Message
+#### 5.2.3. Device Message
 
 - Sent by the device
 - Indicates the current LED status
 - **Topic**: `< device_id >/led/reported`
 - **Retained**: True
 
-#### 4.2.4. Device Payload:
+#### 5.2.4. Device Payload:
 ```json
 {
   "ledStatus": {
@@ -259,11 +276,11 @@ Or
 }
 ```
 
-#### 4.2.5. HomeAssistant Message
+#### 5.2.5. HomeAssistant Message
 - **Topic**: `< device_id >/led/desired`  
 - **Retained**: True
 
-#### 4.2.6. Example Payload:
+#### 5.2.6. Example Payload:
 
 ```
 OFF 
@@ -275,13 +292,13 @@ Or
 ON
 ```
 
-### 4.3. Button Status
+### 5.3. Button Status
 
-#### 4.3.1. HomeAssistant discovery
+#### 5.3.1. HomeAssistant discovery
 - **Topic**: `homeassistant/binary_sensor/< device_id >_button/config`
 - **Example**: `homeassistant/binary_sensor/stm32u585-003000523636500A20333342_button/config`
 
-#### 4.3.2. Config Payload Example:
+#### 5.3.2. Config Payload Example:
 ```json
 {
   "name": "Button",
@@ -306,7 +323,7 @@ ON
 }
 ```
 
-#### 4.3.3. Device Message
+#### 5.3.3. Device Message
 - Indicates the button status (pressed or released).
 - **Topic**: `< device_id >/sensor/button/reported`
 - **Retained**: True
@@ -328,14 +345,14 @@ Or
 }
 ```
 
-### 4.4. Reboot
+### 5.4. Reboot
 
-#### 4.4.1. HomeAssistant discovery
+#### 5.4.1. HomeAssistant discovery
 - **Topic**: `homeassistant/button/< device_id >_reboot/config`
 - **Example**: `homeassistant/button/stm32u585-003000523636500A20333342_reboot/config`
 - **Category**: diagnostic
 
-#### 4.4.2. Config Payload Example:
+#### 5.4.2. Config Payload Example:
 ```json
 {
   "name": "Reboot",
@@ -358,12 +375,12 @@ Or
 }
 ```
 
-#### 4.4.3. HomeAssistant Message
+#### 5.4.3. HomeAssistant Message
 - Send a command to reboot the device
 - **Topic**: `< device_id >/cmd/action`
 - **Retained**: False
 
-#### 4.4.4. Example Payload:
+#### 5.4.4. Example Payload:
 
 ```json
 {
@@ -371,14 +388,14 @@ Or
 }
 ```
 
-### 4.5. Env sensors
+### 5.5. Env sensors
 
-#### 4.5.1. Lux sensor HomeAssistant discovery
+#### 5.5.1. Lux sensor HomeAssistant discovery
 
   - **Topic**: `homeassistant/sensor/< device_id >_lux_sensor/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_lux_sensor/config`
 
-#### 4.5.2. Lux sensor Config Payload Example:
+#### 5.5.2. Lux sensor Config Payload Example:
 ```json
 {
   "name": "Ambient Light",
@@ -402,12 +419,12 @@ Or
 }
 ```
 
-#### 4.5.3. White Lux sensor HomeAssistant discovery
+#### 5.5.3. White Lux sensor HomeAssistant discovery
 
   - **Topic**: `homeassistant/sensor/< device_id >_white_lux/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_white_lux/config`
 
-#### 4.5.4. Lux sensor Config Payload Example:
+#### 5.5.4. Lux sensor Config Payload Example:
 ```json
 {
   "name": "White Light",
@@ -431,12 +448,12 @@ Or
 }
 ```
 
-#### 4.5.5. Barometer sensor HomeAssistant discovery
+#### 5.5.5. Barometer sensor HomeAssistant discovery
 
   - **Topic**: `homeassistant/sensor/< device_id >_baro_mbar/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_baro_mbar/config`
 
-#### 4.5.6. Barometer sensor Config Payload Example:
+#### 5.5.6. Barometer sensor Config Payload Example:
 ```json
 {
   "name": "Pressure",
@@ -460,12 +477,12 @@ Or
 }
 ```
 
-#### 4.5.7. Relative Humidity sensor HomeAssistant discovery
+#### 5.5.7. Relative Humidity sensor HomeAssistant discovery
 
   - **Topic**: `homeassistant/sensor/< device_id >_rh_pct/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_rh_pct/config`
 
-#### 4.5.8. Relative Humidity sensor Config Payload Example:
+#### 5.5.8. Relative Humidity sensor Config Payload Example:
 ```json
 {
   "name": "Humidity",
@@ -489,12 +506,12 @@ Or
 }
 ```
 
-#### 4.5.9. Temperature sensor HomeAssistant discovery
+#### 5.5.9. Temperature sensor HomeAssistant discovery
 
   - **Topic**: `homeassistant/sensor/< device_id >_temp_0_c/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_temp_0_c/config`
 
-#### 4.5.10. Temperature sensor Config Payload Example:
+#### 5.5.10. Temperature sensor Config Payload Example:
 ```json
 {
   "name": "Temperature 0",
@@ -509,34 +526,34 @@ Or
   "retain": false,
   "device": {
     "identifiers": [
-      "stm32u585-001C00444841500520363230"
+      "stm32u585-001C00455851500520363230"
     ],
     "manufacturer": "STMicroelectronics",
     "model": "B_U585_IOTA02",
-    "name": "stm32u585-001C00444841500520363230"
+    "name": "stm32u585-001C00555851500520363230"
   }
 }
 ```
 
-#### 4.5.11. Device Message
+#### 5.5.11. Device Message
 
 - **Topic**: `< device_id >/sensor/env`
 - **Retained**: False
 
-#### 4.5.12. Device Payload:
+#### 5.5.12. Device Payload:
 ```json
 {
   "temp_0_c": 22.3,
-  "rh_pct": 40.2,
+  "rh_pct": 50.2,
   "baro_mbar": 998.1,
   "als_lux": 0,
   "white_lux": 0
 }
 ```
 
-### 4.6. Motion Sensors (Accel, Gyro, Mag)
+### 5.6. Motion Sensors (Accel, Gyro, Mag)
 
-#### 4.6.1. Motion Sensors HomeAssistant discovery
+#### 5.6.1. Motion Sensors HomeAssistant discovery
 
 Each axis is registered as a separate sensor in Home Assistant:
 
@@ -553,61 +570,61 @@ Each axis is registered as a separate sensor in Home Assistant:
     - `homeassistant/sensor/< device_id >_magnetometer_y/config`
     - `homeassistant/sensor/< device_id >_magnetometer_z/config`
 
-  - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_acceleration_x/config`
+  - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333352_acceleration_x/config`
 
-#### 4.6.2. Motion sensor Config Payload Example:
+#### 5.6.2. Motion sensor Config Payload Example:
 ```json
 {
   "name": "Acceleration_x",
-  "unique_id": "stm32u585-001C00444841500520363230_acceleration_x",
-  "state_topic": "stm32u585-001C00444841500520363230/sensor/motion",
+  "unique_id": "stm32u585-001C00555851500520363230_acceleration_x",
+  "state_topic": "stm32u585-001C00555851500520363230/sensor/motion",
   "value_template": "{{ value_json.acceleration_mG.x }}",
   "device_class": "Acceleration",
   "unit_of_measurement": "mG",
-  "availability_topic": "stm32u585-001C00444841500520363230/status/availability",
+  "availability_topic": "stm32u585-001C00555851500520363230/status/availability",
   "payload_available": "online",
   "payload_not_available": "offline",
   "retain": false,
   "device": {
     "identifiers": [
-      "stm32u585-001C00444841500520363230"
+      "stm32u585-001C00555851500520363230"
     ],
     "manufacturer": "STMicroelectronics",
     "model": "B_U585_IOTA02",
-    "name": "stm32u585-001C00444841500520363230"
+    "name": "stm32u585-001C00555851500520363230"
   }
 }
 ```
 
-#### 4.6.3. Device Payload:
+#### 5.6.3. Device Payload:
 ```json
 {
   "acceleration_mG":{
-    "x": -543,
+    "x": -553,
     "y": 855,
     "z": 969
   },
   "gyro_mDPS":{
-    "x": 649,
+    "x": 659,
     "y": 720,
     "z": -372
   },
   "magnetometer_mGauss":{
-    "x": 460,
-    "y": -554,
+    "x": 560,
+    "y": -555,
     "z": 609
   }
 }
 ```
 
-### 4.7. Device Availability
+### 5.7. Device Availability
 
-#### 4.7.1. Device Message
+#### 5.7.1. Device Message
 - **Topic**: `< device_id >/status/availability`
 - **Retained**: True
-- **Example**: `stm32u585-003000523636500A20333342/status/availability`
+- **Example**: `stm32u585-003000523636500A20333352/status/availability`
 
-#### 4.7.2. Example Payload:
+#### 5.7.2. Example Payload:
 
 ```
 online
@@ -618,3 +635,6 @@ Or
 ```
 offline
 ```
+
+
+
