@@ -84,7 +84,7 @@ static char publish_topic[MAXT_TOPIC_LENGTH];
 
 #define MS_PER_HOUR       (60UL * 60UL * 1000UL)
 #define BASE_TIMEOUT_MS   (24UL * MS_PER_HOUR)
-#define JITTER_RANGE_MS   (6UL * MS_PER_HOUR)
+#define JITTER_RANGE_MS   (1UL  * MS_PER_HOUR)
 
 /*-----------------------------------------------------------*/
 
@@ -367,7 +367,7 @@ static void publishHA_OtaConfig(const char *pThingName, char *cPayloadBuf)
       "\"payload_not_available\": \"offline\","
       "\"retain\": false,"
       "\"device_class\": \"firmware\","
-      "\"entity_category\": \"diagnostic\","
+      //"\"entity_category\": \"diagnostic\","
       "\"device\": {"
         "\"identifiers\": [\"%s\"],"
         "\"manufacturer\": \"STMicroelectronics\","
@@ -533,7 +533,7 @@ static void publishHA_LedConfig(const char *pThingName, char *cPayloadBuf)
       "\"payload_available\": \"online\","
       "\"payload_not_available\": \"offline\","
       "\"retain\": false,"
-      "\"entity_category\": \"diagnostic\","
+      //"\"entity_category\": \"diagnostic\","
       "\"device\": {"
       "\"identifiers\": [\"%s\"],"
       "\"manufacturer\": \"STMicroelectronics\","
@@ -962,7 +962,7 @@ static void publishHA_RebootButton(const char *pThingName, char *cPayloadBuf)
       "\"availability_topic\": \"%s/status/availability\","
       "\"payload_available\": \"online\","
       "\"payload_not_available\": \"offline\","
-      "\"entity_category\": \"diagnostic\","
+      //"\"entity_category\": \"diagnostic\","
       "\"device\": {"
         "\"identifiers\": [\"%s\"],"
         "\"manufacturer\": \"STMicroelectronics\","
@@ -991,7 +991,7 @@ static void publishHA_RebootButton(const char *pThingName, char *cPayloadBuf)
 }
 
 /*-----------------------------------------------------------*/
-
+#if 0
 static void publishHA_DeviceIDSensor(const char *pThingName, const char *pDeviceID, char *cPayloadBuf)
 {
   size_t xPayloadLength = 0;
@@ -1055,6 +1055,7 @@ static void publishDeviceIDState(const char *pThingName, const char *pDeviceID, 
 
   vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 }
+#endif
 
 /*-----------------------------------------------------------*/
 
@@ -1139,13 +1140,14 @@ void vHAConfigPublishTask(void *pvParameters)
 
   while (1)
   {
-    EventBits_t uxBits = xEventGroupWaitBits(xHAEventGroup, EVT_OTA_UPDATE_AVAILABLE |
-                                                            EVT_OTA_UPDATE_START     |
-                                                            EVT_OTA_COMPLETED        |
-                                                            EVT_COMMAND_RESET,
-                                                            pdTRUE,
-                                                            pdFALSE,
-                                                            GetJitteredTimeout());
+    EventBits_t uxBits = xEventGroupWaitBits(xHAEventGroup,
+                                             EVT_OTA_UPDATE_AVAILABLE |
+                                             EVT_OTA_UPDATE_START     |
+                                             EVT_OTA_COMPLETED        |
+                                             EVT_COMMAND_RESET,
+                                             pdTRUE,
+                                             pdFALSE,
+                                             GetJitteredTimeout());
 
     if ((uxBits & EVT_OTA_UPDATE_AVAILABLE) != 0)
     {
@@ -1163,9 +1165,9 @@ void vHAConfigPublishTask(void *pvParameters)
     if (uxBits & EVT_OTA_COMPLETED)
     {
       LogInfo("OTA completed");
-      publishFirmwareVersionStatus(newAppFirmwareVersion, newAppFirmwareVersion, pThingName, FW_UPDATE_STATUS_COMPLETED);
-      publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
-      vTaskDelay(1000);
+//      publishFirmwareVersionStatus(newAppFirmwareVersion, newAppFirmwareVersion, pThingName, FW_UPDATE_STATUS_COMPLETED);
+//      publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
+//      vTaskDelay(1000);
       vDoSystemReset();
     }
 
