@@ -43,7 +43,7 @@ This guide outlines the steps to configure Home Assistant (HA) to connect to AWS
 
 ### 3.3. Step 2: Install File Editor Add-on
 
-1. Go to **Settings → Add-ons → Add-on Store**
+1. Go to **Settings > Add-ons > Add-on Store**
 2. Search for **File Editor** and install it
 3. Under the **Configuration** tab:
    - Disable `enforce_basepath` to allow editing any file
@@ -65,7 +65,7 @@ This guide outlines the steps to configure Home Assistant (HA) to connect to AWS
 3. Create a folder named `mosquitto`
 4. Inside `mosquitto`, create a file named `aws_bridge.conf`
 5. Paste the following configuration:
-6. Make sure to update the aws endpoint `address` and the `clientid`
+6. Make sure to update the AWS `endpoint` address and the `clientid`. The `clientid` should match the Thing name of your Raspberry Pi device (created in step 3.2).
 
 ```ini
 connection aws_bridge
@@ -94,7 +94,7 @@ notifications false
 
 ### 3.6. Step 5: Install Mosquitto Broker Add-on
 
-1. Go to **Settings → Add-ons → Add-on Store**
+1. Go to **Settings > Add-ons > Add-on Store**
 2. Search for **Mosquitto Broker** and install it
 3. Under the **Configuration** tab:
    - Enable `Customize configuration`
@@ -104,13 +104,13 @@ notifications false
    - Click **Start**
 
 ### 3.7 Step 6: Restart Mosquitto Broker
-* Go to **Settings → Add-ons → Mosquitto Broker**
+* Go to **Settings > Add-ons > Mosquitto Broker**
 
 1. Click Restart
 2. Under the Log tab, confirm that `aws_bridge.conf` was loaded successfully
 
 ### 3.8 Step 7: Enable MQTT Integration in Home Assistant
-1. Go to **Settings → Devices & Services**
+1. Go to **Settings > Devices & Services**
 2. Locate the MQTT integration (or add it if not present)
 3. Click Configure
 
@@ -121,19 +121,19 @@ notifications false
 3. Click Submit
 
 ### 3.9 Step 8: Validate Discovery
-Go to **Developer Tools → MQTT**
+Go to **Developer Tools > MQTT**
 
 1. Subscribe to `homeassistant/#`
 2. Confirm that retained config messages are received
 3. Confirm that state messages are published to the correct topics
 
-Entities should appear automatically under **Settings → Devices & Services → MQTT**
+Entities should appear automatically under **Settings > Devices & Services > MQTT**
 
 ## 4. Home Assistant
 
 Reset your STM32 boards
 
-Home Assistant will pick the divices and you shoud be able to see them on the dash board
+Home Assistant will pick the devices and you should be able to see them on the dashboard
 
 ![HomeAssistant_OverView.png](../../../../assets/HomeAssistant_OverView.png)
 
@@ -143,10 +143,10 @@ This is a description of the MQTT messages sent by STM32 to AWS IoT Core.
 
 ### 5.1. Firmware state and revision
 
-#### 5.1.1. HomeAssistant discovery
+#### 5.1.1. Home Assistant discovery
 - **Topic**: `homeassistant/update/< device_id >_fw/config`
 - **Example**: `homeassistant/update/stm32u585-003000523636500A20333342_fw/config`
-- **Category**: Diagnosic
+- **Category**: Diagnostic
 
 #### 5.1.2. Config Payload Example:
 ```json
@@ -207,11 +207,11 @@ The message Sent by the device contains:
 * unknown
 ```
 
-#### 5.1.7. HomeAssistant Message
+#### 5.1.7. Home Assistant Message
 - **Topic**: `< device_id >/fw/update`
 - **Retained**: False
 
-A raw message sent by the HomeAssistant to start the firmware update:
+A raw message sent by Home Assistant to start the firmware update:
 
 ```
 start_update
@@ -219,10 +219,10 @@ start_update
 
 ### 5.2. LED Status and Control
 
-#### 5.2.1. HomeAssistant discovery
+#### 5.2.1. Home Assistant discovery
 - **Topic**: `homeassistant/switch/< device_id >_led/config`
 - **Example**: `homeassistant/switch/stm32u585-003000523636500A20333342_led/config`
-- **Category**: Diagnosic
+- **Category**: Diagnostic
 
 #### 5.2.2. Config Payload Example:
 ```json
@@ -276,7 +276,7 @@ Or
 }
 ```
 
-#### 5.2.5. HomeAssistant Message
+#### 5.2.5. Home Assistant Message
 - **Topic**: `< device_id >/led/desired`  
 - **Retained**: True
 
@@ -294,7 +294,7 @@ ON
 
 ### 5.3. Button Status
 
-#### 5.3.1. HomeAssistant discovery
+#### 5.3.1. Home Assistant discovery
 - **Topic**: `homeassistant/binary_sensor/< device_id >_button/config`
 - **Example**: `homeassistant/binary_sensor/stm32u585-003000523636500A20333342_button/config`
 
@@ -347,7 +347,7 @@ Or
 
 ### 5.4. Reboot
 
-#### 5.4.1. HomeAssistant discovery
+#### 5.4.1. Home Assistant discovery
 - **Topic**: `homeassistant/button/< device_id >_reboot/config`
 - **Example**: `homeassistant/button/stm32u585-003000523636500A20333342_reboot/config`
 - **Category**: diagnostic
@@ -375,7 +375,7 @@ Or
 }
 ```
 
-#### 5.4.3. HomeAssistant Message
+#### 5.4.3. Home Assistant Message
 - Send a command to reboot the device
 - **Topic**: `< device_id >/cmd/action`
 - **Retained**: False
@@ -390,7 +390,7 @@ Or
 
 ### 5.5. Env sensors
 
-#### 5.5.1. Lux sensor HomeAssistant discovery
+#### 5.5.1. Lux sensor Home Assistant discovery
 
   - **Topic**: `homeassistant/sensor/< device_id >_lux_sensor/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_lux_sensor/config`
@@ -419,7 +419,7 @@ Or
 }
 ```
 
-#### 5.5.3. White Lux sensor HomeAssistant discovery
+#### 5.5.3. White Lux sensor Home Assistant discovery
 
   - **Topic**: `homeassistant/sensor/< device_id >_white_lux/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_white_lux/config`
@@ -448,7 +448,7 @@ Or
 }
 ```
 
-#### 5.5.5. Barometer sensor HomeAssistant discovery
+#### 5.5.5. Barometer sensor Home Assistant discovery
 
   - **Topic**: `homeassistant/sensor/< device_id >_baro_mbar/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_baro_mbar/config`
@@ -477,7 +477,7 @@ Or
 }
 ```
 
-#### 5.5.7. Relative Humidity sensor HomeAssistant discovery
+#### 5.5.7. Relative Humidity sensor Home Assistant discovery
 
   - **Topic**: `homeassistant/sensor/< device_id >_rh_pct/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_rh_pct/config`
@@ -506,7 +506,7 @@ Or
 }
 ```
 
-#### 5.5.9. Temperature sensor HomeAssistant discovery
+#### 5.5.9. Temperature sensor Home Assistant discovery
 
   - **Topic**: `homeassistant/sensor/< device_id >_temp_0_c/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_temp_0_c/config`
@@ -526,11 +526,11 @@ Or
   "retain": false,
   "device": {
     "identifiers": [
-      "stm32u585-001C00455851500520363230"
+      "stm32u585-001C00444841500520363230"
     ],
     "manufacturer": "STMicroelectronics",
     "model": "B_U585_IOTA02",
-    "name": "stm32u585-001C00555851500520363230"
+    "name": "stm32u585-001C00444841500520363230"
   }
 }
 ```
@@ -553,7 +553,7 @@ Or
 
 ### 5.6. Motion Sensors (Accel, Gyro, Mag)
 
-#### 5.6.1. Motion Sensors HomeAssistant discovery
+#### 5.6.1. Motion Sensors Home Assistant discovery
 
 Each axis is registered as a separate sensor in Home Assistant:
 
