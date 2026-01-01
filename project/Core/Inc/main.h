@@ -212,8 +212,6 @@ void Error_Handler(void);
 																		             DEMO_BUTTON        || \
                                                  defined(DEMO_FLEET_PROVISION))
 
-#define USE_AVG_TEMP                            1
-
 #define TASK_PRIO_OTA                           (tskIDLE_PRIORITY      + 1 )
 #define TASK_PRIO_fleetProvisioning             (tskIDLE_PRIORITY      + 1 )
 #define TASK_PRIO_SNTP                          (tskIDLE_PRIORITY      + 2 )

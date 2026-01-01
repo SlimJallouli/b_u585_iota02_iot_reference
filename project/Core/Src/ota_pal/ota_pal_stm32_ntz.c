@@ -38,10 +38,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#if DEMO_HOME_ASSISTANT
-#include "sys_evt.h"
-#endif
-
 #include "ota.h"
 #include "ota_pal.h"
 #include "main.h"
@@ -57,6 +53,8 @@
 #include "ota_appversion32.h"
 
 #if DEMO_HOME_ASSISTANT
+#include "sys_evt.h"
+
 extern EventGroupHandle_t xHAEventGroup;
 extern AppVersion32_t newAppFirmwareVersion;
 #endif
@@ -148,10 +146,14 @@ static uint32_t prvGetActiveBank( void );
 static uint32_t prvGetInactiveBank( void );
 
 /* STM32 HAL Wrappers */
+#if !defined(LFS_USE_INTERNAL_NOR)
 static BaseType_t prvSelectBank( uint32_t ulNewBank );
+static void prvOptionByteApply( void );
+#endif
+
 static uint32_t prvGetBankSettingFromOB( void );
 
-static void prvOptionByteApply( void );
+
 
 /* Flash write./erase */
 static HAL_StatusTypeDef prvWriteToFlash( uint32_t destination,
@@ -424,10 +426,11 @@ static OtaPalContext_t * prvGetImageContext( void )
     return pxCtx;
 }
 
+#if !defined(LFS_USE_INTERNAL_NOR)
 static BaseType_t prvSelectBank( uint32_t ulNewBank )
 {
     BaseType_t xResult = pdTRUE;
-#if !defined(LFS_USE_INTERNAL_NOR)
+
     FLASH_OBProgramInitTypeDef xObContext = { 0 };
 
     /* Validate selected bank */
@@ -485,13 +488,12 @@ static BaseType_t prvSelectBank( uint32_t ulNewBank )
 
         xResult = ( xHalStatus == HAL_OK ) ? pdTRUE : pdFALSE;
     }
-#endif
+
     return xResult;
 }
 
 static void prvOptionByteApply( void )
 {
-#if !defined(LFS_USE_INTERNAL_NOR)
     vPetWatchdog();
 
     if( xTaskGetSchedulerState() == taskSCHEDULER_RUNNING )
@@ -510,8 +512,9 @@ static void prvOptionByteApply( void )
     /* Generate System Reset to load the new option byte values ***************/
     /* On successful option bytes loading the system should reset and control should not return from this function. */
     ( void ) HAL_FLASH_OB_Launch();
-#endif
+
 }
+#endif
 
 static uint32_t prvGetActiveBank( void )
 {

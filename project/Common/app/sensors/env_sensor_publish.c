@@ -56,15 +56,12 @@
 #include "hts221.h"
 #include "lps22hh.h"
 #include "veml3235.h"
-#endif
-
-#if USE_SENSORS
 #include "custom_bus_os.h"
 #include "custom_errno.h"
+
 static HTS221_Object_t HTS221_Obj;
 static LPS22HH_Object_t LPS22HH_Obj;
 static VEML3235_Object_t  VEML3235_Obj;
-
 #else
 #define BSP_ERROR_NONE 0
 #endif
@@ -94,7 +91,6 @@ typedef struct
 extern UBaseType_t uxRand(void);
 
 /*-----------------------------------------------------------*/
-
 /**
  * @brief Defines the structure to use as the command callback context in this
  * demo.
@@ -109,7 +105,6 @@ static int32_t  LIGHT_SENSOR_ConvertToLUX(VEML3235_Object_t *pObj, uint32_t Valu
 static uint32_t LIGHT_SENSOR_LuxCompensation(uint32_t Value);
 
 /*-----------------------------------------------------------*/
-
 static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext, MQTTAgentReturnInfo_t *pxReturnInfo)
 {
   configASSERT(pxCommandContext != NULL);
@@ -127,7 +122,6 @@ static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContex
 }
 
 /*-----------------------------------------------------------*/
-
 static BaseType_t prvPublishAndWaitForAck(MQTTAgentHandle_t xMQTTAgentHandle, const char *pcTopic, const void *pvPublishData, size_t xPublishDataLen)
 {
   BaseType_t xResult = pdFALSE;
@@ -175,7 +169,6 @@ static BaseType_t prvPublishAndWaitForAck(MQTTAgentHandle_t xMQTTAgentHandle, co
 }
 
 /*-----------------------------------------------------------*/
-
 static BaseType_t xIsMqttConnected(void)
 {
   /* Wait for MQTT to be connected */
@@ -243,6 +236,7 @@ static BaseType_t VEML3235_SensorsInit(void)
 #endif
 }
 
+/*-----------------------------------------------------------*/
 static BaseType_t HTS221_SensorsInit(void)
 {
 #if USE_SENSORS
@@ -252,25 +246,25 @@ static BaseType_t HTS221_SensorsInit(void)
 
 #if defined(BUS_I2C1_INSTANCE)
   /* Configure the driver */
-  HTS221_io_ctx.BusType = HTS221_I2C_BUS; /* I2C */
-  HTS221_io_ctx.Address = HTS221_I2C_ADDRESS;
-  HTS221_io_ctx.Init = BSP_I2C1_Init_OS;
-  HTS221_io_ctx.DeInit = BSP_I2C1_DeInit_OS;
-  HTS221_io_ctx.ReadReg = BSP_I2C1_ReadReg_OS;
+  HTS221_io_ctx.BusType  = HTS221_I2C_BUS; /* I2C */
+  HTS221_io_ctx.Address  = HTS221_I2C_ADDRESS;
+  HTS221_io_ctx.Init     = BSP_I2C1_Init_OS;
+  HTS221_io_ctx.DeInit   = BSP_I2C1_DeInit_OS;
+  HTS221_io_ctx.ReadReg  = BSP_I2C1_ReadReg_OS;
   HTS221_io_ctx.WriteReg = BSP_I2C1_WriteReg_OS;
 #elif defined(BUS_I2C2_INSTANCE)
   /* Configure the driver */
-  HTS221_io_ctx.BusType = HTS221_I2C_BUS; /* I2C */
-  HTS221_io_ctx.Address = HTS221_I2C_ADDRESS;
-  HTS221_io_ctx.Init = BSP_I2C2_Init_OS;
-  HTS221_io_ctx.DeInit = BSP_I2C2_DeInit_OS;
-  HTS221_io_ctx.ReadReg = BSP_I2C2_ReadReg_OS;
+  HTS221_io_ctx.BusType  = HTS221_I2C_BUS; /* I2C */
+  HTS221_io_ctx.Address  = HTS221_I2C_ADDRESS;
+  HTS221_io_ctx.Init     = BSP_I2C2_Init_OS;
+  HTS221_io_ctx.DeInit   = BSP_I2C2_DeInit_OS;
+  HTS221_io_ctx.ReadReg  = BSP_I2C2_ReadReg_OS;
   HTS221_io_ctx.WriteReg = BSP_I2C2_WriteReg_OS;
 #endif
 
   HTS221_RegisterBusIO(&HTS221_Obj, &HTS221_io_ctx);
-  HTS221_Init(&HTS221_Obj);
-  HTS221_ReadID(&HTS221_Obj, &HTS221_Id);
+  HTS221_Init         (&HTS221_Obj);
+  HTS221_ReadID       (&HTS221_Obj, &HTS221_Id);
 
   if (HTS221_Id != HTS221_ID)
   {
@@ -295,6 +289,7 @@ static BaseType_t HTS221_SensorsInit(void)
   return pdTRUE;
 }
 
+/*-----------------------------------------------------------*/
 static BaseType_t LPS22HH_SensorsInit(void)
 {
 #if USE_SENSORS
@@ -303,33 +298,35 @@ static BaseType_t LPS22HH_SensorsInit(void)
   LPS22HH_IO_t LPS22HH_io_ctx = { 0 };
 
 #define LPS22HH_I2C_ADDRESS 0xBB
+
 #if defined(BUS_I2C1_INSTANCE)
   /* Configure the driver */
-  LPS22HH_io_ctx.BusType = LPS22HH_I2C_BUS; /* I2C */
-  LPS22HH_io_ctx.Address = LPS22HH_I2C_ADDRESS;
-  LPS22HH_io_ctx.Init = BSP_I2C1_Init_OS;
-  LPS22HH_io_ctx.DeInit = BSP_I2C1_DeInit_OS;
-  LPS22HH_io_ctx.ReadReg = BSP_I2C1_ReadReg_OS;
+  LPS22HH_io_ctx.BusType  = LPS22HH_I2C_BUS; /* I2C */
+  LPS22HH_io_ctx.Address  = LPS22HH_I2C_ADDRESS;
+  LPS22HH_io_ctx.Init     = BSP_I2C1_Init_OS;
+  LPS22HH_io_ctx.DeInit   = BSP_I2C1_DeInit_OS;
+  LPS22HH_io_ctx.ReadReg  = BSP_I2C1_ReadReg_OS;
   LPS22HH_io_ctx.WriteReg = BSP_I2C1_WriteReg_OS;
 #elif defined(BUS_I2C2_INSTANCE)
   /* Configure the driver */
-  LPS22HH_io_ctx.BusType = LPS22HH_I2C_BUS; /* I2C */
-  LPS22HH_io_ctx.Address = LPS22HH_I2C_ADDRESS;
-  LPS22HH_io_ctx.Init = BSP_I2C2_Init_OS;
-  LPS22HH_io_ctx.DeInit = BSP_I2C2_DeInit_OS;
-  LPS22HH_io_ctx.ReadReg = BSP_I2C2_ReadReg_OS;
+  LPS22HH_io_ctx.BusType  = LPS22HH_I2C_BUS; /* I2C */
+  LPS22HH_io_ctx.Address  = LPS22HH_I2C_ADDRESS;
+  LPS22HH_io_ctx.Init     = BSP_I2C2_Init_OS;
+  LPS22HH_io_ctx.DeInit   = BSP_I2C2_DeInit_OS;
+  LPS22HH_io_ctx.ReadReg  = BSP_I2C2_ReadReg_OS;
   LPS22HH_io_ctx.WriteReg = BSP_I2C2_WriteReg_OS;
 #endif
+
   LPS22HH_RegisterBusIO(&LPS22HH_Obj, &LPS22HH_io_ctx);
-  LPS22HH_Init(&LPS22HH_Obj);
-  LPS22HH_ReadID(&LPS22HH_Obj, &LPS22HH_Id);
+  LPS22HH_Init         (&LPS22HH_Obj);
+  LPS22HH_ReadID       (&LPS22HH_Obj, &LPS22HH_Id);
 
   if (LPS22HH_Id != LPS22HH_ID)
   {
     return LPS22HH_ERROR;
   }
 
-  LPS22HH_TEMP_Enable(&LPS22HH_Obj);
+  LPS22HH_TEMP_Enable (&LPS22HH_Obj);
   LPS22HH_PRESS_Enable(&LPS22HH_Obj);
 
   do
@@ -348,6 +345,7 @@ static BaseType_t LPS22HH_SensorsInit(void)
   return pdTRUE;
 }
 
+/*-----------------------------------------------------------*/
 static BaseType_t xInitSensors(void)
 {
   HTS221_SensorsInit();
@@ -439,8 +437,9 @@ static uint32_t LIGHT_SENSOR_LuxCompensation(uint32_t Value)
   /* Polynomial is pulled from the datasheet */
   float compLux = (.00000000000060135 * (pow(Value, 4))) -
                       (.0000000093924 * (pow(Value, 3))) +
-                      (.000081488 * (pow(Value,2))) +
+                      (.000081488     * (pow(Value,2)))  +
                       (1.0023 * Value);
+
   return (uint32_t)compLux;
 }
 
@@ -542,7 +541,6 @@ static BaseType_t xUpdateSensorData(EnvironmentalSensorData_t *pxData)
 }
 
 /*-----------------------------------------------------------*/
-
 void vEnvironmentSensorPublishTask(void *pvParameters)
 {
   BaseType_t xResult   = pdFALSE;
@@ -615,7 +613,7 @@ void vEnvironmentSensorPublishTask(void *pvParameters)
     else if (xIsMqttConnected() == pdTRUE)
     {
       int lbytesWritten = 0;
-#if (USE_AVG_TEMP == 0)
+
       /* Write to */
       lbytesWritten = snprintf(pcPayloadBuf,
                               MQTT_PUBLISH_MAX_LEN,
@@ -624,16 +622,6 @@ void vEnvironmentSensorPublishTask(void *pvParameters)
                               xSensorData.fHumidity,
                               xSensorData.fTemperature1,
                               xSensorData.fBarometricPressure);
-#else
-      lbytesWritten = snprintf(pcPayloadBuf,
-                               MQTT_PUBLISH_MAX_LEN,
-                               "{ \"temp_0_c\": %.1f, \"rh_pct\": %.1f, \"baro_mbar\": %.1f, \"als_lux\": %u, \"white_lux\": %u }",
-                               (xSensorData.fTemperature0 + xSensorData.fTemperature1) / 2.0f,
-                               xSensorData.fHumidity,
-                               xSensorData.fBarometricPressure,
-                               xSensorData.ALS_Lux,
-                               xSensorData.WHITE_lux);
-#endif
 
       if( ( lbytesWritten < MQTT_PUBLISH_MAX_LEN ) && ( xIsMqttAgentConnected() == pdTRUE ) )
       {

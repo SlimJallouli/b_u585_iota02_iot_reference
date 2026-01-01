@@ -115,11 +115,6 @@ typedef struct EnvSensorDescriptor_t{
 
 static const EnvSensorDescriptor_t xEnvSensors[] = {
     { "temp_0_c"    , "Temperature 0" , "°C"     , "temperature", pdTRUE  },
-#if (USE_AVG_TEMP == 0)
-    { "temp_1_c"    , "Temperature 1" , "°C"     , "temperature", pdTRUE  },
-#else
-    { "temp_1_c"    , "Temperature 1" , "°C"     , "temperature", pdFALSE },
-#endif
     { "rh_pct"      , "Humidity"      , "%"      , "humidity"   , pdTRUE  },
     { "baro_mbar"   , "Pressure"      , "mbar"   , "pressure"   , pdTRUE  }
 };
@@ -153,8 +148,9 @@ static MQTTAgentHandle_t xMQTTAgentHandle = NULL;
 static char *pThingName = NULL;
 static char *cPayloadBuf = NULL;
 
-#if (DEMO_OTA == 1)
 EventGroupHandle_t xHAEventGroup;
+
+#if (DEMO_OTA == 1)
 volatile AppVersion32_t newAppFirmwareVersion;
 #endif
 
@@ -221,11 +217,10 @@ static MQTTStatus_t prvClearRetainedTopic(char *pcTopic);
 extern MQTTAgentContext_t xGlobalMqttAgentContext;
 
 /*-----------------------------------------------------------*/
-
 TickType_t GetJitteredTimeout(void)
 {
     // uxRand() returns a 32-bit unsigned random number
-    // We want a jitter in the range [-6h, +6h]
+    // We want a jitter in the range [-JITTER_RANGE_MS, +JITTER_RANGE_MS]
     int32_t iJitter = (int32_t)(uxRand() % (2 * JITTER_RANGE_MS)) - (int32_t)JITTER_RANGE_MS;
 
     uint32_t ulFinalTimeoutMs = BASE_TIMEOUT_MS + iJitter;
@@ -239,7 +234,6 @@ TickType_t GetJitteredTimeout(void)
 }
 
 /*-----------------------------------------------------------*/
-
 static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext, MQTTAgentReturnInfo_t *pxReturnInfo)
 {
   if (pxCommandContext->xTaskToNotify != NULL)
@@ -249,7 +243,6 @@ static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContex
 }
 
 /*-----------------------------------------------------------*/
-
 static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength)
 {
   MQTTPublishInfo_t xPublishInfo = { 0UL };
@@ -314,9 +307,9 @@ static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopi
   return xMQTTStatus;
 }
 
-void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf, const char *availability);
-/*-----------------------------------------------------------*/
+static void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf, const char *availability);
 
+/*-----------------------------------------------------------*/
 static MQTTStatus_t prvClearRetainedTopic(char *pcTopic)
 {
   configASSERT(pcTopic != NULL);
@@ -334,7 +327,6 @@ static void clearHA_Config(const char *domain, const char *thing, const char *su
 #endif
 
 /*-----------------------------------------------------------*/
-
 #if (DEMO_OTA == 1)
 static void publishHA_OtaConfig(const char *pThingName, char *cPayloadBuf)
 {
@@ -397,6 +389,8 @@ static void publishHA_OtaConfig(const char *pThingName, char *cPayloadBuf)
   }
 
   vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+
+  vPortFree(fwVersionStr);
 }
 
 static const char * fwUpdateStatusToString(FwUpdateStatus_t status)
@@ -484,32 +478,34 @@ static void prvHandleFwUpdateCommand(void *pxSubscriptionContext, MQTTPublishInf
 
 static BaseType_t subscribeToFwUpdateTopic(MQTTAgentHandle_t xMQTTAgentHandle, const char *pcThingName)
 {
-    BaseType_t xResult = pdPASS;
-    MQTTStatus_t xMQTTStatus;
+  BaseType_t xResult = pdPASS;
+  MQTTStatus_t xMQTTStatus;
 
-    char *pTopicBuf = pvPortMalloc(MAXT_TOPIC_LENGTH);
+  char *pTopicBuf = pvPortMalloc(MAXT_TOPIC_LENGTH);
+  configASSERT(pTopicBuf != NULL);
 
-    snprintf(pTopicBuf,MAXT_TOPIC_LENGTH, "%s/fw/update", pcThingName);
+  snprintf(pTopicBuf, MAXT_TOPIC_LENGTH, "%s/fw/update", pcThingName);
 
-    if ((xResult == pdPASS) && (xMQTTAgentHandle != NULL))
+  if ((xResult == pdPASS) && (xMQTTAgentHandle != NULL))
+  {
+    xMQTTStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle, pTopicBuf, MQTTQoS0, prvHandleFwUpdateCommand, NULL);
+
+    if (xMQTTStatus != MQTTSuccess)
     {
-        xMQTTStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle, pTopicBuf, MQTTQoS0, prvHandleFwUpdateCommand, NULL );
-
-        if (xMQTTStatus != MQTTSuccess)
-        {
-            LogError("Failed to subscribe to FW update topic: %s", pTopicBuf);
-            xResult = pdFAIL;
-        }
+      LogError("Failed to subscribe to FW update topic: %s", pTopicBuf);
+      xResult = pdFAIL;
     }
+  }
 
-    vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 
-    vPortFree(pTopicBuf);
+  vPortFree(pTopicBuf);
 
-    return xResult;
+  return xResult;
 }
 #endif
 
+/*-----------------------------------------------------------*/
 #if (DEMO_LED == 1)
 static void publishHA_LedConfig(const char *pThingName, char *cPayloadBuf)
 {
@@ -563,6 +559,7 @@ static void publishHA_LedConfig(const char *pThingName, char *cPayloadBuf)
 }
 #endif
 
+/*-----------------------------------------------------------*/
 #if (DEMO_BUTTON == 1)
 static void publishHA_ButtonConfig(const char *pThingName, char *cPayloadBuf)
 {
@@ -612,6 +609,7 @@ static void publishHA_ButtonConfig(const char *pThingName, char *cPayloadBuf)
 }
 #endif
 
+/*-----------------------------------------------------------*/
 #if (DEMO_LIGHT_SENSOR == 1)
 static void publishHA_WhiteLuxSensorConfig(const char *pThingName, char *cPayloadBuf)
 {
@@ -619,8 +617,7 @@ static void publishHA_WhiteLuxSensorConfig(const char *pThingName, char *cPayloa
   MQTTQoS_t xQoS = MQTTQoS0;
   bool xRetain = pdTRUE;
 
-  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
-           "homeassistant/sensor/%s_white_lux/config", pThingName);
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_white_lux/config", pThingName);
 
   xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
       "\"name\": \"White Light\","
@@ -659,7 +656,6 @@ static void publishHA_WhiteLuxSensorConfig(const char *pThingName, char *cPayloa
 
   vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 }
-
 
 static void publishHA_LuxSensorConfig(const char *pThingName, char *cPayloadBuf)
 {
@@ -711,8 +707,9 @@ static void publishHA_LuxSensorConfig(const char *pThingName, char *cPayloadBuf)
 }
 #endif
 
+/*-----------------------------------------------------------*/
 #if (DEMO_ENV_SENSOR == 1)
-void publishEnvSensorConfigs(const char *pThingName, char *cPayloadBuf)
+static void publishEnvSensorConfigs(const char *pThingName, char *cPayloadBuf)
 {
   MQTTQoS_t xQoS = MQTTQoS0;
   bool xRetain = pdTRUE;
@@ -771,7 +768,7 @@ void publishEnvSensorConfigs(const char *pThingName, char *cPayloadBuf)
     }
 }
 #else
-void clearEnvSensorConfigs(const char *pThingName)
+static void clearEnvSensorConfigs(const char *pThingName)
 {
     for (int i = 0; i < ARRAY_SIZE(xEnvSensors); i++)
     {
@@ -783,8 +780,9 @@ void clearEnvSensorConfigs(const char *pThingName)
 }
 #endif
 
+/*-----------------------------------------------------------*/
 #if (DEMO_MOTION_SENSOR == 1)
-void publishMotionSensorConfigs(const char *pThingName, char *cPayloadBuf)
+static void publishMotionSensorConfigs(const char *pThingName, char *cPayloadBuf)
 {
     MQTTQoS_t xQoS = MQTTQoS0;
     bool xRetain = pdTRUE;
@@ -844,7 +842,7 @@ void publishMotionSensorConfigs(const char *pThingName, char *cPayloadBuf)
     }
 }
 #else
-void clearMotionSensorConfigs(const char *pThingName)
+static void clearMotionSensorConfigs(const char *pThingName)
 {
     for (int i = 0; i < ARRAY_SIZE(xMotionSensors); i++)
     {
@@ -856,7 +854,8 @@ void clearMotionSensorConfigs(const char *pThingName)
 }
 #endif
 
-void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf, const char *availability)
+/*-----------------------------------------------------------*/
+static void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf, const char *availability)
 {
     MQTTQoS_t xQoS = MQTTQoS0;
     bool xRetain = pdTRUE;
@@ -880,8 +879,6 @@ void publishAvailabilityStatus(const char *pThingName, char *cPayloadBuf, const 
 
     vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 }
-
-extern EventGroupHandle_t xHAEventGroup;
 
 static void prvHandleRebootCommand(void *pxSubscriptionContext, MQTTPublishInfo_t *pPublishInfo)
 {
@@ -913,36 +910,29 @@ static void prvHandleRebootCommand(void *pxSubscriptionContext, MQTTPublishInfo_
 
 static BaseType_t subscribeToRebootCommandTopic(MQTTAgentHandle_t xMQTTAgentHandle, const char *pcThingName)
 {
-    BaseType_t xResult = pdPASS;
-    MQTTStatus_t xMQTTStatus;
+  BaseType_t xResult = pdPASS;
+  MQTTStatus_t xMQTTStatus;
 
-    char *pTopicBuf = pvPortMalloc(MAXT_TOPIC_LENGTH);
+  char *pTopicBuf = pvPortMalloc(MAXT_TOPIC_LENGTH);
+  configASSERT(pTopicBuf != NULL);
 
-    if (pTopicBuf != NULL)
+  snprintf(pTopicBuf, MAXT_TOPIC_LENGTH, "%s/cmd/action", pcThingName);
+
+  if ((xResult == pdPASS) && (xMQTTAgentHandle != NULL))
+  {
+    xMQTTStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle, pTopicBuf, MQTTQoS0, prvHandleRebootCommand, NULL);
+
+    if (xMQTTStatus != MQTTSuccess)
     {
-        snprintf(pTopicBuf, MAXT_TOPIC_LENGTH, "%s/cmd/action", pcThingName);
-
-        if ((xResult == pdPASS) && (xMQTTAgentHandle != NULL))
-        {
-            xMQTTStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle, pTopicBuf, MQTTQoS0, prvHandleRebootCommand, NULL);
-
-            if (xMQTTStatus != MQTTSuccess)
-            {
-                LogError("Failed to subscribe to reboot command topic: %s", pTopicBuf);
-                xResult = pdFAIL;
-            }
-        }
-
-        vPortFree(pTopicBuf);
+      LogError("Failed to subscribe to reboot command topic: %s", pTopicBuf);
+      xResult = pdFAIL;
     }
-    else
-    {
-        LogError("Failed to allocate topic buffer for reboot subscription");
-        xResult = pdFAIL;
-    }
+  }
 
-    vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
-    return xResult;
+  vPortFree(pTopicBuf);
+
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+  return xResult;
 }
 
 static void publishHA_RebootButton(const char *pThingName, char *cPayloadBuf)
@@ -991,74 +981,6 @@ static void publishHA_RebootButton(const char *pThingName, char *cPayloadBuf)
 }
 
 /*-----------------------------------------------------------*/
-#if 0
-static void publishHA_DeviceIDSensor(const char *pThingName, const char *pDeviceID, char *cPayloadBuf)
-{
-  size_t xPayloadLength = 0;
-  MQTTQoS_t xQoS = MQTTQoS0;
-  bool xRetain = pdTRUE;
-
-  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_device_id/config", pThingName);
-
-  xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
-      "\"name\": \"Device ID\","
-      "\"unique_id\": \"%s_device_id\","
-      "\"state_topic\": \"%s/status/device_id\","
-      "\"retain\": true,"
-      "\"entity_category\": \"diagnostic\","
-      "\"device_class\": \"diagnostic\","
-      "\"device\": {"
-        "\"identifiers\": [\"%s\"],"
-        "\"manufacturer\": \"STMicroelectronics\","
-        "\"model\": \"%s\","
-        "\"name\": \"%s\""
-      "}"
-    "}",
-    pThingName,     // unique_id
-    pThingName,     // state_topic
-    pThingName,     // identifiers
-    BOARD,          // model
-    pThingName      // name
-  );
-
-  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
-  {
-    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
-  }
-  else
-  {
-    LogError(("Device ID config payload truncated"));
-  }
-
-  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
-}
-
-static void publishDeviceIDState(const char *pThingName, const char *pDeviceID, char *cPayloadBuf)
-{
-  MQTTQoS_t xQoS = MQTTQoS0;
-  bool xRetain = pdTRUE;
-
-  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "%s/status/device_id", pThingName);
-
-  snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "\"%s\"", pDeviceID);  // JSON string
-
-  size_t xPayloadLength = strlen(cPayloadBuf);
-
-  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
-  {
-    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t *)cPayloadBuf, xPayloadLength);
-  }
-  else
-  {
-    LogError(("Device ID state payload truncated"));
-  }
-
-  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
-}
-#endif
-
-/*-----------------------------------------------------------*/
-
 void vHAConfigPublishTask(void *pvParameters)
 {
   size_t uxThingNameLen = 0;
@@ -1081,10 +1003,10 @@ void vHAConfigPublishTask(void *pvParameters)
 
   LogInfo(("Publishing Home Assistant discovery configuration for device: %s", pThingName));
 
-#if (DEMO_OTA == 1)
   xHAEventGroup = xEventGroupCreate();
   configASSERT(xHAEventGroup != NULL);
 
+#if (DEMO_OTA == 1)
   newAppFirmwareVersion.u.x.major = appFirmwareVersion.u.x.major;
   newAppFirmwareVersion.u.x.minor = appFirmwareVersion.u.x.minor;
   newAppFirmwareVersion.u.x.build = appFirmwareVersion.u.x.build;
@@ -1148,7 +1070,7 @@ void vHAConfigPublishTask(void *pvParameters)
                                              pdTRUE,
                                              pdFALSE,
                                              GetJitteredTimeout());
-
+#if (DEMO_OTA == 1)
     if ((uxBits & EVT_OTA_UPDATE_AVAILABLE) != 0)
     {
       LogInfo("New Firmware available.");
@@ -1161,13 +1083,11 @@ void vHAConfigPublishTask(void *pvParameters)
       publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pThingName, FW_UPDATE_STATUS_UPDATING);
       publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
     }
+#endif
 
     if (uxBits & EVT_OTA_COMPLETED)
     {
       LogInfo("OTA completed");
-//      publishFirmwareVersionStatus(newAppFirmwareVersion, newAppFirmwareVersion, pThingName, FW_UPDATE_STATUS_COMPLETED);
-//      publishAvailabilityStatus(pThingName, cPayloadBuf, "offline");
-//      vTaskDelay(1000);
       vDoSystemReset();
     }
 
