@@ -38,12 +38,11 @@
 #define EVT_MASK_MQTT_CONNECTED    (0x01<<5)
 #define EVT_MASK_NET_READABLE      (0x01<<6)
 
-#if DEMO_HOME_ASSISTANT
 #define EVT_OTA_UPDATE_AVAILABLE   (0x01 << 0)
 #define EVT_OTA_UPDATE_START       (0x01 << 1)
 #define EVT_OTA_COMPLETED          (0x01 << 2)
 #define EVT_COMMAND_RESET          (0x01 << 3)
-#endif
+
 
 extern EventGroupHandle_t xSystemEvents;
 
