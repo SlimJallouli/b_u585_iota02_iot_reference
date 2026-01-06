@@ -41,8 +41,8 @@
 #define EVT_OTA_UPDATE_AVAILABLE   (0x01 << 0)
 #define EVT_OTA_UPDATE_START       (0x01 << 1)
 #define EVT_OTA_COMPLETED          (0x01 << 2)
-#define EVT_COMMAND_RESET          (0x01 << 3)
 
+#define EVT_COMMAND_RESET          (0x01 << 3)
 
 extern EventGroupHandle_t xSystemEvents;
 

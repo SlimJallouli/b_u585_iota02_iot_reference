@@ -1,17 +1,22 @@
-/*
- * Copyright of Amazon Web Services, Inc. (AWS) 2022
+/* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * File Name          : freertos_hooks.c
+ * Description        : FreeRTOS Hook functions
+ ******************************************************************************
+ * @attention
  *
- * This code is licensed under the AWS Intellectual Property License, which can
- * be found here: https://aws.amazon.com/legal/aws-ip-license-terms/; provided
- * that AWS grants you a limited, royalty-free, revocable, non-exclusive,
- * non-sublicensable, non-transferrable license to modify the code and
- * distribute binaries produced from the code (or modified versions of the code)
- * within hardware modules provided to third parties as long as such hardware
- * modules are qualified for AWS IoT ExpressLink under the AWS Device
- * Qualification Program (https://aws.amazon.com/partners/programs/dqp/). Your
- * receipt of this code is subject to any non-disclosure (or similar) agreement
- * between you and AWS.
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
  */
+/* USER CODE END Header */
+
 #include "main.h"
 
 #include "logging_levels.h"
@@ -21,7 +26,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
-#include "freertos_hooks.h"
 
 #include <string.h>
 

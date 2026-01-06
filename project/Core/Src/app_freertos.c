@@ -123,7 +123,6 @@ extern void vDefenderAgentTask           ( void * pvParameters );
 extern void vLEDTask                     ( void * pvParameters );
 extern void vButtonTask                  ( void * pvParameters );
 extern void vHAConfigPublishTask         ( void * pvParameters );
-extern void vLightSensorPublishTask      ( void * pvParameters );
 /* USER CODE END FunctionPrototypes */
 
 /* USER CODE BEGIN 5 */
@@ -167,7 +166,7 @@ __weak unsigned long getRunTimeCounterValue(void)
   return 0;
 }
 
-uint32_t checkAndClearResetFlags(void)
+void checkAndClearResetFlags(void)
 {
   uint32_t reset_flags = HAL_RCC_GetResetSource();
 
@@ -180,8 +179,6 @@ uint32_t checkAndClearResetFlags(void)
   {
     LogInfo("Reset source: BOR or POR/PDR");
   }
-
-
 
   if(reset_flags & RCC_RESET_FLAG_SW)
   {
@@ -205,7 +202,6 @@ uint32_t checkAndClearResetFlags(void)
 
   /* Clear all reset flags */
   __HAL_RCC_CLEAR_RESET_FLAGS();
-
 }
 /* USER CODE END 1 */
 
@@ -242,10 +238,15 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN defaultTask */
   char * pucMqttEndpoint = NULL;
   size_t uxMqttEndpointLen = -1;
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
   BaseType_t xSuccess = pdTRUE;
   uint32_t provisioned = 0;
 #endif
+
+#if defined(LFS_CONFIG)
+  int xMountStatus;
+#endif
+  (void) argument;
 
 #if defined(__USE_STSAFE__)
   bool stsafe_status;
@@ -261,11 +262,6 @@ void StartDefaultTask(void *argument)
     LogError("STSAFE-A1xx NOT initialized");
   }
 #endif
-
-#if defined(LFS_CONFIG)
-  int xMountStatus;
-#endif
-  (void) argument;
 
   LogInfo("Task started: %s\n", __func__);
 
@@ -329,8 +325,7 @@ void StartDefaultTask(void *argument)
     /* Update the KV Store */
     KVStore_setString(CS_CORE_THING_NAME, democonfigFP_DEMO_ID);
 
-
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
     KVStore_setUInt32(CS_PROVISIONED, 0);
     KVStore_setString(CS_CORE_THING_NAME, democonfigFP_DEMO_ID);
 #endif
@@ -370,7 +365,7 @@ void StartDefaultTask(void *argument)
   xTaskCreate(vMQTTAgentTask, "MQTTAgent", TASK_STACK_SIZE_MQTT_AGENT, NULL, TASK_PRIO_MQTTA_AGENT, NULL);
 #endif
 
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
   provisioned = KVStore_getUInt32( CS_PROVISIONED, &( xSuccess ) );
 
   if(provisioned == 0)
@@ -381,18 +376,12 @@ void StartDefaultTask(void *argument)
   }
 #endif
 
-
-
 #if DEMO_PUB_SUB
   xTaskCreate(vSubscribePublishTestTask, "PubSub", TASK_STACK_SIZE_PUBLISH, NULL, TASK_PRIO_PUBLISH, NULL);
 #endif
 
 #if DEMO_ENV_SENSOR
   xTaskCreate(vEnvironmentSensorPublishTask, "EnvSense", TASK_STACK_SIZE_ENV, NULL, TASK_PRIO_ENV, NULL);
-#endif
-
-#if DEMO_LIGHT_SENSOR
-//  xTaskCreate(vLightSensorPublishTask, "LightSense", TASK_STACK_SIZE_LIGHT, NULL, TASK_PRIO_LIGHT, NULL);
 #endif
 
 #if DEMO_MOTION_SENSOR
@@ -416,15 +405,15 @@ void StartDefaultTask(void *argument)
     /* If we are connecting to AWS */
     if (strstr(pucMqttEndpoint, "amazonaws") != NULL)
     {
-#if DEMO_OTA
+#if DEMO_AWS_OTA
       xTaskCreate(vOTAUpdateTask, "OTAUpdate", TASK_STACK_SIZE_OTA, NULL, TASK_PRIO_OTA, NULL);
 #endif
 
-#if DEMO_SHADOW
+#if DEMO_AWS_SHADOW
       xTaskCreate(vShadowDeviceTask, "ShadowDevice", TASK_STACK_SIZE_SHADOW, NULL, TASK_PRIO_SHADOW, NULL);
 #endif
 
-#if DEMO_DEFENDER && !defined(ST67W6X_NCP)
+#if DEMO_AWS_DEFENDER && !defined(ST67W6X_NCP)
       xTaskCreate(vDefenderAgentTask, "AWSDefender", TASK_STACK_SIZE_DEFENDER, NULL, TASK_PRIO_DEFENDER, NULL);
 #endif
     }
@@ -446,7 +435,6 @@ void StartDefaultTask(void *argument)
   }
   /* USER CODE END defaultTask */
 }
-
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */

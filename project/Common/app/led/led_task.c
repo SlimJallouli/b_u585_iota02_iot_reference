@@ -188,20 +188,6 @@ static MQTTStatus_t prvSubscribeToTopic(MQTTQoS_t xQoS, char *pcTopicFilter);
 static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength);
 
 /**
- * @brief Publishes an empty retained message to the given topic to clear the retained message.
- *
- * This function uses the MQTT agent's publish flow to remove a previously retained message
- * on a topic by publishing a zero-length payload with the retain flag set.
- *
- * @param[in] xQoS The desired quality of service (typically MQTTQoS0 or MQTTQoS1).
- * @param[in] xRetain Boolean indicating whether to set the retain flag (must be true to clear).
- * @param[in] pcTopic The topic from which to clear the retained message.
- *
- * @return MQTTSuccess if the empty publish succeeded, appropriate MQTTStatus_t error otherwise.
- */
-static MQTTStatus_t prvClearRetainedTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic);
-
-/**
  * @brief The function that implements the task demonstrated by this file.
  *
  * @param pvParameters The parameters to the task.
@@ -344,14 +330,6 @@ static MQTTStatus_t prvSubscribeToTopic(MQTTQoS_t xQoS, char *pcTopicFilter)
   return xMQTTStatus;
 }
 
-/*-----------------------------------------------------------*/
-
-static MQTTStatus_t prvClearRetainedTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic)
-{
-    configASSERT(pcTopic != NULL);
-    LogInfo(("Clearing retained message on topic: %s", pcTopic));
-    return prvPublishToTopic(xQoS, xRetain, pcTopic, NULL, 0);
-}
 /*-----------------------------------------------------------*/
 
 static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength)

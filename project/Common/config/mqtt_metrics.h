@@ -66,18 +66,19 @@
 /**
  * @brief The MQTT metrics string expected by AWS IoT.
  */
-#if defined(__USE_STSAFE__)
+#if !defined(ST67W6X_NCP)
 #define AWS_IOT_METRICS_STRING                             \
     "?SDK=" METRICS_OS_NAME "&Version=" METRICS_OS_VERSION \
     "&Platform=" METRICS_PLATFORM_NAME "&MQTTLib=" METRICS_MQTT_LIB
+#define AWS_IOT_METRICS_STRING_LENGTH    ( ( uint16_t ) ( sizeof( AWS_IOT_METRICS_STRING ) - 1 ) )
+
 #else
-//#define AWS_IOT_METRICS_STRING "?SDK=" METRICS_OS_NAME "&Platform=" METRICS_PLATFORM_NAME
-//#define AWS_IOT_METRICS_STRING ""
+#define AWS_IOT_METRICS_STRING NULL
+#define AWS_IOT_METRICS_STRING_LENGTH    0
 #endif
 
 /**
  * @brief The length of the MQTT metrics string expected by AWS IoT.
  */
-#define AWS_IOT_METRICS_STRING_LENGTH    ( ( uint16_t ) ( sizeof( AWS_IOT_METRICS_STRING ) - 1 ) )
 
 #endif /* MQTT_METRICS_H */

@@ -187,31 +187,39 @@ void Error_Handler(void);
 #define DEMO_ENV_SENSOR                         1   // Environmental Sensor Example
 #define DEMO_LIGHT_SENSOR                       1   // Light Sensor Example
 #define DEMO_MOTION_SENSOR                      0   // Motion Sensor Example
-#define DEMO_SHADOW                             0   // AWS IoT Shadow Example
 #define DEMO_LED                                1   // LED Control Example
 #define DEMO_BUTTON                             1   // Button Status Example
-#if !defined(ST67W6X_NCP)
-#define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
-#define DEMO_OTA                                1   // OTA Update Example
-#define DEMO_DEFENDER                           1   // AWS IoT Defender Example
-#endif
 #define DEMO_ECHO_SERVER                        0   // Echo server example
 #define DEMO_ECHO_CLIENT                        0   // Echo Client example
+
+#define DEMO_AWS_SHADOW                         0   // AWS IoT Shadow Example
+
+#if !defined(ST67W6X_NCP)
+#define DEMO_AWS_OTA                            1   // OTA Update Example
+#define DEMO_AWS_DEFENDER                       1   // AWS IoT Defender Example
+//DEMO_AWS_FLEET_PROVISION                          // Defined in project properties->C C++ Build->Settings->Tool Settings->GCC Compiler
+
+#define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
+
 #define DEMO_PING                               0   // Ping example
+#endif
+
 #if defined(ST67W6X_NCP)
 #define DEMO_SNTP                               0   // SNTP example
 #endif
 
 #define MQTT_ENABLED                            (DEMO_PUB_SUB       || \
-                                                 DEMO_OTA           || \
                                                  DEMO_ENV_SENSOR    || \
 												                         DEMO_LIGHT_SENSOR  || \
                                                  DEMO_MOTION_SENSOR || \
-                                                 DEMO_SHADOW        || \
 												                         DEMO_LED           || \
 																		             DEMO_BUTTON        || \
-                                                 defined(DEMO_FLEET_PROVISION))
+																					       DEMO_HOME_ASSISTANT|| \
+                                                 DEMO_AWS_OTA       || \
+                                                 DEMO_AWS_SHADOW    || \
+                                                 defined(DEMO_AWS_FLEET_PROVISION))
 
+/******************** Tasks priority ********************/
 #define TASK_PRIO_OTA                           (tskIDLE_PRIORITY      + 1 )
 #define TASK_PRIO_fleetProvisioning             (tskIDLE_PRIORITY      + 1 )
 #define TASK_PRIO_SNTP                          (tskIDLE_PRIORITY      + 2 )
@@ -234,6 +242,7 @@ void Error_Handler(void);
 #define TASK_PRIO_NET_ETH                       (TASK_PRIO_MQTTA_AGENT + 1 )
 #define TASK_PRIO_SUBSCRIPTION                  (tskIDLE_PRIORITY      + 25)  /** Priority of the subscription process task        */
 
+/******************** Tasks stack size ********************/
 #define TASK_STACK_SIZE_OTA                     4096/** Stack size of the OAT process task               */
 #define TASK_STACK_SIZE_SNTP                    2024/** Stack size of the vSNTPTask process task         */
 #define TASK_STACK_SIZE_DEFENDER                2024/** Stack size of the AWSDefender process task       */
@@ -247,6 +256,7 @@ void Error_Handler(void);
 #define TASK_STACK_SIZE_HS                      1024/** Stack size of the Home Assistant process task    */
 #define TASK_STACK_SIZE_CLI                     2048/** Stack size of the CLI process task               */
 #define TASK_STACK_SIZE_MQTT_AGENT              2048/** Stack size of the MQTTAgent process task         */
+#define TASK_STACK_SIZE_PING                    2048/** Stack size of the PING process task              */
 #define TASK_STACK_SIZE_W6X                     2048/** Stack size of the W6X process task               */
 #define TASK_STACK_SIZE_MXCHIP                  1024/** Stack size of the MXCHIP process task            */
 #define TASK_STACK_SIZE_SUBSCRIPTION            1024/** Stack size of the MQTT subscription process task */

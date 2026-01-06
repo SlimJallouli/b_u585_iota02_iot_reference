@@ -54,7 +54,7 @@
     #define WIFI_SECURITY_DFLT          "" /* Default WiFi Security         */
 #endif
 
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
     #ifndef THING_GROUP_NAME_DFLT
         #define THING_GROUP_NAME_DFLT   "" /* Default Thing Group Name      */
         #define PROVISIONED_DEFAULT     0  /* Default Provisioned State     */
@@ -82,7 +82,7 @@ typedef enum KvStoreEnum
     CS_WIFI_SSID,                /* WiFi SSID Key              */
     CS_WIFI_CREDENTIAL,          /* WiFi Credential Key        */
     CS_MQTT_SECURITY,            /* MQTT Security Key          */
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
     CS_PROVISIONED,              /* Provisioned State Key      */
     CS_THING_GROUP_NAME,         /* Thing Group Name Key       */
 #endif
@@ -93,7 +93,7 @@ typedef enum KvStoreEnum
 typedef enum KvStoreEnum
 {
     COMMON_KV_STORE_KEYS,        /* Common Keys                */
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
     CS_PROVISIONED,              /* Provisioned State Key      */
     CS_THING_GROUP_NAME,         /* Thing Group Name Key       */
 #endif
@@ -106,7 +106,7 @@ typedef enum KvStoreEnum
     COMMON_KV_STORE_KEYS,        /* Common Keys                */
     CS_WIFI_SSID,                /* WiFi SSID Key              */
     CS_WIFI_CREDENTIAL,          /* WiFi Credential Key        */
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
     CS_PROVISIONED,              /* Provisioned State Key      */
     CS_THING_GROUP_NAME,         /* Thing Group Name Key       */
 #endif
@@ -126,7 +126,7 @@ typedef enum KvStoreEnum
 
 /* Platform-specific strings */
 #if defined(ST67W6X_NCP)
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
 #define KV_STORE_STRINGS                                          \
     {                                                             \
         COMMON_KV_STORE_STRINGS,                                  \
@@ -146,7 +146,7 @@ typedef enum KvStoreEnum
     }
 #endif
 #elif defined(ETHERNET)
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
 #define KV_STORE_STRINGS                                          \
     {                                                             \
         COMMON_KV_STORE_STRINGS,                                  \
@@ -161,7 +161,7 @@ typedef enum KvStoreEnum
 #endif
 
 #elif defined(MXCHIP)
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
 #define KV_STORE_STRINGS                                          \
     {                                                             \
         COMMON_KV_STORE_STRINGS,                                  \
@@ -191,7 +191,7 @@ typedef enum KvStoreEnum
 
 /* Defaults for ST67W6X_NCP platform */
 #if defined(ST67W6X_NCP)
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
 #define KV_STORE_DEFAULTS                                                                  \
     {                                                                                      \
         COMMON_KV_STORE_DEFAULTS,                                                          \
@@ -212,7 +212,7 @@ typedef enum KvStoreEnum
 #endif
 /* Defaults for ETHERNET platform */
 #elif defined(ETHERNET)
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
 #define KV_STORE_DEFAULTS                                                                  \
     {                                                                                      \
         COMMON_KV_STORE_DEFAULTS,                                                          \
@@ -228,7 +228,7 @@ typedef enum KvStoreEnum
 
 /* Defaults for MXCHIP platform */
 #elif defined(MXCHIP)
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
 #define KV_STORE_DEFAULTS                                                                  \
     {                                                                                      \
         COMMON_KV_STORE_DEFAULTS,                                                          \

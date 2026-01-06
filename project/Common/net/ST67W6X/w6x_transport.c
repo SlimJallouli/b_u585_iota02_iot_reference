@@ -240,21 +240,24 @@ static bool prvConfigMQTTUser(W6X_MQTT_Connect_t *pxCtx)
   memset(pxCtx->MQUserName, 0, 32);
 
 #if defined(AWS_IOT_METRICS_STRING)
-  char *pucMqttEndpoint;
-  size_t uxMqttEndpointLen;
-
-  pucMqttEndpoint = KVStore_getStringHeap(CS_CORE_MQTT_ENDPOINT, &uxMqttEndpointLen);
-
-  if (uxMqttEndpointLen)
+  if (AWS_IOT_METRICS_STRING != NULL)
   {
+    char *pucMqttEndpoint;
+    size_t uxMqttEndpointLen;
 
-    /* If we are connecting to AWS */
-    if (strstr(pucMqttEndpoint, "amazonaws") != NULL)
+    pucMqttEndpoint = KVStore_getStringHeap(CS_CORE_MQTT_ENDPOINT, &uxMqttEndpointLen);
+
+    if (uxMqttEndpointLen)
     {
-      snprintf((char*) pxCtx->MQUserName, 32, "%s", AWS_IOT_METRICS_STRING);
-    }
 
-    vPortFree(pucMqttEndpoint);
+      /* If we are connecting to AWS */
+      if (strstr(pucMqttEndpoint, "amazonaws") != NULL)
+      {
+        snprintf((char*) pxCtx->MQUserName, 32, "%s", AWS_IOT_METRICS_STRING);
+      }
+
+      vPortFree(pucMqttEndpoint);
+    }
   }
 #endif
 

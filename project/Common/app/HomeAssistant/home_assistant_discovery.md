@@ -254,10 +254,10 @@ start_update
 
 #### 5.2.3. Device Message
 
-- Sent by the device
 - Indicates the current LED status
 - **Topic**: `< device_id >/led/reported`
 - **Retained**: True
+- **Task**: `vLEDTask()` in led_task.c
 
 #### 5.2.4. Device Payload:
 ```json
@@ -327,6 +327,7 @@ ON
 - Indicates the button status (pressed or released).
 - **Topic**: `< device_id >/sensor/button/reported`
 - **Retained**: True
+- **Task**: `vButtonTask()` in button_task.c
 
 #### Payload:
 ```json
@@ -388,138 +389,31 @@ Or
 }
 ```
 
-### 5.5. Env sensors
+### 5.5. Env sensors (unified)
 
-#### 5.5.1. Lux sensor Home Assistant discovery
+#### 5.5.1. Env Sensors Home Assistant discovery
 
-  - **Topic**: `homeassistant/sensor/< device_id >_lux_sensor/config`
-  - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_lux_sensor/config`
+Each environmental metric is registered as a separate sensor in Home Assistant:
 
-#### 5.5.2. Lux sensor Config Payload Example:
-```json
-{
-  "name": "Ambient Light",
-  "unique_id": "stm32u585-001C00444841500520363230_lux_sensor",
-  "state_topic": "stm32u585-001C00444841500520363230/sensor/env",
-  "value_template": "{{ value_json.als_lux }}",
-  "device_class": "illuminance",
-  "unit_of_measurement": "lx",
-  "availability_topic": "stm32u585-001C00444841500520363230/status/availability",
-  "payload_available": "online",
-  "payload_not_available": "offline",
-  "retain": false,
-  "device": {
-    "identifiers": [
-      "stm32u585-001C00444841500520363230"
-    ],
-    "manufacturer": "STMicroelectronics",
-    "model": "B_U585_IOTA02",
-    "name": "stm32u585-001C00444841500520363230"
-  }
-}
-```
+  - **Topics**:
+    - `homeassistant/sensor/< device_id >_temp_0_c/config`
+    - `homeassistant/sensor/< device_id >_temp_1_c/config`
+    - `homeassistant/sensor/< device_id >_rh_pct/config`
+    - `homeassistant/sensor/< device_id >_baro_mbar/config`
+    - `homeassistant/sensor/< device_id >_als_lux/config`
+    - `homeassistant/sensor/< device_id >_white_lux/config`
 
-#### 5.5.3. White Lux sensor Home Assistant discovery
-
-  - **Topic**: `homeassistant/sensor/< device_id >_white_lux/config`
-  - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_white_lux/config`
-
-#### 5.5.4. Lux sensor Config Payload Example:
-```json
-{
-  "name": "White Light",
-  "unique_id": "stm32u585-001C00444841500520363230_white_lux",
-  "state_topic": "stm32u585-001C00444841500520363230/sensor/env",
-  "value_template": "{{ value_json.white_lux }}",
-  "device_class": "illuminance",
-  "unit_of_measurement": "lx",
-  "availability_topic": "stm32u585-001C00444841500520363230/status/availability",
-  "payload_available": "online",
-  "payload_not_available": "offline",
-  "retain": false,
-  "device": {
-    "identifiers": [
-      "stm32u585-001C00444841500520363230"
-    ],
-    "manufacturer": "STMicroelectronics",
-    "model": "B_U585_IOTA02",
-    "name": "stm32u585-001C00444841500520363230"
-  }
-}
-```
-
-#### 5.5.5. Barometer sensor Home Assistant discovery
-
-  - **Topic**: `homeassistant/sensor/< device_id >_baro_mbar/config`
-  - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_baro_mbar/config`
-
-#### 5.5.6. Barometer sensor Config Payload Example:
-```json
-{
-  "name": "Pressure",
-  "unique_id": "stm32u585-001C00444841500520363230_env_3",
-  "state_topic": "stm32u585-001C00444841500520363230/sensor/env",
-  "value_template": "{{ value_json.baro_mbar }}",
-  "unit_of_measurement": "mbar",
-  "device_class": "pressure",
-  "availability_topic": "stm32u585-001C00444841500520363230/status/availability",
-  "payload_available": "online",
-  "payload_not_available": "offline",
-  "retain": false,
-  "device": {
-    "identifiers": [
-      "stm32u585-001C00444841500520363230"
-    ],
-    "manufacturer": "STMicroelectronics",
-    "model": "B_U585_IOTA02",
-    "name": "stm32u585-001C00444841500520363230"
-  }
-}
-```
-
-#### 5.5.7. Relative Humidity sensor Home Assistant discovery
-
-  - **Topic**: `homeassistant/sensor/< device_id >_rh_pct/config`
-  - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_rh_pct/config`
-
-#### 5.5.8. Relative Humidity sensor Config Payload Example:
-```json
-{
-  "name": "Humidity",
-  "unique_id": "stm32u585-001C00444841500520363230_env_2",
-  "state_topic": "stm32u585-001C00444841500520363230/sensor/env",
-  "value_template": "{{ value_json.rh_pct }}",
-  "unit_of_measurement": "%",
-  "device_class": "humidity",
-  "availability_topic": "stm32u585-001C00444841500520363230/status/availability",
-  "payload_available": "online",
-  "payload_not_available": "offline",
-  "retain": false,
-  "device": {
-    "identifiers": [
-      "stm32u585-001C00444841500520363230"
-    ],
-    "manufacturer": "STMicroelectronics",
-    "model": "B_U585_IOTA02",
-    "name": "stm32u585-001C00444841500520363230"
-  }
-}
-```
-
-#### 5.5.9. Temperature sensor Home Assistant discovery
-
-  - **Topic**: `homeassistant/sensor/< device_id >_temp_0_c/config`
   - **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333342_temp_0_c/config`
 
-#### 5.5.10. Temperature sensor Config Payload Example:
+#### 5.5.2. Env sensor Config Payload Example
 ```json
 {
   "name": "Temperature 0",
-  "unique_id": "stm32u585-001C00444841500520363230_env_0",
+  "unique_id": "stm32u585-001C00444841500520363230_temp_0_c",
   "state_topic": "stm32u585-001C00444841500520363230/sensor/env",
   "value_template": "{{ value_json.temp_0_c }}",
-  "unit_of_measurement": "°C",
   "device_class": "temperature",
+  "unit_of_measurement": "°C",
   "availability_topic": "stm32u585-001C00444841500520363230/status/availability",
   "payload_available": "online",
   "payload_not_available": "offline",
@@ -535,15 +429,16 @@ Or
 }
 ```
 
-#### 5.5.11. Device Message
-
+#### 5.5.3. Device Message
 - **Topic**: `< device_id >/sensor/env`
 - **Retained**: False
+- **Task**: `vEnvironmentSensorPublishTask()` in env_sensor_publish.c
 
-#### 5.5.12. Device Payload:
+#### 5.5.4. Device Payload:
 ```json
 {
   "temp_0_c": 22.3,
+  "temp_1_c": 22.1,
   "rh_pct": 50.2,
   "baro_mbar": 998.1,
   "als_lux": 0,
@@ -596,7 +491,13 @@ Each axis is registered as a separate sensor in Home Assistant:
 }
 ```
 
-#### 5.6.3. Device Payload:
+#### 5.6.3. Device Message
+
+- **Topic**: `< device_id >/sensor/motion`
+- **Retained**: False
+- **Task**: `vMotionSensorsPublish()` in motion_sensors_publish.c
+
+#### 5.6.4. Device Payload:
 ```json
 {
   "acceleration_mG":{

@@ -249,5 +249,3 @@ static BaseType_t receive_message(int sock, char *pBuf, int size)
   return xStatus;
 }
 
-
-

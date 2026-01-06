@@ -868,13 +868,10 @@ static MQTTStatus_t prvConfigureAgentTaskCtx( MQTTAgentTaskCtx_t * pxCtx,
         /* Always start the initial connection with a clean session */
         pxCtx->xConnectInfo.cleanSession = true;
         pxCtx->xConnectInfo.keepAliveSeconds = KEEP_ALIVE_INTERVAL_S;
-#if defined(AWS_IOT_METRICS_STRING)
+
         pxCtx->xConnectInfo.pUserName = AWS_IOT_METRICS_STRING;
         pxCtx->xConnectInfo.userNameLength = AWS_IOT_METRICS_STRING_LENGTH;
-#else
-        pxCtx->xConnectInfo.pUserName = NULL;
-        pxCtx->xConnectInfo.userNameLength = 0;
-#endif
+
         pxCtx->xConnectInfo.pPassword = NULL;
         pxCtx->xConnectInfo.passwordLength = 0U;
 
@@ -970,7 +967,7 @@ void vMQTTAgentTask( void * pvParameters )
 #if !defined(ST67W6X_NCP)
     TlsTransportStatus_t xTlsStatus = TLS_TRANSPORT_CONNECT_FAILURE;
 #else
-    W6X_Status_t xW6xStatus;
+    W6X_Status_t xW6xStatus = W6X_STATUS_ERROR;
 #endif
 
 #if defined(DEMO_HOME_ASSISTANT)
@@ -992,7 +989,7 @@ void vMQTTAgentTask( void * pvParameters )
     PkiObject_t xClientCertificate;
     PkiObject_t pxRootCaChain[ 1 ];
 
-#if !defined(__USE_STSAFE__) && defined(DEMO_FLEET_PROVISION)
+#if !defined(__USE_STSAFE__) && defined(DEMO_AWS_FLEET_PROVISION)
     BaseType_t xSuccess = pdTRUE;
 
     uint32_t provisioned = KVStore_getUInt32( CS_PROVISIONED, &( xSuccess ) );

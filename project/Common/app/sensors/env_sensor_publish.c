@@ -523,18 +523,28 @@ static BaseType_t xUpdateSensorData(EnvironmentalSensorData_t *pxData)
 #if USE_SENSORS
   lBspError += HTS221_UpdateSensorData  (pxData);
   lBspError += LPS22HH_UpdateSensorData (pxData);
+#if (DEMO_LIGHT_SENSOR == 1)
   lBspError += VEML3235_UpdateSensorData(pxData);
+#endif
 
 #else
   pxData->fHumidity           += 5.0f;
   pxData->fTemperature0       += 7.0f;
   pxData->fBarometricPressure += 14.0f;
   pxData->fTemperature1       += 4.0f;
+#if (DEMO_LIGHT_SENSOR == 1)
+  pxData->ALS_Lux             += 10;
+  pxData->WHITE_lux           += 12;
+#endif
 
   pxData->fHumidity           = fmod(pxData->fHumidity          , 100.0f);
   pxData->fTemperature0       = fmod(pxData->fTemperature0      , 50.0f);
   pxData->fBarometricPressure = fmod(pxData->fBarometricPressure, 100.0f);
   pxData->fTemperature1       = fmod(pxData->fTemperature1      , 50.0f);
+#if (DEMO_LIGHT_SENSOR == 1)
+  pxData->ALS_Lux             = pxData->ALS_Lux   % 20000;
+  pxData->WHITE_lux           = pxData->WHITE_lux % 20000;
+#endif
 #endif
 
   return lBspError == BSP_ERROR_NONE;
@@ -615,13 +625,25 @@ void vEnvironmentSensorPublishTask(void *pvParameters)
       int lbytesWritten = 0;
 
       /* Write to */
+      #if (DEMO_LIGHT_SENSOR == 1)
       lbytesWritten = snprintf(pcPayloadBuf,
                               MQTT_PUBLISH_MAX_LEN,
-                              "{ \"temp_0_c\": %f, \"rh_pct\": %f, \"temp_1_c\": %f, \"baro_mbar\": %f }",
+                              "{ \"temp_0_c\": %.2f, \"temp_1_c\": %.2f, \"rh_pct\": %.2f, \"baro_mbar\": %.2f, \"als_lux\": %lu, \"white_lux\": %lu }",
                               xSensorData.fTemperature0,
-                              xSensorData.fHumidity,
                               xSensorData.fTemperature1,
+                              xSensorData.fHumidity,
+                              xSensorData.fBarometricPressure,
+                              ( unsigned long ) xSensorData.ALS_Lux,
+                              ( unsigned long ) xSensorData.WHITE_lux);
+      #else
+      lbytesWritten = snprintf(pcPayloadBuf,
+                              MQTT_PUBLISH_MAX_LEN,
+                              "{ \"temp_0_c\": %.2f, \"temp_1_c\": %.2f, \"rh_pct\": %.2f, \"baro_mbar\": %.2f }",
+                              xSensorData.fTemperature0,
+                              xSensorData.fTemperature1,
+                              xSensorData.fHumidity,
                               xSensorData.fBarometricPressure);
+      #endif
 
       if( ( lbytesWritten < MQTT_PUBLISH_MAX_LEN ) && ( xIsMqttAgentConnected() == pdTRUE ) )
       {

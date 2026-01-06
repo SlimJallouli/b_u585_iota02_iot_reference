@@ -70,7 +70,7 @@
 
 /* Kernel includes. */
 #include "FreeRTOS.h"
-#if defined(DEMO_FLEET_PROVISION) && !defined(__USE_STSAFE__)
+#if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
 
 #include "task.h"
 

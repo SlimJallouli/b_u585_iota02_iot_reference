@@ -76,6 +76,8 @@ int32_t STSAFE_Enable(void)
   HAL_GPIO_WritePin(STSAFE_EN_GPIO_Port, STSAFE_EN_Pin, enable);
 
   vTaskDelay(pdMS_TO_TICKS(50));
+
+  return pdTRUE;
 }
 
 bool SAFEA1_Init(void)
