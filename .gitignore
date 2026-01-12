@@ -11,3 +11,4 @@ project/ST67_NCP/
 Bootloader/Debug/
 tools/certs/
 tools/host-ota-cert/ota_pub_key.txt
+*.pem

@@ -1312,7 +1312,7 @@ static void vSubCommand_ExportPubKey( ConsoleIO_t * pxCIO,
     }
 }
 
-#if defined(DEMO_AWS_FLEET_PROVISION)
+#if 0//defined(DEMO_AWS_FLEET_PROVISION)
 static void vSubCommand_ExportPrivbKey( ConsoleIO_t * pxCIO,
                                         uint32_t ulArgc,
                                         char * ppcArgv[] )
@@ -1504,7 +1504,7 @@ static void vCommand_PKI( ConsoleIO_t * pxCIO,
                       vSubCommand_ExportPubKey( pxCIO, ulArgc, ppcArgv );
                       xSuccess = pdTRUE;
                     }
-#if defined(DEMO_AWS_FLEET_PROVISION)
+#if 0//defined(DEMO_AWS_FLEET_PROVISION)
                     else if( 0 == strcmp( pcKeyLabel, TLS_FLEET_KEY_PRIV_LABEL ) )
                     {
                       vSubCommand_ExportPrivbKey( pxCIO, ulArgc, ppcArgv );

@@ -1,13 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    spi_port_conf.h
+  * @file    w61_driver_config.h
   * @author  GPM Application Team
-  * @brief   Interfaces/maps the SPI instance to be used for NCP communication
+  * @brief   Header file for the W61 configuration module
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2026 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -19,8 +19,8 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef SPI_PORT_CONF_H
-#define SPI_PORT_CONF_H
+#ifndef W61_DRIVER_CONFIG_H
+#define W61_DRIVER_CONFIG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,35 +31,29 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-/* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-
-/* USER CODE END ET */
-
 /* Exported constants --------------------------------------------------------*/
-/**  Interfaces/maps the SPI instance to be used for NCP communication */
-#define NCP_SPI_HANDLE hspi1
+/** ============================
+  * AT Common
+  * All available configuration defines in
+  * Middlewares\ST\ST67W6X_Network_Driver\Driver\W61_at\w61_at_common.h
+  * ============================
+  */
+/** Maximum SPI buffer size */
+#define W61_MAX_SPI_XFER                        1520
+
+/** Debugging only: Enable AT log, i.e. logs the AT commands incoming/outcoming from/to the NCP */
+#define W61_AT_LOG_ENABLE                       0
+#include "logging.h"
+
+/** Enable/Disable System module logging */
+#define SYS_LOG_ENABLE                          1
+
 /* USER CODE BEGIN EC */
 
 /* USER CODE END EC */
-
-/* Exported variables --------------------------------------------------------*/
-/* USER CODE BEGIN EV */
-
-/* USER CODE END EV */
-
-/* Exported macros -----------------------------------------------------------*/
-/* USER CODE BEGIN EM */
-
-/* USER CODE END EM */
-
-/* Exported functions --------------------------------------------------------*/
-/* USER CODE BEGIN EF */
-
-/* USER CODE END EF */
 
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 
-#endif /* SPI_PORT_CONF_H */
+#endif /* W61_DRIVER_CONFIG_H */

@@ -1,13 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    shell_config.h
+  * @file    bsp_conf.h
   * @author  GPM Application Team
-  * @brief   Header file for the W6X Shell configuration module
+  * @brief   This file contains definitions for the BSP interface
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2026 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -19,26 +19,26 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef SHELL_CONFIG_H
-#define SHELL_CONFIG_H
+#ifndef BSP_CONF_H
+#define BSP_CONF_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32u5xx_hal.h"
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
 
-/* Exported constants --------------------------------------------------------*/
-/*
- * All available configuration defines can be found in
- * Middlewares\ST\ST67W6X_Network_Driver\Conf\shell_config_template.h
- */
+/* Exported types ------------------------------------------------------------*/
+/* USER CODE BEGIN ET */
 
-#define SHELL_ENABLE                            0
+/* USER CODE END ET */
+
+/* Exported constants --------------------------------------------------------*/
+/** Interfaces the SPI instance to be used for NCP communication */
+#define NCP_SPI_HANDLE                          hspi1
 
 /* USER CODE BEGIN EC */
 
@@ -48,4 +48,4 @@ extern "C" {
 }
 #endif /* __cplusplus */
 
-#endif /* SHELL_CONFIG_H */
+#endif /* BSP_CONF_H */

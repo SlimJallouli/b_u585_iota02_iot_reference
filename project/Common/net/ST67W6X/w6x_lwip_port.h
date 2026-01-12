@@ -64,8 +64,6 @@ struct hostent *W6X_Net_gethostbyname(const char *hostname);
 #define IPADDR_ANY         ((uint32_t)0x00000000UL)
 #define INADDR_ANY         IPADDR_ANY
 
-#define sin_addr           sin_addr_t
-
 #define ip4_addr_get_u32(src_ipaddr) ((src_ipaddr)->s_addr)
 
 #define inet_ntoa_r ip4addr_ntoa_r

@@ -135,6 +135,10 @@ static bool prvConfigCertificates(W6X_MQTT_Connect_t *pxCtx, const PkiObject_t *
     return false;
   }
 
+  memset(pxCtx->CACertificateName, 0, sizeof(pxCtx->CACertificateName));
+  memset(pxCtx->CertificateName  , 0, sizeof(pxCtx->CertificateName  ));
+  memset(pxCtx->PrivateKeyName   , 0, sizeof(pxCtx->PrivateKeyName   ));
+
   if (pxCtx->Scheme != 4)
   {
     return true; // Skip certificate loading for non-secure schemes
@@ -154,19 +158,19 @@ static bool prvConfigCertificates(W6X_MQTT_Connect_t *pxCtx, const PkiObject_t *
 
     if (xHandle != eInvalidHandle)
     {
-      memcpy(pxCtx->CACertificate, pcFileName, strlen(pcFileName));
+      memcpy(pxCtx->CACertificateName, pcFileName, strlen(pcFileName));
       PAL_UTILS_LabelToFilenameHandle(pxClientCert->pcPkcs11Label, &pcFileName, &xHandle);
     }
 
     if (xHandle != eInvalidHandle)
     {
-      memcpy(pxCtx->Certificate, pcFileName, strlen(pcFileName));
+      memcpy(pxCtx->CertificateName, pcFileName, strlen(pcFileName));
       PAL_UTILS_LabelToFilenameHandle(pxPrivateKey->pcPkcs11Label, &pcFileName, &xHandle);
     }
 
     if (xHandle != eInvalidHandle)
     {
-      memcpy(pxCtx->PrivateKey, pcFileName, strlen(pcFileName));
+      memcpy(pxCtx->PrivateKeyName, pcFileName, strlen(pcFileName));
       status =  true;
     }
   }
@@ -192,9 +196,9 @@ static bool prvConfigCertificates(W6X_MQTT_Connect_t *pxCtx, const PkiObject_t *
     }
 
 #else
-    status  = prvConfigCheckCertificate((char *)pxCtx->CACertificate, pkcs11configLABEL_ROOT_CERTIFICATE          );
-    status &= prvConfigCheckCertificate((char *)pxCtx->Certificate  , pkcs11configLABEL_DEVICE_CERTIFICATE_FOR_TLS);
-    status &= prvConfigCheckCertificate((char *)pxCtx->PrivateKey   , pkcs11configLABEL_DEVICE_PRIVATE_KEY_FOR_TLS);
+    status  = prvConfigCheckCertificate((char *)pxCtx->CACertificateName, pkcs11configLABEL_ROOT_CERTIFICATE          );
+    status &= prvConfigCheckCertificate((char *)pxCtx->CertificateName  , pkcs11configLABEL_DEVICE_CERTIFICATE_FOR_TLS);
+    status &= prvConfigCheckCertificate((char *)pxCtx->PrivateKeyName   , pkcs11configLABEL_DEVICE_PRIVATE_KEY_FOR_TLS);
 #endif
   }
 
@@ -205,7 +209,8 @@ static bool prvConfigCertificates(W6X_MQTT_Connect_t *pxCtx, const PkiObject_t *
 
 static bool prvConfigMQTTEndpoint(W6X_MQTT_Connect_t *pxCtx, const char *pcHostName)
 {
-  memcpy(pxCtx->HostName, pcHostName, strlen(pcHostName));
+  memset((char *)pxCtx->HostName, 0, sizeof(pxCtx->HostName));
+  snprintf(pxCtx->HostName, sizeof(pxCtx->HostName), "%s",pcHostName);
 
   return true;
 }
@@ -226,18 +231,27 @@ static bool prvConfigMQTTClientId(W6X_MQTT_Connect_t *pxCtx)
   HAL_ICACHE_Enable();
 #endif
 
-  memset(pxCtx->MQClientId,0, 32);
+  memset(pxCtx->MQClientId,0, sizeof(pxCtx->MQClientId));
 
-  snprintf((char *)pxCtx->MQClientId, 24, "%08X%08X%08X", (int)uid0, (int)uid1, (int)uid2);
+//  snprintf((char *)pxCtx->MQClientId, 16, "%08X%08X%08X", (int)uid0, (int)uid1, (int)uid2);
+  snprintf((char *)pxCtx->MQClientId, 16, "%s", "slim");
 
   return true;
 }
 
 /*-----------------------------------------------------------*/
 
+static bool prvConfigMQUserPwd(W6X_MQTT_Connect_t *pxCtx)
+{
+  memset(pxCtx->MQUserPwd, 0, sizeof(pxCtx->MQUserPwd));
+
+  return true;
+}
+
+/*-----------------------------------------------------------*/
 static bool prvConfigMQTTUser(W6X_MQTT_Connect_t *pxCtx)
 {
-  memset(pxCtx->MQUserName, 0, 32);
+  memset(pxCtx->MQUserName, 0, sizeof(pxCtx->MQUserName));
 
 #if defined(AWS_IOT_METRICS_STRING)
   if (AWS_IOT_METRICS_STRING != NULL)
@@ -308,8 +322,6 @@ W6X_Status_t w6x_transport_connect(NetworkContext_t *pxNetworkContext, const cha
   W6X_Status_t xStatus = W6X_STATUS_OK;
   W6X_MQTT_Connect_t * pxCtx = (W6X_MQTT_Connect_t *)pxNetworkContext;
 
-  memcpy(pxCtx->HostName, pcHostName, strlen(pcHostName));
-
   if (!prvConfigMQTTEndpoint(pxCtx, pcHostName))
   {
     return W6X_STATUS_ERROR;
@@ -321,6 +333,11 @@ W6X_Status_t w6x_transport_connect(NetworkContext_t *pxNetworkContext, const cha
   }
 
   if (!prvConfigMQTTUser(pxCtx))
+  {
+    return W6X_STATUS_ERROR;
+  }
+
+  if (!prvConfigMQUserPwd(pxCtx))
   {
     return W6X_STATUS_ERROR;
   }

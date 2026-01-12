@@ -44,7 +44,7 @@ int W6X_Net_GetAddrInfo(const char *nodename, const char *servname, const struct
     memset(sock_addr, 0, sizeof(struct sockaddr_in));
     sock_addr->sin_family = AF_INET;
     sock_addr->sin_port = (servname != NULL) ? lwip_htons(atoi(servname)) : 0; // Convert service name to port
-    memcpy(&(sock_addr->sin_addr_t.s_addr), ipaddr, sizeof(ipaddr));
+    memcpy(&(sock_addr->sin_addr.s_addr), ipaddr, sizeof(ipaddr));
 
     // Fill the addrinfo structure
     result->ai_family = AF_INET;

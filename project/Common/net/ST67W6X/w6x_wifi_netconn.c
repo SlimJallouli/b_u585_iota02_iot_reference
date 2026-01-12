@@ -151,7 +151,8 @@ static int32_t APP_WiFi_Init(void)
   if (ret == W6X_STATUS_OK)
   {
     LogInfo("Wi-Fi init is done");
-
+    // TODO: Issue when migrated to X-CUBE-ST67W6 V1.1.0
+#if 0
     /* Set DTIM value (dtim * 100ms). 0: Disabled, 1: 100ms, 10: 1s */
     ret = W6X_WiFi_SetDTIM(0);
 
@@ -159,6 +160,7 @@ static int32_t APP_WiFi_Init(void)
     {
       LogError("failed to initialize the DTIM, %d", ret);
     }
+#endif
   }
 
   if (ret == W6X_STATUS_OK)
@@ -289,7 +291,13 @@ void W6X_WiFi_Task(void *pvParameters)
         APP_WiFi_Connect();
       }
 
-      xEvent = xEventGroupWaitBits(xSystemEvents, EVT_MASK_NET_CONNECTED, pdFALSE, pdTRUE, pdMS_TO_TICKS(5000));
+      xEvent = xEventGroupWaitBits(xSystemEvents, EVT_MASK_NET_CONNECTED, pdFALSE, pdTRUE, portMAX_DELAY);
+
+      if(xEvent&EVT_MASK_NET_CONNECTED)
+      {
+        APP_WiFi_GetIpAddress();
+      }
+
       xEvent &= EVT_MASK_NET_CONNECTED;
     }
     else
@@ -334,7 +342,6 @@ static void APP_wifi_cb(W6X_event_id_t event_id, void *event_args)
     break;
 
   case W6X_WIFI_EVT_GOT_IP_ID:
-    APP_WiFi_GetIpAddress();
     xEventGroupSetBits(xSystemEvents, EVT_MASK_NET_CONNECTED);
     break;
 

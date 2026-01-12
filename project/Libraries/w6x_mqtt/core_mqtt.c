@@ -35,6 +35,9 @@
 #include "w6x_api.h"
 #include <string.h>
 
+#define MQTT_PRE_SEND_HOOK( pContext )  {xSemaphoreTake(xW6XMutex, portMAX_DELAY); /*vTaskDelay(10);*/}
+#define MQTT_POST_SEND_HOOK( pContext ) xSemaphoreGive(xW6XMutex)
+
 /* Private Macro -------------------------------------------------------------*/
 #ifndef MQTT_PRE_SEND_HOOK
 
@@ -927,6 +930,17 @@ MQTTStatus_t MQTT_Connect( MQTTContext_t * pContext,
   /* Take the mutex because the below call should not be interrupted. */
   MQTT_PRE_SEND_HOOK( pContext );
 
+  memset(pxCtx->WillTopic  , 0, sizeof(pxCtx->WillTopic  ));
+  memset(pxCtx->WillMessage, 0, sizeof(pxCtx->WillMessage));
+
+  snprintf((char *)pxCtx->WillTopic  , sizeof(pxCtx->WillTopic  ), "%s", pWillInfo->pTopicName);
+  snprintf((char *)pxCtx->WillMessage, sizeof(pxCtx->WillMessage), "%s", pWillInfo->pPayload  );
+
+  pxCtx->WillQos    = pWillInfo->qos;
+  pxCtx->WillRetain = pWillInfo->retain;
+
+  pxCtx->KeepAlive = 60;
+
   xStatus = W6X_MQTT_Configure(pxCtx);
 
   if (xStatus == W6X_STATUS_OK)
@@ -975,7 +989,7 @@ MQTTStatus_t MQTT_Subscribe( MQTTContext_t * pContext,
                   ( unsigned long ) remainingLength ) );
   }
 
-  LogInfo("Subscribing to topic           =\"%s\"", pSubscriptionList->pTopicFilter);
+  LogInfo("Subscribing to topic=\"%s\"", pSubscriptionList->pTopicFilter);
 
   if (xMQTTStatus == MQTTSuccess)
   {
@@ -1014,7 +1028,9 @@ MQTTStatus_t MQTT_Publish( MQTTContext_t * pContext, const MQTTPublishInfo_t * p
 
   xStatus = W6X_MQTT_Publish((uint8_t *)pPublishInfo->pTopicName,
                              (uint8_t* )pPublishInfo->pPayload,
-                                        pPublishInfo->payloadLength);
+                                        pPublishInfo->payloadLength,
+                                        pPublishInfo->qos,
+                                        pPublishInfo->retain);
 
   if (xStatus != W6X_STATUS_OK)
   {

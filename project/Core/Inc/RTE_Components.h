@@ -34,7 +34,7 @@
 /* ARM.mbedTLS.3.1.1 */
 #define RTE_PSA_API_CRYPTO
 #define RTE_Security_mbedTLS /* Security mbed TLS */
-/* STMicroelectronics.X-CUBE-MEMS1.11.2.0 */
+/* STMicroelectronics.X-CUBE-MEMS1.12.0.0 */
 #define ISM330DHCX_ACCGYR_I2C
 #define IIS2MDC_MAG_I2C
 #define LPS22HH_PRESSTEMP_I2C

@@ -970,7 +970,7 @@ void vMQTTAgentTask( void * pvParameters )
     W6X_Status_t xW6xStatus = W6X_STATUS_ERROR;
 #endif
 
-#if defined(DEMO_HOME_ASSISTANT)
+#if defined(DEMO_HOME_ASSISTANT) || defined(ST67W6X_NCP)
     MQTTPublishInfo_t * pWillInfo = NULL;
     char *pThingName = NULL;
     size_t uxThingNameLen = 0;
@@ -1218,42 +1218,32 @@ void vMQTTAgentTask( void * pvParameters )
 
             ( void ) MQTTAgent_CancelAll( &( pxCtx->xAgentContext ) );
 
-#if defined (DEMO_HOME_ASSISTANT)
             pThingName = KVStore_getStringHeap(CS_CORE_THING_NAME, &uxThingNameLen);
             configASSERT(pThingName != NULL);
 
-            int topicLen = snprintf(pcWillTopicBuf, 64, "%s/status/availability", pThingName);
-
-            // Create static payload
-            const char *pWillPayload = "offline";
-            size_t payloadLen = strlen(pWillPayload);
-
-            // Allocate and initialize LWT structure
+            /* Allocate and initialize LWT structure */
             static MQTTPublishInfo_t xWillInfo;
-            xWillInfo.qos = MQTTQoS0;
-            xWillInfo.retain = true;
-            xWillInfo.dup = false;
-            xWillInfo.pTopicName = pcWillTopicBuf;
-            xWillInfo.topicNameLength = (uint16_t) topicLen;
-            xWillInfo.pPayload = pWillPayload;
-            xWillInfo.payloadLength = payloadLen;
 
-            // Assign pointer
+            int topicLen = snprintf(pcWillTopicBuf, 64, "%s/status/availability", pThingName);
+            const char *pWillPayload  = "offline";// Create static payload
+            xWillInfo.retain          = true;
+            xWillInfo.qos             = MQTTQoS0;
+            xWillInfo.dup             = false;
+            xWillInfo.pTopicName      = pcWillTopicBuf;
+            xWillInfo.topicNameLength = (uint16_t) topicLen;
+            xWillInfo.pPayload        = pWillPayload;
+            xWillInfo.payloadLength   = strlen(pWillPayload);
+
+            /* Assign pointer */
             pWillInfo = &xWillInfo;
 
-            // Now call MQTT_Connect with populated pWillInfo
+            /* MQTT_Connect with populated pWillInfo */
             xMQTTStatus = MQTT_Connect(&(pxCtx->xAgentContext.mqttContext),
                                        &(pxCtx->xConnectInfo),
                                        pWillInfo,
                                        CONNACK_RECV_TIMEOUT_MS,
                                        &xSessionPresent);
-#else
-            xMQTTStatus = MQTT_Connect( &( pxCtx->xAgentContext.mqttContext ),
-                                        &( pxCtx->xConnectInfo ),
-                                        NULL,
-                                        CONNACK_RECV_TIMEOUT_MS,
-                                        &xSessionPresent );
-#endif
+
             configASSERT_CONTINUE( MUTEX_IS_OWNED( pxCtx->xSubMgrCtx.xMutex ) );
 
             /* Resume a session if desired. */

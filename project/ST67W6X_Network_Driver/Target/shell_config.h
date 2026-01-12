@@ -1,13 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    w61_driver_config.h
+  * @file    shell_config.h
   * @author  GPM Application Team
-  * @brief   Header file for the W61 configuration module
+  * @brief   Header file for the W6X Shell configuration module
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2026 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -19,8 +19,8 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef W61_DRIVER_CONFIG_H
-#define W61_DRIVER_CONFIG_H
+#ifndef SHELL_CONFIG_H
+#define SHELL_CONFIG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,26 +32,13 @@ extern "C" {
 /* USER CODE END Includes */
 
 /* Exported constants --------------------------------------------------------*/
-/** ============================
-  * AT Wi-Fi
-  * All available configuration defines in
-  * Middlewares\ST\ST67W6X_Network_Driver\Driver\W61_at\w61_default_config.h
-  * ============================
-  */
+/*
+ * All available configuration defines can be found in
+ * Middlewares\ST\ST67W6X_Network_Driver\Conf\shell_config_template.h
+ */
 
-/** Maximum number of detected AP during the scan. Cannot be greater than 50 */
-#define W61_WIFI_MAX_DETECTED_AP                50
-
-/** ============================
-  * AT Common
-  * All available configuration defines in
-  * Middlewares\ST\ST67W6X_Network_Driver\Driver\W61_at\w61_at_common.h
-  * ============================
-  */
-
-/** Debugging only: Enable AT log, i.e. logs the AT commands incoming/outcoming from/to the NCP */
-#define W61_AT_LOG_ENABLE                       0
-#include "logging.h"
+/** Enable the shell component */
+#define SHELL_ENABLE                            0
 
 /* USER CODE BEGIN EC */
 
@@ -61,4 +48,4 @@ extern "C" {
 }
 #endif /* __cplusplus */
 
-#endif /* W61_DRIVER_CONFIG_H */
+#endif /* SHELL_CONFIG_H */

@@ -253,7 +253,7 @@ void Error_Handler(void);
 #define TASK_STACK_SIZE_ENV                     1024/** Stack size of the EnvSense process task          */
 #define TASK_STACK_SIZE_LIGHT                   1024/** Stack size of the LightSense process task        */
 #define TASK_STACK_SIZE_MOTION                  1024/** Stack size of the MotionS process task           */
-#define TASK_STACK_SIZE_HS                      1024/** Stack size of the Home Assistant process task    */
+#define TASK_STACK_SIZE_HS                      4096/** Stack size of the Home Assistant process task    */
 #define TASK_STACK_SIZE_CLI                     2048/** Stack size of the CLI process task               */
 #define TASK_STACK_SIZE_MQTT_AGENT              2048/** Stack size of the MQTTAgent process task         */
 #define TASK_STACK_SIZE_PING                    2048/** Stack size of the PING process task              */
