@@ -346,7 +346,7 @@ void StartDefaultTask(void *argument)
 #endif
 
 #if defined(ETHERNET)
-  xTaskCreate( &net_main, "EthNet", TASK_STACK_SIZE_NET_ETH, NULL, TASK_PRIO_NET_ETH, NULL );
+  xTaskCreate( net_main, "EthNet", TASK_STACK_SIZE_NET_ETH, NULL, TASK_PRIO_NET_ETH, NULL );
 #endif
 
 #if DEMO_ECHO_SERVER

@@ -208,15 +208,15 @@ void Error_Handler(void);
 #define DEMO_SNTP                               0   // SNTP example
 #endif
 
-#define MQTT_ENABLED                            (DEMO_PUB_SUB       || \
-                                                 DEMO_ENV_SENSOR    || \
-												                         DEMO_LIGHT_SENSOR  || \
-                                                 DEMO_MOTION_SENSOR || \
-												                         DEMO_LED           || \
-																		             DEMO_BUTTON        || \
-																					       DEMO_HOME_ASSISTANT|| \
-                                                 DEMO_AWS_OTA       || \
-                                                 DEMO_AWS_SHADOW    || \
+#define MQTT_ENABLED                            (DEMO_PUB_SUB       | \
+                                                 DEMO_ENV_SENSOR    | \
+												                         DEMO_LIGHT_SENSOR  | \
+                                                 DEMO_MOTION_SENSOR | \
+												                         DEMO_LED           | \
+																		             DEMO_BUTTON        | \
+																					       DEMO_HOME_ASSISTANT| \
+                                                 DEMO_AWS_OTA       | \
+                                                 DEMO_AWS_SHADOW    | \
                                                  defined(DEMO_AWS_FLEET_PROVISION))
 
 /******************** Tasks priority ********************/
@@ -282,7 +282,11 @@ void Error_Handler(void);
 #endif
 
 #if defined(ST67W6X_NCP)
-#define CONNECTIVITY                            "ST67_NCP"
+#define CONNECTIVITY                            "ST67W6X_NCP"
+#endif
+
+#if defined(ST67W6X_RCP)
+#define CONNECTIVITY                            "ST67W6X_RCP"
 #endif
 
 #if defined(ETHERNET)

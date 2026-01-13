@@ -1,4 +1,4 @@
-#if (defined(ETHERNET) || defined(MXCHIP))
+#if (defined(ETHERNET) || defined(MXCHIP) || defined(ST67W6X_RCP))
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
 #include "lwip/icmp.h"

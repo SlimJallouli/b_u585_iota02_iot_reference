@@ -1,13 +1,14 @@
 # Ignore build directories
-project/Ethernet/
+project/Ethernet_Single/
 project/Ethernet_FleetProvisioning/
 project/Ethernet_STSAFEA110/
 project/Ethernet_STSAFEA120/
-project/MXCHIP/
+project/MXCHIP_Single/
 project/MXCHIP_FleeProvisioning/
 project/MXCHIP_STSAFEA110/
 project/MXCHIP_STSAFEA120/
-project/ST67_NCP/
+project/ST67_T01/
+project/ST67_T02_FleetProvisioning/
 Bootloader/Debug/
 tools/certs/
 tools/host-ota-cert/ota_pub_key.txt

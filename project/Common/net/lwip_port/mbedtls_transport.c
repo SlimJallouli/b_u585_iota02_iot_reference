@@ -54,7 +54,9 @@
 
 #include "errno.h"
 
+#if !defined(MBEDTLS_DEBUG_THRESHOLD)
 #define MBEDTLS_DEBUG_THRESHOLD    1
+#endif
 
 #ifdef MBEDTLS_TRANSPORT_PKCS11
     #include "core_pkcs11_config.h"

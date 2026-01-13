@@ -100,7 +100,7 @@ typedef enum KvStoreEnum
     CS_NUM_KEYS                  /* Total Number of Keys       */
 } KVStoreKey_t;
 
-#elif defined(MXCHIP)
+#elif (defined(MXCHIP) || defined(ST67W6X_RCP))
 typedef enum KvStoreEnum
 {
     COMMON_KV_STORE_KEYS,        /* Common Keys                */
@@ -160,7 +160,7 @@ typedef enum KvStoreEnum
     }
 #endif
 
-#elif defined(MXCHIP)
+#elif (defined(MXCHIP) || defined(ST67W6X_RCP))
 #if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
 #define KV_STORE_STRINGS                                          \
     {                                                             \
@@ -227,7 +227,7 @@ typedef enum KvStoreEnum
 #endif
 
 /* Defaults for MXCHIP platform */
-#elif defined(MXCHIP)
+#elif (defined(MXCHIP) || defined(ST67W6X_RCP))
 #if defined(DEMO_AWS_FLEET_PROVISION) && !defined(__USE_STSAFE__)
 #define KV_STORE_DEFAULTS                                                                  \
     {                                                                                      \

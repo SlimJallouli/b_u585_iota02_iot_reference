@@ -358,7 +358,9 @@ void net_main( void * pvParameters )
 
     /* Register lwip netif */
     xLwipError = netifapi_netif_add( pxNetif,
-                                     NULL, NULL, NULL,
+                                     NULL,
+                                     NULL,
+                                     NULL,
                                      &xCtx,
                                      &prvInitNetInterface,
                                      tcpip_input );

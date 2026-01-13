@@ -194,7 +194,7 @@ static bool pfKvs_setDefault(void)
   pxSTSAFE_KVStoreTLV->KVStore[CS_CORE_MQTT_PORT].data[2] = (uint8_t) ((DEFAULT_MQTT_PORT >> 16) & 0xFF); // Next  8 bits
   pxSTSAFE_KVStoreTLV->KVStore[CS_CORE_MQTT_PORT].data[3] = (uint8_t) ((DEFAULT_MQTT_PORT >> 24) & 0xFF); // Upper 8 bits
 
-#if defined(ST67W6X_NCP) || defined(MXCHIP)
+#if (defined(ST67W6X_NCP) || defined(ST67W6X_RCP) || defined(MXCHIP))
   pxSTSAFE_KVStoreTLV->KVStore[CS_WIFI_SSID].xTlvHeader.type = KV_TYPE_STRING;
   pxSTSAFE_KVStoreTLV->KVStore[CS_WIFI_SSID].xTlvHeader.length = strlen(DEFAULT_WIFI_SSID) + 1;
   memcpy(pxSTSAFE_KVStoreTLV->KVStore[CS_WIFI_SSID].data, ssid, pxSTSAFE_KVStoreTLV->KVStore[CS_WIFI_SSID].xTlvHeader.length);
