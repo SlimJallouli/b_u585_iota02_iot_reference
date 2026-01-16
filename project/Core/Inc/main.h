@@ -180,43 +180,43 @@ void Error_Handler(void);
 #define MBEDTLS_DEBUG_INFO                      3 /* Provides general information about the SSL/TLS process                 */
 #define MBEDTLS_DEBUG_VERBOSE                   4 /* Displays detailed debug information, including low-level operations    */
 
-#define MBEDTLS_DEBUG_THRESHOLD                 MBEDTLS_DEBUG_INFO
+#define MBEDTLS_DEBUG_THRESHOLD                 MBEDTLS_DEBUG_NO_DEBUG
 
 /******************** Tasks config ********************/
 #define DEMO_PUB_SUB                            0   // Publish/Subscribe Example
-#define DEMO_ENV_SENSOR                         1   // Environmental Sensor Example
-#define DEMO_LIGHT_SENSOR                       1   // Light Sensor Example
+#define DEMO_ENV_SENSOR                         0   // Environmental Sensor Example
+#define DEMO_LIGHT_SENSOR                       0   // Light Sensor Example
 #define DEMO_MOTION_SENSOR                      0   // Motion Sensor Example
-#define DEMO_LED                                1   // LED Control Example
-#define DEMO_BUTTON                             1   // Button Status Example
+#define DEMO_LED                                0   // LED Control Example
+#define DEMO_BUTTON                             0   // Button Status Example
 #define DEMO_ECHO_SERVER                        0   // Echo server example
 #define DEMO_ECHO_CLIENT                        0   // Echo Client example
 
 #define DEMO_AWS_SHADOW                         0   // AWS IoT Shadow Example
 
 #if !defined(ST67W6X_NCP)
-#define DEMO_AWS_OTA                            1   // OTA Update Example
-#define DEMO_AWS_DEFENDER                       1   // AWS IoT Defender Example
+#define DEMO_AWS_OTA                            0   // OTA Update Example
+#define DEMO_AWS_DEFENDER                       0   // AWS IoT Defender Example
 //DEMO_AWS_FLEET_PROVISION                          // Defined in project properties->C C++ Build->Settings->Tool Settings->GCC Compiler
 
-#define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
+#define DEMO_HOME_ASSISTANT                     0   // Home Assistant Discovery Example
 
-#define DEMO_PING                               0   // Ping example
+#define DEMO_PING                               1   // Ping example
 #endif
 
 #if defined(ST67W6X_NCP)
 #define DEMO_SNTP                               0   // SNTP example
 #endif
 
-#define MQTT_ENABLED                            (DEMO_PUB_SUB       | \
-                                                 DEMO_ENV_SENSOR    | \
-												                         DEMO_LIGHT_SENSOR  | \
-                                                 DEMO_MOTION_SENSOR | \
-												                         DEMO_LED           | \
-																		             DEMO_BUTTON        | \
-																					       DEMO_HOME_ASSISTANT| \
-                                                 DEMO_AWS_OTA       | \
-                                                 DEMO_AWS_SHADOW    | \
+#define MQTT_ENABLED                            (DEMO_PUB_SUB       || \
+                                                 DEMO_ENV_SENSOR    || \
+												                         DEMO_LIGHT_SENSOR  || \
+                                                 DEMO_MOTION_SENSOR || \
+												                         DEMO_LED           || \
+																		             DEMO_BUTTON        || \
+																					       DEMO_HOME_ASSISTANT|| \
+                                                 DEMO_AWS_OTA       || \
+                                                 DEMO_AWS_SHADOW    || \
                                                  defined(DEMO_AWS_FLEET_PROVISION))
 
 /******************** Tasks priority ********************/
@@ -234,7 +234,7 @@ void Error_Handler(void);
 #define TASK_PRIO_LIGHT                         (tskIDLE_PRIORITY      + 9 )
 #define TASK_PRIO_ENV                           (tskIDLE_PRIORITY      + 10)
 #define TASK_PRIO_MOTION                        (tskIDLE_PRIORITY      + 11)
-#define TASK_PRIO_HS                            (tskIDLE_PRIORITY      + 12)
+#define TASK_PRIO_HOMEASSISTANT                            (tskIDLE_PRIORITY      + 12)
 #define TASK_PRIO_CLI                           (tskIDLE_PRIORITY      + 13)
 #define TASK_PRIO_MQTTA_AGENT                   (tskIDLE_PRIORITY      + 14)
 #define TASK_PRIO_W6X                           (TASK_PRIO_MQTTA_AGENT + 1 )
@@ -253,7 +253,7 @@ void Error_Handler(void);
 #define TASK_STACK_SIZE_ENV                     1024/** Stack size of the EnvSense process task          */
 #define TASK_STACK_SIZE_LIGHT                   1024/** Stack size of the LightSense process task        */
 #define TASK_STACK_SIZE_MOTION                  1024/** Stack size of the MotionS process task           */
-#define TASK_STACK_SIZE_HS                      4096/** Stack size of the Home Assistant process task    */
+#define TASK_STACK_SIZE_HOMEASSISTANT           4096/** Stack size of the Home Assistant process task    */
 #define TASK_STACK_SIZE_CLI                     2048/** Stack size of the CLI process task               */
 #define TASK_STACK_SIZE_MQTT_AGENT              2048/** Stack size of the MQTTAgent process task         */
 #define TASK_STACK_SIZE_PING                    2048/** Stack size of the PING process task              */

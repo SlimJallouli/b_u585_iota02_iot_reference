@@ -52,6 +52,10 @@
 #include "mx_netconn.h"
 #endif
 
+#if defined(ST67W6X_RCP)
+#include "st67_netconn.h"
+#endif
+
 #if defined(ST67W6X_NCP)
 #include "w6x_wifi_netconn.h"
 #endif
@@ -345,6 +349,10 @@ void StartDefaultTask(void *argument)
   xTaskCreate(W6X_WiFi_Task, "W6xNet", TASK_STACK_SIZE_W6X, NULL, TASK_PRIO_W6X, NULL);
 #endif
 
+#if defined(ST67W6X_RCP)
+  xTaskCreate(net_main, "W6xNet", TASK_STACK_SIZE_W6X, NULL, TASK_PRIO_W6X, NULL);
+#endif
+
 #if defined(ETHERNET)
   xTaskCreate( net_main, "EthNet", TASK_STACK_SIZE_NET_ETH, NULL, TASK_PRIO_NET_ETH, NULL );
 #endif
@@ -389,7 +397,7 @@ void StartDefaultTask(void *argument)
 #endif
 
 #if DEMO_HOME_ASSISTANT
-      xTaskCreate(vHAConfigPublishTask, "HA", TASK_STACK_SIZE_HS, NULL, TASK_PRIO_HS, NULL);
+      xTaskCreate(vHAConfigPublishTask, "HomeAssistant", TASK_STACK_SIZE_HOMEASSISTANT, NULL, TASK_PRIO_HOMEASSISTANT, NULL);
 #endif
 
 #if DEMO_LED

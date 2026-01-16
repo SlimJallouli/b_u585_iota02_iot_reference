@@ -34,6 +34,8 @@
 
 #include "logging_levels.h"
 
+#define LOG_LEVEL LOG_DEBUG
+
 #ifndef LOG_LEVEL
 #define LOG_LEVEL    LOG_ERROR
 #endif
@@ -96,7 +98,12 @@ typedef u32_t      sys_prot_t;
 /* Compiler hints for packing structures */
 #define PACK_STRUCT_STRUCT    __attribute__( ( packed ) )
 
-#define LWIP_PLATFORM_DIAG( message )    do { vLoggingPrintf( "L", NULL, 0, REMOVE_PARENS message ); } while( 0 )
+//#define LWIP_PLATFORM_DIAG( message )    do { vLoggingPrintf( "L", NULL, 0, REMOVE_PARENS message ); } while( 0 )
+#define LWIP_PLATFORM_DIAG( message )    do { LogInfo( message ); } while( 0 )
+
+
+
+
 
 #define LWIP_PLATFORM_ASSERT( message ) \
     do { LogAssert( "Assertion \"%s\" failed.", message ); portDISABLE_INTERRUPTS(); while( 1 ) { __NOP(); } } while( 0 )
