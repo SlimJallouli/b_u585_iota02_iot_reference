@@ -24,7 +24,7 @@
 #define TLS_TRANSPORT_CONFIG
 
 #if defined(ST67W6X_NCP)
-#include "w6x_lwip_port.h"
+#include "../../Common/net/W6X_ARCH_T01/w6x_lwip_port.h"
 #endif
 
 #include "tls_transport_lwip.h"

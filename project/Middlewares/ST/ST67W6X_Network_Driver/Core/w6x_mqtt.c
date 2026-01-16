@@ -128,7 +128,7 @@ W6X_Status_t W6X_MQTT_Configure(W6X_MQTT_Connect_t *Config)
 {
   W6X_Status_t ret = W6X_STATUS_ERROR;
   NULL_ASSERT(p_DrvObj, W6X_MQTT_Uninit_str);
-#if 0
+
   if ((Config->Scheme == 2) || (Config->Scheme == 4)) /* Server certificate */
   {
     if (Config->CACertificateName[0] == '\0')
@@ -204,17 +204,13 @@ W6X_Status_t W6X_MQTT_Configure(W6X_MQTT_Connect_t *Config)
       }
     }
   }
-#endif
+
   W6X_MQTT_SNI_enabled = Config->SNI_enabled;
 
   /* Set the MQTT User configuration */
-  ret = TranslateErrorStatus(W61_MQTT_SetUserConfiguration(p_DrvObj,
-                                                           Config->Scheme,
-                                                           Config->MQClientId,
-                                                           Config->MQUserName,
-                                                           Config->MQUserPwd,
-                                                           Config->CertificateName,
-                                                           Config->PrivateKeyName,
+  ret = TranslateErrorStatus(W61_MQTT_SetUserConfiguration(p_DrvObj, Config->Scheme, Config->MQClientId,
+                                                           Config->MQUserName, Config->MQUserPwd,
+                                                           Config->CertificateName, Config->PrivateKeyName,
                                                            Config->CACertificateName));
   if (ret != W6X_STATUS_OK)
   {
@@ -222,12 +218,8 @@ W6X_Status_t W6X_MQTT_Configure(W6X_MQTT_Connect_t *Config)
   }
 
   /* Set the MQTT Connection configuration */
-  ret = TranslateErrorStatus(W61_MQTT_SetConfiguration(p_DrvObj,
-                                                       Config->KeepAlive,
-                                                       Config->DisableCleanSession,
-                                                       Config->WillTopic,
-                                                       Config->WillMessage,
-                                                       Config->WillQos,
+  ret = TranslateErrorStatus(W61_MQTT_SetConfiguration(p_DrvObj, Config->KeepAlive, Config->DisableCleanSession,
+                                                       Config->WillTopic, Config->WillMessage, Config->WillQos,
                                                        Config->WillRetain));
 
 _err:

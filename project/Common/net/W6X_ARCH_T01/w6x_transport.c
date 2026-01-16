@@ -20,7 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #if defined(MBEDTLS_CONFIG_FILE)
 #include "FreeRTOS.h"
-#include "w6x_transport.h"
+#include "../W6X_ARCH_T01/w6x_transport.h"
 #include "w6x_api.h"
 #include "w6x_fs.h"
 #include "core_pkcs11_pal.h"

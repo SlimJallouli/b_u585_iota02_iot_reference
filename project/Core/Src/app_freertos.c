@@ -53,11 +53,11 @@
 #endif
 
 #if defined(ST67W6X_RCP)
-#include "st67_netconn.h"
+#include "../../Common/net/W6X_ARCH_T02/st67_netconn.h"
 #endif
 
 #if defined(ST67W6X_NCP)
-#include "w6x_wifi_netconn.h"
+#include "../../Common/net/W6X_ARCH_T01/w6x_wifi_netconn.h"
 #endif
 
 #if defined(ETHERNET)

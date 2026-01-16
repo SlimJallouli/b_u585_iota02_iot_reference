@@ -9,7 +9,6 @@ project/MXCHIP_STSAFEA110/
 project/MXCHIP_STSAFEA120/
 project/ST67_T01/
 project/ST67_T02_FleetProvisioning/
-project/Common/net/ST67_ARCH_T02/
 Bootloader/Debug/
 tools/certs/
 tools/host-ota-cert/ota_pub_key.txt

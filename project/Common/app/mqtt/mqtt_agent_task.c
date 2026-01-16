@@ -65,7 +65,7 @@
 #if !defined(ST67W6X_NCP)
 #include "mbedtls_transport.h"
 #else
-#include "w6x_transport.h"
+#include "../../net/W6X_ARCH_T01/w6x_transport.h"
 #endif
 #include "sys_evt.h"
 

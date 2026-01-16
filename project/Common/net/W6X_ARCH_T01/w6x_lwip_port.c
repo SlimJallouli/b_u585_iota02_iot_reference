@@ -1,8 +1,9 @@
+#include "../W6X_ARCH_T01/w6x_lwip_port.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 //#include "w6x_api.h"
-#include "w6x_lwip_port.h"
 #include "w6x_types.h"
 #include "FreeRTOS.h"
 #include <sys/select.h>
