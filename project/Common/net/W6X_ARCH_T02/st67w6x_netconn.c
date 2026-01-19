@@ -1,187 +1,91 @@
-/*
- * FreeRTOS STM32 Reference Integration (MXCHIP -> ST67W6X migration)
- *
- * This file is intentionally patterned after mx_netconn.c.
- *
- * Notes:
- *  - st67_lwip_netif.c owns the RX task and driver integration.
- *  - This module owns the "network manager" task (net_main) and glues:
- *      lwIP init + netif add + DHCP + system event bits.
- */
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file    main_app.c
+  * @author  GPM Application Team
+  * @brief   main_app program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2024 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
 
-#include "logging_levels.h"
-#define LOG_LEVEL    LOG_DEBUG
-#include "logging.h"
-
-#include "main.h"
-
+/* Includes ------------------------------------------------------------------*/
+#include <inttypes.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 
-#include "../W6X_ARCH_T02/st67_netconn.h"
-#include "../W6X_ARCH_T02/st67_lwip_mxcompat.h"
-#include "../W6X_ARCH_T02/st67_lwip_netif.h"
-#include "w6x_types.h"
+/* Application */
+#include "main.h"
+#include "lwip.h"
 
-#include "spi_iface.h" /* spi falling/rising_callback */
+#include "w6x_api.h"
+#include "common_parser.h" /* Common Parser functions */
+#include "spi_iface.h" /* SPI falling/rising_callback */
+#include "logging.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
+#ifndef REDEFINE_FREERTOS_INTERFACE
+/* Depending on the version of FreeRTOS the inclusion might need to be redefined in app_config.h */
+#include "app_freertos.h"
+#include "queue.h"
 #include "event_groups.h"
+#endif /* REDEFINE_FREERTOS_INTERFACE */
+
 #include "kvstore.h"
-
-#include "lwip/tcpip.h"
-#include "lwip/netifapi.h"
-
+#include "interrupt_handlers.h"
 #include "sys_evt.h"
 
-/* If your project uses w6x_api.h, include it so you can fill in the weak hooks. */
-#include "w6x_api.h"
+/* USER CODE BEGIN Includes */
 
+/* USER CODE END Includes */
+
+/* Global variables ----------------------------------------------------------*/
+/* USER CODE BEGIN GV */
+
+/* USER CODE END GV */
+
+/* Private typedef -----------------------------------------------------------*/
+
+
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private defines -----------------------------------------------------------*/
+/* Application events */
+
+
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macros ------------------------------------------------------------*/
+
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
 /** BLE data buffer to receive message from the ST67W6X Driver */
 static uint8_t a_APP_AvailableData[247] = {0};
 
-/** Event when Wi-Fi is connected to an Access Point */
-#define EVT_APP_WIFI_CONNECTED                      (1<<1)
-/** Event when Wi-Fi got an IP address from the Access Point */
-#define EVT_APP_WIFI_GOT_IP                         (1<<2)
-/** Event when Wi-Fi is disconnected from the Access Point */
-#define EVT_APP_WIFI_DISCONNECTED                   (1<<2)
-
 /** Application event group */
-static EventGroupHandle_t app_evt_current;
+extern EventGroupHandle_t xSystemEvents;
+EventGroupHandle_t app_evt_current = NULL;
 
-/* --------------------------------------------------------------------------
- * Internal state
- * -------------------------------------------------------------------------- */
 
-static TaskHandle_t xNetTaskHandle = NULL;
-static St67NetConnectCtx_t *pxActiveCtx = NULL;
+/* USER CODE BEGIN PV */
 
-/* --------------------------------------------------------------------------
- * Weak hooks: bind these to your ST67W6X Wi-Fi connection implementation.
- *
- * The reference MXCHIP integration pulls SSID/PSK from KVStore and initiates
- * a connection itself. ST67W6X projects vary (CLI, auto-connect, user-driven,
- * etc.), so these are left as hooks.
- * -------------------------------------------------------------------------- */
-
-__attribute__( ( weak ))
-W6X_Status_t st67_wifi_connect_from_kvstore(void)
-{
-  W6X_Status_t ret = W6X_STATUS_OK;
-  W6X_WiFi_Connect_Opts_t ConnectOpts = { 0 };
-
-#if defined(LFS_CONFIG)
-  KVStore_getString(CS_WIFI_SSID, (char*) ConnectOpts.SSID, W6X_WIFI_MAX_SSID_SIZE);
-  KVStore_getString(CS_WIFI_CREDENTIAL, (char*) ConnectOpts.Password, W6X_WIFI_MAX_PASSWORD_SIZE);
-#else
-  snprintf((char *)ConnectOpts.SSID    , W6X_WIFI_MAX_SSID_SIZE    , "%s", DEFAULT_SSID);
-  snprintf((char *)ConnectOpts.Password, W6X_WIFI_MAX_PASSWORD_SIZE, "%s", DEFAULT_PSWD);
-#endif
-
-  ret = W6X_WiFi_Connect(&ConnectOpts);
-
-  return ret;
-}
-
-__attribute__( ( weak ))
- BaseType_t st67_wifi_disconnect(void)
-{
-  /* Implement in your application if you want net_request_reconnect() to work. */
-  return pdFALSE;
-}
-
-/* --------------------------------------------------------------------------
- * Utilities
- * -------------------------------------------------------------------------- */
-
-static uint32_t ulWaitForNotifyBits(BaseType_t uxIndexToWaitOn, uint32_t ulTargetBits, TickType_t xTicksToWait)
-{
-  TickType_t xRemainingTicks = xTicksToWait;
-  TimeOut_t xTimeOut;
-
-  vTaskSetTimeOutState(&xTimeOut);
-
-  uint32_t ulNotifyValueAccumulate = 0x0;
-
-  while ((ulNotifyValueAccumulate & ulTargetBits) != ulTargetBits)
-  {
-    uint32_t ulNotifyValue = 0x0;
-    (void) xTaskNotifyWaitIndexed(uxIndexToWaitOn, 0x0, ulTargetBits, &ulNotifyValue, xRemainingTicks);
-
-    if (ulNotifyValue != 0)
-    {
-      ulNotifyValueAccumulate |= ulNotifyValue;
-    }
-
-    if (xTaskCheckForTimeOut(&xTimeOut, &xRemainingTicks) == pdTRUE)
-    {
-      break;
-    }
-  }
-
-  /* Preserve non-target bits */
-  if ((ulNotifyValueAccumulate & (~ulTargetBits)) != 0)
-  {
-    (void) xTaskNotifyIndexed(xTaskGetCurrentTaskHandle(), uxIndexToWaitOn, 0, eNoAction);
-  }
-
-  return ((ulTargetBits & ulNotifyValueAccumulate) != 0);
-}
-
-static void vLwipReadyCallback(void *pvCtx)
-{
-  St67NetConnectCtx_t *pxCtx = (St67NetConnectCtx_t*) pvCtx;
-
-  if ((pxCtx != NULL) && (pxCtx->xNetTaskHandle != NULL))
-  {
-    (void) xTaskNotifyIndexed(pxCtx->xNetTaskHandle, NET_EVT_IDX, NET_LWIP_READY_BIT, eSetBits);
-  }
-}
-
-/* --------------------------------------------------------------------------
- * ST67W6X netif link callbacks
- *
- * These are invoked by the W6X netif component (st67_lwip_netif.c) when the
- * module indicates link up/down.
- * -------------------------------------------------------------------------- */
-
-static int32_t prvStaLinkUpCb(void)
-{
-  if (pxActiveCtx != NULL)
-  {
-    vSetLinkUp(&pxActiveCtx->xNetif);
-  }
-  return 0;
-}
-
-static int32_t prvStaLinkDownCb(void)
-{
-  if (pxActiveCtx != NULL)
-  {
-    vSetLinkDown(&pxActiveCtx->xNetif);
-  }
-  return 0;
-}
-
-/* --------------------------------------------------------------------------
- * Public API
- * -------------------------------------------------------------------------- */
-
-BaseType_t net_request_reconnect(void)
-{
-  BaseType_t xReturn = pdFALSE;
-
-  LogDebug( "net_request_reconnect" );
-
-  if (xNetTaskHandle != NULL)
-  {
-    xReturn = xTaskNotifyIndexed(xNetTaskHandle, NET_EVT_IDX, ASYNC_REQUEST_RECONNECT_BIT, eSetBits);
-  }
-
-  return xReturn;
-}
+/* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /**
@@ -224,24 +128,42 @@ static void APP_error_cb(W6X_Status_t ret_w6x, char const *func_name);
   * @param  app_event: Event group
   * @param  evt: Event to set
   */
-static void APP_setevent(EventGroupHandle_t *app_event, uint32_t evt);
+void APP_setevent(EventGroupHandle_t *app_event, uint32_t evt);
 
+#if (SHELL_ENABLE == 1)
+/**
+  * @brief  Shell command to display the application information
+  * @param  argc: number of arguments
+  * @param  argv: pointer to the arguments
+  * @retval ::SHELL_STATUS_OK on success
+  */
+int32_t APP_shell_info(int32_t argc, char **argv);
 
-void net_main(void *pvParameters)
+/**
+  * @brief  Shell command to quit the application
+  * @param  argc: number of arguments
+  * @param  argv: pointer to the arguments
+  * @retval ::SHELL_STATUS_OK on success
+  */
+int32_t APP_shell_quit(int32_t argc, char **argv);
+#endif /* SHELL_ENABLE */
+
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Functions Definition ------------------------------------------------------*/
+void net_main(void *argument)
 {
-  int32_t ret = 0;
-  W6X_Net_if_cb_t xNetIfCb;
-  (void) pvParameters;
+  W6X_Status_t ret = 0;
+  EventBits_t eventBits = 0;
+  W6X_WiFi_Connect_t connectData = {0};
+  W6X_WiFi_StaStateType_e state = W6X_WIFI_STATE_STA_OFF;
+  W6X_WiFi_Connect_Opts_t connect_opts = {0};
 
-  BaseType_t xResult;
-  err_t xLwipError;
+  argument = argument;
 
-  St67NetConnectCtx_t xCtx;
-  (void) memset(&xCtx, 0, sizeof(xCtx));
-
-  xNetTaskHandle = xTaskGetCurrentTaskHandle();
-  xCtx.xNetTaskHandle = xNetTaskHandle;
-  pxActiveCtx = &xCtx;
+  app_evt_current = xEventGroupCreate();
 
   /* Register the application callback to received events from ST67W6X Driver */
   W6X_App_Cb_t App_cb = {0};
@@ -254,149 +176,163 @@ void net_main(void *pvParameters)
 
   W6X_RegisterAppCb(&App_cb);
 
-  app_evt_current = xEventGroupCreate();
+  GPIO_EXTI_Register_Rising_Callback(SPI_RDY_Pin, spi_on_txn_data_ready, NULL);
+  GPIO_EXTI_Register_Falling_Callback(SPI_RDY_Pin, spi_on_header_ack, NULL);
 
-  GPIO_EXTI_Register_Rising_Callback (SPI_RDY_Pin, spi_on_txn_data_ready, NULL);
-  GPIO_EXTI_Register_Falling_Callback(SPI_RDY_Pin, spi_on_header_ack    , NULL);
+  ( void ) KVStore_getString( CS_WIFI_SSID      , (char *)connect_opts.SSID     , W6X_WIFI_MAX_SSID_SIZE     );
+  ( void ) KVStore_getString( CS_WIFI_CREDENTIAL, (char *)connect_opts.Password , W6X_WIFI_MAX_PASSWORD_SIZE );
 
   /* Initialize the ST67W6X Driver */
   ret = W6X_Init();
 
-  if (ret != W6X_STATUS_OK)
+  if (W6X_STATUS_OK != ret)
   {
-    LogError("failed to initialize ST67W6X Driver, %" PRIi32 "\n", ret);
-    vTaskDelete(NULL);
+    LogError("Failed to initialize ST67W6X Driver, %" PRIi32 "\n", ret);
   }
 
-  LogInfo("W6X init is done");
-
+  if(W6X_STATUS_OK == ret)
+  {
   /* Initialize the ST67W6X Wi-Fi module */
-  ret = W6X_WiFi_Init();
+    ret = W6X_WiFi_Init();
 
-  if (ret)
-  {
-    LogError("failed to initialize ST67W6X Wi-Fi component, %" PRIi32 "\n", ret);
-    vTaskDelete(NULL);
-  }
-
-  LogInfo("Wi-Fi init is done");
-
-  /* Init lwIP */
-  tcpip_init(vLwipReadyCallback, &xCtx);
-
-  xResult = ulWaitForNotifyBits( NET_EVT_IDX, NET_LWIP_READY_BIT, portMAX_DELAY);
-
-  configASSERT(xResult != 0);
-
-  /* Init the ST67W6X netif adapter (creates RX task + registers RX callbacks) */
-
-  (void) memset(&xNetIfCb, 0, sizeof(xNetIfCb));
-
-  xNetIfCb.link_sta_up_fn   = prvStaLinkUpCb;
-  xNetIfCb.link_sta_down_fn = prvStaLinkDownCb;
-
-  if (net_if_init(&xNetIfCb) != 0)
-  {
-    LogError("net_if_init failed");
-  }
-
-  /* Try to populate MAC for lwIP netif init (optional) */
-  {
-    uint8_t ucMac[6] = { 0 };
-    if (W6X_WiFi_Station_GetMACAddress(ucMac) == 0)
+    if (W6X_STATUS_OK != ret)
     {
-      (void) memcpy(xCtx.xMacAddress.addr, ucMac, 6);
+      LogError("Failed to initialize ST67W6X Wi-Fi component, %" PRIi32 "\n", ret);
     }
   }
 
-  /* Register lwIP netif */
-  xLwipError = netifapi_netif_add(&xCtx.xNetif,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  &xCtx,
-                                  &prvInitNetInterface,
-                                  tcpip_input);
-
-  configASSERT(xLwipError == ERR_OK);
-
-  (void) netifapi_netif_set_default(&xCtx.xNetif);
-  (void) netifapi_netif_set_up     (&xCtx.xNetif);
-
-  (void) xEventGroupSetBits(xSystemEvents, EVT_MASK_NET_INIT);
-
-  /* Connect the device to the pre-defined Access Point */
-  LogInfo("Connecting to Local Access Point");
-
-  if (st67_wifi_connect_from_kvstore() != W6X_STATUS_OK)
+  if(W6X_STATUS_OK == ret)
   {
-    LogError("Failed to access point");
-  }
-  else
-  {
-    LogInfo("Connected to access point");
+    LogInfo("Wi-Fi init is done\n");
+
+    /* Initialize the LWIP stack */
+    ret = MX_LWIP_Init();
+
+    if (W6X_STATUS_OK != ret)
+    {
+      LogError("Failed to initialize LWIP stack %" PRIi32 "\n", ret);
+    }
+    else
+    {
+      LogInfo("W6X is ready\n");
+    }
   }
 
-  for (;;)
+  if(W6X_STATUS_OK == ret)
   {
-    uint32_t ulNotificationValue = 0;
+    ret = W6X_WiFi_Connect(&connect_opts);
+  }
 
-    xResult = xTaskNotifyWaitIndexed(NET_EVT_IDX, 0x0, 0xFFFFFFFF, &ulNotificationValue, pdMS_TO_TICKS( 30 * 1000 ));
-    (void) xResult;
+  while(W6X_STATUS_OK == ret)
+  {
+    eventBits = xEventGroupWaitBits(app_evt_current, EVT_APP_ALL_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
 
-    if (ulNotificationValue == 0)
+    if (eventBits & EVT_APP_WIFI_CONNECTED)
     {
-      continue;
+      uint32_t ps_mode = 0;
+      if ((W6X_GetPowerMode(&ps_mode) != W6X_STATUS_OK) || (W6X_SetPowerMode(ps_mode) != W6X_STATUS_OK))
+      {
+        LogError("Failed to restore the power save state\n");
+        continue;
+      }
+
+      if (W6X_WiFi_Station_GetState(&state, &connectData) != W6X_STATUS_OK)
+      {
+        LogWarn("Connected to an unknown Access Point\n");
+        continue;
+      }
+
+      LogInfo("Connected to following Access Point :\n");
+      LogInfo("[" MACSTR "] Channel: %" PRIu32 " | RSSI: %" PRIi32 " | SSID: %s\n",
+              MAC2STR(connectData.MAC),
+              connectData.Channel,
+              connectData.Rssi,
+              connectData.SSID);
     }
 
-    /* Latch in current flags */
-    uint8_t ucNetifFlags = xCtx.xNetif.flags;
-
-    if (ulNotificationValue & NET_LWIP_IP_CHANGE_BIT)
+    if (eventBits & EVT_APP_WIFI_DISCONNECTED)
     {
-      LogSys("IP Address Change.");
-      vLogAddress("IP Address:", xCtx.xNetif.ip_addr);
-      vLogAddress("Gateway:", xCtx.xNetif.gw);
-      vLogAddress("Netmask:", xCtx.xNetif.netmask);
-      (void) xEventGroupSetBits(xSystemEvents, EVT_MASK_NET_CONNECTED);
+    	LogInfo("Station disconnected from Access Point\n");
+    	xEventGroupSetBits(xSystemEvents, EVT_MASK_NET_DISCONNECTED);
     }
 
-    if (ulNotificationValue & NET_LWIP_IFUP_BIT)
+    if (eventBits & EVT_APP_WIFI_GOT_IP)
     {
-      LogInfo("Administrative UP event.");
-      vStartDhcp(&xCtx.xNetif);
-    }
-    else if ((ulNotificationValue & NET_LWIP_LINK_UP_BIT) && ((ucNetifFlags & NETIF_FLAG_LINK_UP) != 0))
-    {
-      LogInfo("Link UP event.");
-      vSetAdminUp(&xCtx.xNetif);
-      vStartDhcp(&xCtx.xNetif);
-      LogSys("Network Link Up.");
-    }
-    else if (ulNotificationValue & NET_LWIP_IFDOWN_BIT)
-    {
-      LogInfo("Administrative DOWN event.");
-      vStopDhcp(&xCtx.xNetif);
-      vClearAddress(&xCtx.xNetif);
-      (void) xEventGroupClearBits(xSystemEvents, EVT_MASK_NET_CONNECTED);
-    }
-    else if ((ulNotificationValue & NET_LWIP_LINK_DOWN_BIT) && ((ucNetifFlags & NETIF_FLAG_LINK_UP) == 0))
-    {
-      vSetAdminDown(&xCtx.xNetif);
-      vStopDhcp(&xCtx.xNetif);
-      vClearAddress(&xCtx.xNetif);
-      LogSys("Network Link Down.");
-      (void) xEventGroupClearBits(xSystemEvents, EVT_MASK_NET_CONNECTED);
-    }
-
-    if (ulNotificationValue & ASYNC_REQUEST_RECONNECT_BIT)
-    {
-      (void) xEventGroupClearBits(xSystemEvents, EVT_MASK_NET_CONNECTED);
-      (void) st67_wifi_disconnect();
-      (void) st67_wifi_connect_from_kvstore();
+      xEventGroupSetBits(xSystemEvents, EVT_MASK_NET_CONNECTED);
     }
   }
+
+  LogInfo("##### Quitting the application\n");
+
+  W6X_Ble_DeInit();  /* De-initialize the ST67W6X BLE module   */
+  W6X_WiFi_DeInit(); /* De-initialize the ST67W6X Wi-Fi module */
+  W6X_DeInit();      /* De-initialize the ST67W6X Driver       */
+
+  LogInfo("##### Application end\n");
+
+  vTaskDelete(NULL);
 }
+#if 0
+void HAL_GPIO_EXTI_Callback(uint16_t pin);
+void HAL_GPIO_EXTI_Rising_Callback(uint16_t pin);
+void HAL_GPIO_EXTI_Falling_Callback(uint16_t pin);
+
+void HAL_GPIO_EXTI_Callback(uint16_t pin)
+{
+  /* USER CODE BEGIN HAL_GPIO_EXTI_Callback_1 */
+
+  /* USER CODE END HAL_GPIO_EXTI_Callback_1 */
+  /* Callback when data is available in Network CoProcessor to enable SPI Clock */
+  if (pin == SPI_RDY_Pin)
+  {
+    if (HAL_GPIO_ReadPin(SPI_RDY_GPIO_Port, SPI_RDY_Pin) == GPIO_PIN_SET)
+    {
+      HAL_GPIO_EXTI_Rising_Callback(pin);
+    }
+    else
+    {
+      HAL_GPIO_EXTI_Falling_Callback(pin);
+    }
+  }
+  /* USER CODE BEGIN HAL_GPIO_EXTI_Callback_End */
+
+  /* USER CODE END HAL_GPIO_EXTI_Callback_End */
+}
+
+void HAL_GPIO_EXTI_Rising_Callback(uint16_t pin)
+{
+  /* USER CODE BEGIN EXTI_Rising_Callback_1 */
+
+  /* USER CODE END EXTI_Rising_Callback_1 */
+  /* Callback when data is available in Network CoProcessor to enable SPI Clock */
+  if (pin == SPI_RDY_Pin)
+  {
+    spi_on_txn_data_ready();
+  }
+  /* USER CODE BEGIN EXTI_Rising_Callback_End */
+
+  /* USER CODE END EXTI_Rising_Callback_End */
+}
+
+void HAL_GPIO_EXTI_Falling_Callback(uint16_t pin)
+{
+  /* USER CODE BEGIN EXTI_Falling_Callback_1 */
+
+  /* USER CODE END EXTI_Falling_Callback_1 */
+  /* Callback when data is available in Network CoProcessor to enable SPI Clock */
+  if (pin == SPI_RDY_Pin)
+  {
+    spi_on_header_ack();
+  }
+
+  /* USER CODE BEGIN EXTI_Falling_Callback_End */
+
+  /* USER CODE END EXTI_Falling_Callback_End */
+}
+#endif
+/* USER CODE BEGIN FD */
+
+/* USER CODE END FD */
 
 /* Private Functions Definition ----------------------------------------------*/
 static void APP_wifi_cb(W6X_event_id_t event_id, void *event_args)
@@ -414,7 +350,7 @@ static void APP_wifi_cb(W6X_event_id_t event_id, void *event_args)
       break;
 
     case W6X_WIFI_EVT_DISCONNECTED_ID:
-      LogInfo("Station disconnected from Access Point\n");
+      APP_setevent(&app_evt_current, EVT_APP_WIFI_DISCONNECTED);
       break;
 
     case W6X_WIFI_EVT_REASON_ID:
@@ -426,12 +362,12 @@ static void APP_wifi_cb(W6X_event_id_t event_id, void *event_args)
 
     case W6X_WIFI_EVT_STA_CONNECTED_ID:
       cb_data = (W6X_WiFi_CbParamData_t *)event_args;
-      //LogInfo("Station connected to soft-AP : [ MACSTR "]\n", MAC2STR(cb_data->MAC));
+      LogInfo("Station connected to soft-AP : [" MACSTR "]\n", MAC2STR(cb_data->MAC));
       break;
 
     case W6X_WIFI_EVT_STA_DISCONNECTED_ID:
       cb_data = (W6X_WiFi_CbParamData_t *)event_args;
-      //LogInfo("Station disconnected from soft-AP : [" MACSTR "]\n", MAC2STR(cb_data->MAC));
+      LogInfo("Station disconnected from soft-AP : [" MACSTR "]\n", MAC2STR(cb_data->MAC));
       break;
 
     default:
@@ -488,27 +424,23 @@ static void APP_ble_cb(W6X_event_id_t event_id, void *event_args)
       break;
 
     case W6X_BLE_EVT_INDICATION_STATUS_ENABLED_ID:
-      LogInfo(" -> BLE INDICATION ENABLED [Connection: %" PRIu16 ", Service: %" PRIu16 ", Charac: %" PRIu16 "]\n",
-              p_param_ble_data->remote_ble_device.conn_handle, p_param_ble_data->service_idx,
-              p_param_ble_data->charac_idx);
+      LogInfo(" -> BLE INDICATION ENABLED [Service: %" PRIu16 ", Charac: %" PRIu16 "]\n",
+              p_param_ble_data->service_idx, p_param_ble_data->charac_idx);
       break;
 
     case W6X_BLE_EVT_INDICATION_STATUS_DISABLED_ID:
-      LogInfo(" -> BLE INDICATION DISABLED [Connection: %" PRIu16 ", Service: %" PRIu16 ", Charac: %" PRIu16 "]\n",
-              p_param_ble_data->remote_ble_device.conn_handle, p_param_ble_data->service_idx,
-              p_param_ble_data->charac_idx);
+      LogInfo(" -> BLE INDICATION DISABLED [Service: %" PRIu16 ", Charac: %" PRIu16 "]\n",
+              p_param_ble_data->service_idx, p_param_ble_data->charac_idx);
       break;
 
     case W6X_BLE_EVT_NOTIFICATION_STATUS_ENABLED_ID:
-      LogInfo(" -> BLE NOTIFICATION ENABLED [Connection: %" PRIu16 ", Service: %" PRIu16 ", Charac: %" PRIu16 "]\n",
-              p_param_ble_data->remote_ble_device.conn_handle, p_param_ble_data->service_idx,
-              p_param_ble_data->charac_idx);
+      LogInfo(" -> BLE NOTIFICATION ENABLED [Service: %" PRIu16 ", Charac: %" PRIu16 "]\n",
+              p_param_ble_data->service_idx, p_param_ble_data->charac_idx);
       break;
 
     case W6X_BLE_EVT_NOTIFICATION_STATUS_DISABLED_ID:
-      LogInfo(" -> BLE NOTIFICATION DISABLED [Connection: %" PRIu16 ", Service: %" PRIu16 ", Charac: %" PRIu16 "]\n",
-              p_param_ble_data->remote_ble_device.conn_handle, p_param_ble_data->service_idx,
-              p_param_ble_data->charac_idx);
+      LogInfo(" -> BLE NOTIFICATION DISABLED [Service: %" PRIu16 ", Charac: %" PRIu16 "]\n",
+              p_param_ble_data->service_idx, p_param_ble_data->charac_idx);
       break;
 
     case W6X_BLE_EVT_NOTIFICATION_DATA_ID:
@@ -657,15 +589,17 @@ static void APP_error_cb(W6X_Status_t ret_w6x, char const *func_name)
   /* USER CODE END APP_error_cb_2 */
 }
 
-static void APP_setevent(EventGroupHandle_t *app_event, uint32_t evt)
+void APP_setevent(EventGroupHandle_t *app_event, uint32_t evt)
 {
   /* USER CODE BEGIN APP_setevent_1 */
 
   /* USER CODE END APP_setevent_1 */
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
   if (xPortIsInsideInterrupt())
   {
     xEventGroupSetBitsFromISR(*app_event, evt, &xHigherPriorityTaskWoken);
+
     if (xHigherPriorityTaskWoken)
     {
       portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -679,3 +613,7 @@ static void APP_setevent(EventGroupHandle_t *app_event, uint32_t evt)
 
   /* USER CODE END APP_setevent_End */
 }
+
+/* USER CODE BEGIN PFD */
+
+/* USER CODE END PFD */

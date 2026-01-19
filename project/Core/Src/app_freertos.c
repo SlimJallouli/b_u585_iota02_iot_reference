@@ -53,11 +53,11 @@
 #endif
 
 #if defined(ST67W6X_RCP)
-#include "../../Common/net/W6X_ARCH_T02/st67_netconn.h"
+#include "st67w6x_netconn.h"
 #endif
 
 #if defined(ST67W6X_NCP)
-#include "../../Common/net/W6X_ARCH_T01/w6x_wifi_netconn.h"
+#include "w6x_wifi_netconn.h"
 #endif
 
 #if defined(ETHERNET)
@@ -99,6 +99,7 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 EventGroupHandle_t xSystemEvents = NULL;
+
 #if defined(LFS_CONFIG)
 static lfs_t *pxLfsCtx = NULL;
 #endif

@@ -184,24 +184,23 @@ void Error_Handler(void);
 
 /******************** Tasks config ********************/
 #define DEMO_PUB_SUB                            0   // Publish/Subscribe Example
-#define DEMO_ENV_SENSOR                         0   // Environmental Sensor Example
-#define DEMO_LIGHT_SENSOR                       0   // Light Sensor Example
+#define DEMO_ENV_SENSOR                         1   // Environmental Sensor Example
+#define DEMO_LIGHT_SENSOR                       1   // Light Sensor Example
 #define DEMO_MOTION_SENSOR                      0   // Motion Sensor Example
-#define DEMO_LED                                0   // LED Control Example
-#define DEMO_BUTTON                             0   // Button Status Example
+#define DEMO_LED                                1   // LED Control Example
+#define DEMO_BUTTON                             1   // Button Status Example
 #define DEMO_ECHO_SERVER                        0   // Echo server example
 #define DEMO_ECHO_CLIENT                        0   // Echo Client example
+#define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
 
 #define DEMO_AWS_SHADOW                         0   // AWS IoT Shadow Example
-
-#if !defined(ST67W6X_NCP)
-#define DEMO_AWS_OTA                            0   // OTA Update Example
-#define DEMO_AWS_DEFENDER                       0   // AWS IoT Defender Example
+#define DEMO_AWS_OTA                            1   // OTA Update Example
 //DEMO_AWS_FLEET_PROVISION                          // Defined in project properties->C C++ Build->Settings->Tool Settings->GCC Compiler
 
-#define DEMO_HOME_ASSISTANT                     0   // Home Assistant Discovery Example
+#define DEMO_PING                               0   // Ping example
 
-#define DEMO_PING                               1   // Ping example
+#if !defined(ST67W6X_NCP)
+#define DEMO_AWS_DEFENDER                       1   // AWS IoT Defender Example
 #endif
 
 #if defined(ST67W6X_NCP)
@@ -234,7 +233,7 @@ void Error_Handler(void);
 #define TASK_PRIO_LIGHT                         (tskIDLE_PRIORITY      + 9 )
 #define TASK_PRIO_ENV                           (tskIDLE_PRIORITY      + 10)
 #define TASK_PRIO_MOTION                        (tskIDLE_PRIORITY      + 11)
-#define TASK_PRIO_HOMEASSISTANT                            (tskIDLE_PRIORITY      + 12)
+#define TASK_PRIO_HOMEASSISTANT                 (tskIDLE_PRIORITY      + 12)
 #define TASK_PRIO_CLI                           (tskIDLE_PRIORITY      + 13)
 #define TASK_PRIO_MQTTA_AGENT                   (tskIDLE_PRIORITY      + 14)
 #define TASK_PRIO_W6X                           (TASK_PRIO_MQTTA_AGENT + 1 )
