@@ -128,7 +128,7 @@ W6X_Status_t W6X_MQTT_Configure(W6X_MQTT_Connect_t *Config)
 {
   W6X_Status_t ret = W6X_STATUS_ERROR;
   NULL_ASSERT(p_DrvObj, W6X_MQTT_Uninit_str);
-
+#if 0
   if ((Config->Scheme == 2) || (Config->Scheme == 4)) /* Server certificate */
   {
     if (Config->CACertificateName[0] == '\0')
@@ -204,7 +204,7 @@ W6X_Status_t W6X_MQTT_Configure(W6X_MQTT_Connect_t *Config)
       }
     }
   }
-
+#endif
   W6X_MQTT_SNI_enabled = Config->SNI_enabled;
 
   /* Set the MQTT User configuration */
