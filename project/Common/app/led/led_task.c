@@ -56,13 +56,37 @@
 /* JSON library includes. */
 #include "core_json.h"
 
-# define MAXT_TOPIC_LENGTH 64
+#define MAXT_TOPIC_LENGTH 64
 static char subscribe_topic[MAXT_TOPIC_LENGTH];
 static char publish_topic[MAXT_TOPIC_LENGTH];
-static BaseType_t led_reported_status = pdFALSE;
-static BaseType_t led_last_status = pdTRUE;
+
+/* One reported state per LED (RED, GREEN, BLUE) */
+static BaseType_t led_reported_status[2] = { pdFALSE, pdFALSE };
+static BaseType_t led_last_status    [2] = { pdTRUE,  pdTRUE  };
+
 static EventGroupHandle_t xLedEventGroup;
-#define LED_STATUS_CHANGED_EVENT    (1 << 0)
+#define LED_STATUS_CHANGED_EVENT    ( 1 << 0 )
+
+typedef struct
+{
+    const char    *name;       /* "LED_RED", "LED_GREEN", "LED_BLUE" */
+    GPIO_TypeDef  *port;
+    uint16_t       pin;
+    GPIO_PinState  onLevel;
+    GPIO_PinState  offLevel;
+    uint8_t        index;      /* index in led_reported_status[] */
+} LedHwDescriptor_t;
+
+#define LED_RED_INDEX   0
+#define LED_GREEN_INDEX 1
+
+static const LedHwDescriptor_t xLEDs[] =
+{
+    { "LED_RED"  , LED_RED_GPIO_Port  , LED_RED_Pin  , LED_RED_ON,   LED_RED_OFF  , LED_RED_INDEX   },
+    { "LED_GREEN", LED_GREEN_GPIO_Port, LED_GREEN_Pin, LED_GREEN_ON, LED_GREEN_OFF, LED_GREEN_INDEX }
+};
+
+#define LED_COUNT   ( ( uint8_t ) ( sizeof( xLEDs ) / sizeof( xLEDs[ 0 ] ) ) )
 
 /**
  * @brief A test application which loops through subscribing to a topic and publishing message
@@ -197,7 +221,7 @@ void vLEDTask(void *pvParameters);
 /**
  * @brief Parses a JSON message to extract the desired LED state and updates system state accordingly.
  *
- * This function searches for the "ledStatus.desired" field within the provided JSON string.
+ * This function searches for the "ledStatus.LED_RED.desired" field within the provided JSON string.
  * Based on the parsed value ("ON" or "OFF"), it updates the `led_desired_status` and
  * `led_reported_status` variables, controls the physical LED using HAL GPIO calls, and
  * notifies the LED task by setting the corresponding event group bit.
@@ -216,54 +240,125 @@ extern MQTTAgentContext_t xGlobalMqttAgentContext;
 
 /*-----------------------------------------------------------*/
 
-void parseLedControlMessage(const char *jsonMessage)
+/* -------------------------------------------------------------------------- */
+/* JSON parsing for LED control                                               */
+/* -------------------------------------------------------------------------- */
+
+void parseLedControlMessage( const char *jsonMessage )
 {
-  JSONStatus_t result;
-  char *desiredValue = NULL;
-  size_t desiredLen = 0;
-  BaseType_t led_status_changed = pdFALSE;
+    JSONStatus_t result;
+    char *       desiredValue = NULL;
+    size_t       desiredLen   = 0;
+    BaseType_t   anyChanged   = pdFALSE;
 
+    /* First, try to parse as JSON: { "ledStatus": { "LED_NAME": { "desired": "ON" } } } */
+    for( uint8_t i = 0; i < LED_COUNT; i++ )
+    {
+        const LedHwDescriptor_t *pxLed = &xLEDs[ i ];
+        char keyPath[ 64 ];
 
-  /* Parse the JSON document */
-  result = JSON_Search((char *)jsonMessage, strlen(jsonMessage), "ledStatus.desired", // key path
-  strlen("ledStatus.desired"), &desiredValue, &desiredLen);
+        /* Build key path: "ledStatus.<LED_NAME>.desired" */
+        int keyLen = snprintf( keyPath,
+                               sizeof( keyPath ),
+                               "ledStatus.%s.desired",
+                               pxLed->name );
 
-  if (result == JSONSuccess && desiredValue != NULL)
-  {
-    /* Compare the value against "ON" */
-    if (strncmp(desiredValue, "ON", desiredLen) == 0)
-    {
-      led_reported_status = pdTRUE;
-      led_status_changed = pdTRUE;
-      HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_ON);
-    }
-    else
-    {
-      led_reported_status = pdFALSE;
-      HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_OFF);
-    }
-  }
-  else
-  {
-    if (strcmp(jsonMessage, "ON") == 0)
-    {
-      led_reported_status = pdTRUE;
-      led_status_changed = pdTRUE;
-      HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_ON);
-    }
-    else if (strcmp(jsonMessage, "OFF") == 0)
-    {
-      led_reported_status = pdFALSE;
-      led_status_changed = pdTRUE;
-      HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_OFF);
-    }
-  }
+        if( keyLen <= 0 || keyLen >= ( int ) sizeof( keyPath ) )
+        {
+            continue;
+        }
 
-  if(led_status_changed == pdTRUE)
-  {
-    /* Notify the LED task of the change */
-    xEventGroupSetBits(xLedEventGroup, LED_STATUS_CHANGED_EVENT);
-  }
+        desiredValue = NULL;
+        desiredLen   = 0;
+
+        result = JSON_Search( ( char * ) jsonMessage,
+                              strlen( jsonMessage ),
+                              keyPath,
+                              ( size_t ) keyLen,
+                              &desiredValue,
+                              &desiredLen );
+
+        if( result == JSONSuccess && desiredValue != NULL && desiredLen > 0 )
+        {
+            /* Compare against "ON" and "OFF" (unquoted JSON strings) */
+            if( ( desiredLen == 2 ) && ( strncmp( desiredValue, "ON", desiredLen ) == 0 ) )
+            {
+                if( led_reported_status[ pxLed->index ] == pdFALSE )
+                {
+                    led_reported_status[ pxLed->index ] = pdTRUE;
+                    anyChanged                          = pdTRUE;
+                    HAL_GPIO_WritePin( pxLed->port, pxLed->pin, pxLed->onLevel );
+                }
+            }
+            else if( ( desiredLen == 3 ) && ( strncmp( desiredValue, "OFF", desiredLen ) == 0 ) )
+            {
+                if( led_reported_status[ pxLed->index ] == pdTRUE )
+                {
+                    led_reported_status[ pxLed->index ] = pdFALSE;
+                    anyChanged                          = pdTRUE;
+                    HAL_GPIO_WritePin( pxLed->port, pxLed->pin, pxLed->offLevel );
+                }
+            }
+            /* Other values are ignored */
+        }
+    }
+
+    /* If JSON-based control did not change anything, support simple raw commands:
+         *   "LED_RED_ON", "LED_RED_OFF", "LED_GREEN_ON", "LED_GREEN_OFF"
+         */
+        if( anyChanged == pdFALSE )
+        {
+            if( strcmp( jsonMessage, "LED_RED_ON" ) == 0 )
+            {
+                const LedHwDescriptor_t *pxLed = &xLEDs[ LED_RED_INDEX ];
+
+                if( led_reported_status[ pxLed->index ] == pdFALSE )
+                {
+                    led_reported_status[ pxLed->index ] = pdTRUE;
+                    HAL_GPIO_WritePin( pxLed->port, pxLed->pin, pxLed->onLevel );
+                    anyChanged = pdTRUE;
+                }
+            }
+            else if( strcmp( jsonMessage, "LED_RED_OFF" ) == 0 )
+            {
+                const LedHwDescriptor_t *pxLed = &xLEDs[ LED_RED_INDEX ];
+
+                if( led_reported_status[ pxLed->index ] == pdTRUE )
+                {
+                    led_reported_status[ pxLed->index ] = pdFALSE;
+                    HAL_GPIO_WritePin( pxLed->port, pxLed->pin, pxLed->offLevel );
+                    anyChanged = pdTRUE;
+                }
+            }
+            else if( strcmp( jsonMessage, "LED_GREEN_ON" ) == 0 )
+            {
+                const LedHwDescriptor_t *pxLed = &xLEDs[ LED_GREEN_INDEX ];
+
+                if( led_reported_status[ pxLed->index ] == pdFALSE )
+                {
+                    led_reported_status[ pxLed->index ] = pdTRUE;
+                    HAL_GPIO_WritePin( pxLed->port, pxLed->pin, pxLed->onLevel );
+                    anyChanged = pdTRUE;
+                }
+            }
+            else if( strcmp( jsonMessage, "LED_GREEN_OFF" ) == 0 )
+            {
+                const LedHwDescriptor_t *pxLed = &xLEDs[ LED_GREEN_INDEX ];
+
+                if( led_reported_status[ pxLed->index ] == pdTRUE )
+                {
+                    led_reported_status[ pxLed->index ] = pdFALSE;
+                    HAL_GPIO_WritePin( pxLed->port, pxLed->pin, pxLed->offLevel );
+                    anyChanged = pdTRUE;
+                }
+            }
+        }
+
+    if( anyChanged == pdTRUE )
+    {
+        /* Notify the LED task of the change so it publishes updated reported JSON. */
+        xEventGroupSetBits( xLedEventGroup, LED_STATUS_CHANGED_EVENT );
+    }
 }
 
 static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext, MQTTAgentReturnInfo_t *pxReturnInfo)
@@ -276,29 +371,34 @@ static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContex
 
 /*-----------------------------------------------------------*/
 
-static void prvIncomingPublishCallback(void *pvIncomingPublishCallbackContext, MQTTPublishInfo_t *pxPublishInfo)
+/* -------------------------------------------------------------------------- */
+/* Incoming publish callback (unchanged except calling new parser)            */
+/* -------------------------------------------------------------------------- */
+
+static void prvIncomingPublishCallback( void *pvIncomingPublishCallbackContext, MQTTPublishInfo_t *pxPublishInfo )
 {
-  static char cTerminatedString[configPAYLOAD_BUFFER_LENGTH];
+    static char cTerminatedString[ configPAYLOAD_BUFFER_LENGTH ];
 
-  (void) pvIncomingPublishCallbackContext;
+    ( void ) pvIncomingPublishCallbackContext;
 
-  /* Create a message that contains the incoming MQTT payload to the logger,
-   * terminating the string first. */
-  if (pxPublishInfo->payloadLength < configPAYLOAD_BUFFER_LENGTH)
-  {
-    memcpy((void*) cTerminatedString, pxPublishInfo->pPayload, pxPublishInfo->payloadLength);
-    cTerminatedString[pxPublishInfo->payloadLength] = 0x00;
-  }
-  else
-  {
-    memcpy((void*) cTerminatedString, pxPublishInfo->pPayload,
-    configPAYLOAD_BUFFER_LENGTH);
-    cTerminatedString[ configPAYLOAD_BUFFER_LENGTH - 1] = 0x00;
-  }
+    if( pxPublishInfo->payloadLength < configPAYLOAD_BUFFER_LENGTH )
+    {
+        memcpy( ( void * ) cTerminatedString,
+                pxPublishInfo->pPayload,
+                pxPublishInfo->payloadLength );
+        cTerminatedString[ pxPublishInfo->payloadLength ] = 0x00;
+    }
+    else
+    {
+        memcpy( ( void * ) cTerminatedString,
+                pxPublishInfo->pPayload,
+                configPAYLOAD_BUFFER_LENGTH );
+        cTerminatedString[ configPAYLOAD_BUFFER_LENGTH - 1 ] = 0x00;
+    }
 
-  LogInfo(( "Received incoming publish message %s", cTerminatedString ));
+    LogInfo( ( "Received incoming publish message %s", cTerminatedString ) );
 
-  parseLedControlMessage(cTerminatedString);
+    parseLedControlMessage( cTerminatedString );
 }
 
 /*-----------------------------------------------------------*/
@@ -398,84 +498,108 @@ static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopi
 
 /*-----------------------------------------------------------*/
 
-void vLEDTask(void *pvParameters)
+/* -------------------------------------------------------------------------- */
+/* LED task                                                                   */
+/* -------------------------------------------------------------------------- */
+
+void vLEDTask( void *pvParameters )
 {
-  char *cPayloadBuf;
-  size_t xPayloadLength;
-  BaseType_t xStatus = pdPASS;
-  MQTTStatus_t xMQTTStatus;
-  MQTTQoS_t xQoS = MQTTQoS1;
-  bool xRetain = pdTRUE;
-  char *pThingName = NULL;
-  size_t uxTempSize = 0;
-  EventBits_t uxBits;
+    char *     cPayloadBuf;
+    size_t     xPayloadLength;
+    BaseType_t xStatus   = pdPASS;
+    MQTTStatus_t xMQTTStatus;
+    MQTTQoS_t  xQoS      = MQTTQoS1;
+    bool       xRetain   = pdTRUE;
+    char *     pThingName = NULL;
+    size_t     uxTempSize = 0;
+    EventBits_t uxBits;
 
-  (void) pvParameters;
+    ( void ) pvParameters;
 
-  /* Wait until the MQTT agent is ready */
-  vSleepUntilMQTTAgentReady();
+    vSleepUntilMQTTAgentReady();
 
-  /* Get the MQTT Agent handle */
-  xMQTTAgentHandle = xGetMqttAgentHandle();
-  configASSERT(xMQTTAgentHandle != NULL);
+    xMQTTAgentHandle = xGetMqttAgentHandle();
+    configASSERT( xMQTTAgentHandle != NULL );
 
-  /* Wait until we are connected to AWS */
-  vSleepUntilMQTTAgentConnected();
+    vSleepUntilMQTTAgentConnected();
 
-  LogInfo(("MQTT Agent is connected. Starting the LED publish and subscribe task."));
+    LogInfo( ( "MQTT Agent is connected. Starting the LED publish and subscribe task." ) );
 
-  pThingName = KVStore_getStringHeap(CS_CORE_THING_NAME, &uxTempSize);
+    pThingName = KVStore_getStringHeap( CS_CORE_THING_NAME, &uxTempSize );
+    configASSERT( pThingName != NULL );
 
-  cPayloadBuf = (char *) pvPortMalloc(configPAYLOAD_BUFFER_LENGTH);
+    cPayloadBuf = ( char * ) pvPortMalloc( configPAYLOAD_BUFFER_LENGTH );
+    configASSERT( cPayloadBuf != NULL );
 
-  snprintf(configPUBLISH_TOPIC  , MAXT_TOPIC_LENGTH, "%s/led/reported", pThingName);
-  snprintf(configSUBSCRIBE_TOPIC, MAXT_TOPIC_LENGTH, "%s/led/desired" , pThingName);
+    /* Single shared reported/desired topics for all LEDs */
+    snprintf( configPUBLISH_TOPIC,   MAXT_TOPIC_LENGTH, "%s/led/reported", pThingName );
+    snprintf( configSUBSCRIBE_TOPIC, MAXT_TOPIC_LENGTH, "%s/led/desired",  pThingName );
 
-  xLedEventGroup = xEventGroupCreate();
+    xLedEventGroup = xEventGroupCreate();
+    configASSERT( xLedEventGroup != NULL );
 
-  if (xStatus == pdPASS)
-  {
-    xMQTTStatus = prvSubscribeToTopic(xQoS, configSUBSCRIBE_TOPIC);
-    if (xMQTTStatus != MQTTSuccess)
+    if( xStatus == pdPASS )
     {
-      LogError(("Failed to subscribe to topic: %s.", configSUBSCRIBE_TOPIC));
-      vTaskDelete(NULL);
+        xMQTTStatus = prvSubscribeToTopic( xQoS, configSUBSCRIBE_TOPIC );
+        if( xMQTTStatus != MQTTSuccess )
+        {
+            LogError( ( "Failed to subscribe to topic: %s.", configSUBSCRIBE_TOPIC ) );
+            vTaskDelete( NULL );
+        }
     }
-  }
 
-  /* Force led state update */
-  xEventGroupSetBits(xLedEventGroup, LED_STATUS_CHANGED_EVENT);
+    /* Force initial state publish */
+    xEventGroupSetBits( xLedEventGroup, LED_STATUS_CHANGED_EVENT );
 
-  for (;;)
-  {
-    uxBits = xEventGroupWaitBits(xLedEventGroup, LED_STATUS_CHANGED_EVENT, pdTRUE, pdTRUE, portMAX_DELAY);
-
-    if ((uxBits & LED_STATUS_CHANGED_EVENT) != 0)
+    for( ;; )
     {
-      led_last_status = led_reported_status;
+        uxBits = xEventGroupWaitBits( xLedEventGroup,
+                                      LED_STATUS_CHANGED_EVENT,
+                                      pdTRUE,
+                                      pdTRUE,
+                                      portMAX_DELAY );
 
-      xPayloadLength = snprintf(
-          cPayloadBuf,
-          configPAYLOAD_BUFFER_LENGTH,
-          "{ \"ledStatus\": { \"reported\": \"%s\" } }",
-          led_reported_status ? "ON" : "OFF"
-      );
+        if( ( uxBits & LED_STATUS_CHANGED_EVENT ) != 0 )
+        {
+            /* Keep a copy if you want to check changes vs previous state */
+            for( uint8_t i = 0; i < LED_COUNT; i++ )
+            {
+                led_last_status[ i ] = led_reported_status[ i ];
+            }
 
-      configASSERT(xPayloadLength <= configPAYLOAD_BUFFER_LENGTH);
+            xPayloadLength = snprintf(
+                cPayloadBuf,
+                configPAYLOAD_BUFFER_LENGTH,
+                "{ \"ledStatus\": { "
+                "\"LED_RED\":   { \"reported\": \"%s\" }, "
+                "\"LED_GREEN\": { \"reported\": \"%s\" } "
+                "} }",
+                led_reported_status[ xLEDs[ LED_RED_INDEX   ].index ] ? "ON" : "OFF",
+                led_reported_status[ xLEDs[ LED_GREEN_INDEX ].index ] ? "ON" : "OFF" );
 
-      LogInfo(("Publishing to topic: %s, message: %.*s", configPUBLISH_TOPIC, xPayloadLength, cPayloadBuf));
+            configASSERT( xPayloadLength < configPAYLOAD_BUFFER_LENGTH );
 
-      xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+            LogInfo( ( "Publishing to topic: %s, message: %.*s",
+                       configPUBLISH_TOPIC,
+                       ( int ) xPayloadLength,
+                       cPayloadBuf ) );
 
-      if (xMQTTStatus == MQTTSuccess)
-      {
-        LogInfo(("Successfully published to topic: %s", configPUBLISH_TOPIC));
-      }
-      else
-      {
-        LogError(("Failed to publish to topic: %s", configPUBLISH_TOPIC));
-      }
+            xMQTTStatus = prvPublishToTopic( xQoS,
+                                             xRetain,
+                                             configPUBLISH_TOPIC,
+                                             ( uint8_t * ) cPayloadBuf,
+                                             xPayloadLength );
+
+            if( xMQTTStatus == MQTTSuccess )
+            {
+                LogInfo( ( "Successfully published to topic: %s",
+                           configPUBLISH_TOPIC ) );
+            }
+            else
+            {
+                LogError( ( "Failed to publish to topic: %s",
+                            configPUBLISH_TOPIC ) );
+            }
+        }
     }
-  }
 }
-

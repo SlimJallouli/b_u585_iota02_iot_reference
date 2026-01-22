@@ -142,6 +142,27 @@ static const MotionSensorDescriptor_t xMotionSensors[] = {
     { "magnetometer", "Magnetometer"  , "mGauss" , "z", pdTRUE },
 };
 
+
+typedef struct LEDDescriptor_t{
+    const char *name;
+    const BaseType_t enabled;
+} LEDDescriptor_t;
+
+static const LEDDescriptor_t xLEDs[] = {
+    { "LED_GREEN", pdTRUE},
+    { "LED_RED"  , pdFALSE}
+};
+
+typedef struct BUTTONDescriptor_t{
+    const char *name;      /* logical name used in JSON and HA; e.g. "USER_Button" */
+    const BaseType_t enabled;
+} BUTTONDescriptor_t;
+
+static const BUTTONDescriptor_t xBUTTONs[] = {
+    { "USER_Button", pdTRUE }
+    /* Add more later, e.g.: { "BUTTON2", pdTRUE } */
+};
+
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 /*-----------------------------------------------------------*/
@@ -212,6 +233,44 @@ void vHAConfigPublishTask(void *pvParameters);
  */
 static MQTTStatus_t prvClearRetainedTopic(char *pcTopic);
 
+/**
+ * @brief Subscribes the MQTT agent to a topic derived from the Thing name.
+ *
+ * This function builds a topic string by concatenating the provided Thing name
+ * with a topic suffix (for example, "cmd/action" or "fw/update"), then issues
+ * a synchronous subscribe command to the MQTT agent.
+ *
+ * The subscription is performed with QoS0. On success, the MQTT agent will
+ * invoke the provided callback whenever a message is received on the
+ * constructed topic. If the subscribe operation fails, an error is logged
+ * including a human readable context string.
+ *
+ * A temporary topic buffer is allocated from the heap, used for the subscribe
+ * call, and freed before returning. A small delay
+ * (MQTT_PUBLISH_TIME_BETWEEN_MS) is inserted after the subscribe to respect
+ * timing constraints with the MQTT agent and underlying network stack.
+ *
+ * @param[in] xMQTTAgentHandle Handle to the MQTT agent instance used to
+ *            perform the subscribe operation. Must not be NULL.
+ * @param[in] pcThingName NULL-terminated string representing the Thing name
+ *            (root of the topic hierarchy).
+ * @param[in] pcTopicSuffix NULL-terminated suffix appended to the Thing name
+ *            to form the full topic (e.g., "cmd/action", "fw/update").
+ * @param[in] xCallback Callback invoked by the MQTT agent when a message is
+ *            received on the subscribed topic.
+ * @param[in] pcLogContext NULL-terminated string used only for logging to
+ *            identify the type of subscription (e.g., "reboot command",
+ *            "FW update").
+ *
+ * @return pdPASS if the subscription was successfully issued to the MQTT
+ *         broker; pdFAIL if an error occurred (e.g., subscribe failure,
+ *         invalid handle).
+ */
+static BaseType_t xSubscribeToTopic( MQTTAgentHandle_t xMQTTAgentHandle,
+                                     const char *pcThingName,
+                                     const char *pcTopicSuffix,
+                                     IncomingPubCallback_t xCallback,
+                                     const char *pcLogContext );
 /*-----------------------------------------------------------*/
 
 /**
@@ -480,137 +539,262 @@ static void prvHandleCommand_FwUpdate(void *pxSubscriptionContext, MQTTPublishIn
         xEventGroupSetBits(xHAEventGroup, EVT_OTA_UPDATE_START);
     }
 }
-
-static BaseType_t xSubscribeToTopic_FwUpdate(MQTTAgentHandle_t xMQTTAgentHandle, const char *pcThingName)
-{
-  BaseType_t xResult = pdPASS;
-  MQTTStatus_t xMQTTStatus;
-
-  char *pcTopicBuffer = pvPortMalloc(configMAX_TOPIC_LENGTH);
-  configASSERT(pcTopicBuffer != NULL);
-
-  snprintf(pcTopicBuffer, configMAX_TOPIC_LENGTH, "%s/fw/update", pcThingName);
-
-  if ((xResult == pdPASS) && (xMQTTAgentHandle != NULL))
-  {
-    xMQTTStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle, pcTopicBuffer, MQTTQoS0, prvHandleCommand_FwUpdate, NULL);
-
-    if (xMQTTStatus != MQTTSuccess)
-    {
-      LogError("Failed to subscribe to FW update topic: %s", pcTopicBuffer);
-      xResult = pdFAIL;
-    }
-  }
-
-  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
-
-  vPortFree(pcTopicBuffer);
-
-  return xResult;
-}
 #endif
 
+static BaseType_t xSubscribeToTopic( MQTTAgentHandle_t xMQTTAgentHandle,
+                                     const char *pcThingName,
+                                     const char *pcTopicSuffix,
+                                     IncomingPubCallback_t xCallback,
+                                     const char *pcLogContext )
+{
+    BaseType_t xResult = pdPASS;
+    MQTTStatus_t xMQTTStatus;
+
+    char *pcTopicBuffer = pvPortMalloc( configMAX_TOPIC_LENGTH );
+    configASSERT( pcTopicBuffer != NULL );
+
+    /* Build full topic: "<thingName>/<suffix>" */
+    snprintf( pcTopicBuffer,
+              configMAX_TOPIC_LENGTH,
+              "%s/%s",
+              pcThingName,
+              pcTopicSuffix );
+
+    if( ( xResult == pdPASS ) && ( xMQTTAgentHandle != NULL ) )
+    {
+        xMQTTStatus = MqttAgent_SubscribeSync( xMQTTAgentHandle,
+                                               pcTopicBuffer,
+                                               MQTTQoS0,
+                                               xCallback,
+                                               NULL );
+
+        if( xMQTTStatus != MQTTSuccess )
+        {
+            LogError( "Failed to subscribe to %s topic: %s",
+                      pcLogContext,
+                      pcTopicBuffer );
+            xResult = pdFAIL;
+        }
+    }
+
+    vTaskDelay( MQTT_PUBLISH_TIME_BETWEEN_MS );
+
+    vPortFree( pcTopicBuffer );
+
+    return xResult;
+}
 /*-----------------------------------------------------------*/
 #if (DEMO_LED == 1)
-static void publishHAConfig_LED(const char *pcThingName, char *pcPayloadBuffer)
+static void publishHAConfig_LED( const char *pcThingName,
+                                 char *pcPayloadBuffer )
 {
-  size_t xPayloadLength = 0;
-  MQTTQoS_t xQoS = MQTTQoS0;
-  bool xRetain = pdTRUE;
+    size_t    xPayloadLength = 0;
+    MQTTQoS_t xQoS           = MQTTQoS0;
+    bool      xRetain        = pdTRUE;
 
-  snprintf(configPUBLISH_TOPIC, configMAX_TOPIC_LENGTH, "homeassistant/switch/%s_led/config", pcThingName);
+    char *commandTopic = ( char * ) pvPortMalloc( configMAX_TOPIC_LENGTH );
+    char *stateTopic   = ( char * ) pvPortMalloc( configMAX_TOPIC_LENGTH );
+    char  payloadOn[ 32 ];
+    char  payloadOff[ 32 ];
 
-  xPayloadLength = snprintf(pcPayloadBuffer, configPAYLOAD_BUFFER_LENGTH, "{"
-      "\"name\": \"LED\","
-      "\"unique_id\": \"%s_led\","
-      "\"command_topic\": \"%s/led/desired\","
-      "\"state_topic\": \"%s/led/reported\","
-      "\"value_template\": \"{{ value_json.ledStatus.reported }}\","
-      "\"payload_on\": \"ON\","
-      "\"payload_off\": \"OFF\","
-      "\"state_on\": \"ON\","
-      "\"state_off\": \"OFF\","
-      "\"availability_topic\": \"%s/status/availability\","
-      "\"payload_available\": \"online\","
-      "\"payload_not_available\": \"offline\","
-      "\"retain\": false,"
-      //"\"entity_category\": \"diagnostic\","
-      "\"device\": {"
-      "\"identifiers\": [\"%s\"],"
-      "\"manufacturer\": \"STMicroelectronics\","
-      "\"model\": \"%s\","
-      "\"name\": \"%s\""
-      "}"
-      "}",
-      pcThingName, // unique_id
-      pcThingName, // command_topic
-      pcThingName, // state_topic
-      pcThingName, // availability_topic
-      pcThingName, // identifiers
-      BOARD,      // model
-      pcThingName  // name
-      );
+    configASSERT( commandTopic != NULL );
+    configASSERT( stateTopic   != NULL );
 
-  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
-  {
-    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) pcPayloadBuffer, xPayloadLength);
-  }
-  else
-  {
-    LogError(("LED payload truncated"));
-  }
+    for( int i = 0; i < ( int ) ARRAY_SIZE( xLEDs ); i++ )
+    {
+        const LEDDescriptor_t *pxLed = &xLEDs[ i ];
 
-  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+        /* Discovery topic:
+         *   homeassistant/switch/<thing>_<LED_NAME>/config
+         */
+        snprintf( configPUBLISH_TOPIC,
+                  configMAX_TOPIC_LENGTH,
+                  "homeassistant/switch/%s_%s/config",
+                  pcThingName,
+                  pxLed->name );
+
+        if( pdTRUE == pxLed->enabled )
+        {
+            /* Shared command / state topics (no per‑LED suffix): */
+            snprintf( commandTopic,
+                      configMAX_TOPIC_LENGTH,
+                      "%s/led/desired",
+                      pcThingName );
+
+            snprintf( stateTopic,
+                      configMAX_TOPIC_LENGTH,
+                      "%s/led/reported",
+                      pcThingName );
+
+            /* Per‑LED command payload values, e.g. "LED_RED_ON", "LED_RED_OFF" */
+            snprintf( payloadOn,
+                      sizeof( payloadOn ),
+                      "%s_ON",
+                      pxLed->name );
+            snprintf( payloadOff,
+                      sizeof( payloadOff ),
+                      "%s_OFF",
+                      pxLed->name );
+
+            xPayloadLength = snprintf(
+                pcPayloadBuffer,
+                configPAYLOAD_BUFFER_LENGTH,
+                "{"
+                  "\"name\": \"%s\","
+                  "\"unique_id\": \"%s_%s\","
+                  "\"command_topic\": \"%s\","
+                  "\"state_topic\": \"%s\","
+                  "\"value_template\": \"{{ value_json.ledStatus.%s.reported }}\","
+                  "\"payload_on\": \"%s\","
+                  "\"payload_off\": \"%s\","
+                  "\"state_on\": \"ON\","
+                  "\"state_off\": \"OFF\","
+                  "\"availability_topic\": \"%s/status/availability\","
+                  "\"payload_available\": \"online\","
+                  "\"payload_not_available\": \"offline\","
+                  "\"retain\": false,"
+                  //"\"entity_category\": \"diagnostic\","
+                  "\"device\": {"
+                    "\"identifiers\": [\"%s\"],"
+                    "\"manufacturer\": \"STMicroelectronics\","
+                    "\"model\": \"%s\","
+                    "\"name\": \"%s\""
+                  "}"
+                "}",
+                pxLed->name,      /* name */
+                pcThingName,      /* unique_id prefix  */
+                pxLed->name,      /* unique_id suffix  */
+                commandTopic,     /* command_topic     */
+                stateTopic,       /* state_topic       */
+                pxLed->name,      /* value_template    */
+                payloadOn,        /* payload_on        */
+                payloadOff,       /* payload_off       */
+                pcThingName,      /* availability_topic prefix */
+                pcThingName,      /* identifiers       */
+                BOARD,            /* model             */
+                pcThingName       /* device name       */
+                );
+
+            if( xPayloadLength < configPAYLOAD_BUFFER_LENGTH )
+            {
+                prvPublishToTopic( xQoS,
+                                   xRetain,
+                                   configPUBLISH_TOPIC,
+                                   ( uint8_t * ) pcPayloadBuffer,
+                                   xPayloadLength );
+            }
+            else
+            {
+                LogError( ( "LED %s payload truncated", pxLed->name ) );
+            }
+        }
+        else
+        {
+            /* Disabled LED: clear its retained config. */
+            prvClearRetainedTopic( configPUBLISH_TOPIC );
+        }
+
+        vTaskDelay( MQTT_PUBLISH_TIME_BETWEEN_MS );
+    }
+
+    vPortFree( commandTopic );
+    vPortFree( stateTopic );
 }
 #endif
 
 /*-----------------------------------------------------------*/
 #if (DEMO_BUTTON == 1)
-static void publishHAConfig_Button(const char *pcThingName, char *pcPayloadBuffer)
+static void publishHAConfig_Button( const char *pcThingName,
+                                    char *pcPayloadBuffer )
 {
-  size_t xPayloadLength = 0;
-  MQTTQoS_t xQoS = MQTTQoS0;
-  bool xRetain = pdTRUE;
+    size_t    xPayloadLength = 0;
+    MQTTQoS_t xQoS           = MQTTQoS0;
+    bool      xRetain        = pdTRUE;
 
-  snprintf(configPUBLISH_TOPIC, configMAX_TOPIC_LENGTH, "homeassistant/binary_sensor/%s_button/config", pcThingName);
+    for( int i = 0; i < ( int ) ARRAY_SIZE( xBUTTONs ); i++ )
+    {
+        const BUTTONDescriptor_t *pxButton = &xBUTTONs[ i ];
 
-  xPayloadLength = snprintf(pcPayloadBuffer, configPAYLOAD_BUFFER_LENGTH, "{"
-      "\"name\": \"Button\","
-      "\"unique_id\": \"%s_button\","
-      "\"state_topic\": \"%s/sensor/button/reported\","
-      "\"value_template\": \"{{ value_json.buttonStatus.reported }}\","
-      "\"payload_on\": \"ON\","
-      "\"payload_off\": \"OFF\","
-      "\"device_class\": \"occupancy\","
-      "\"availability_topic\": \"%s/status/availability\","
-      "\"payload_available\": \"online\","
-      "\"payload_not_available\": \"offline\","
-      "\"retain\": false,"
-      "\"device\": {"
-      "\"identifiers\": [\"%s\"],"
-      "\"manufacturer\": \"STMicroelectronics\","
-      "\"model\": \"%s\","
-      "\"name\": \"%s\""
-      "}"
-      "}",
-      pcThingName, // unique_id
-      pcThingName, // state_topic
-      pcThingName, // availability_topic
-      pcThingName, // identifiers
-      BOARD,      // model
-      pcThingName  // name
-      );
+        /* Discovery topic:
+         *   homeassistant/binary_sensor/<thing>_<button_name>/config
+         * Example:
+         *   homeassistant/binary_sensor/stm32u585-..._USER_Button/config
+         */
+        snprintf( configPUBLISH_TOPIC,
+                  configMAX_TOPIC_LENGTH,
+                  "homeassistant/binary_sensor/%s_%s/config",
+                  pcThingName,
+                  pxButton->name );
 
-  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
-  {
-    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) pcPayloadBuffer, xPayloadLength);
-  }
-  else
-  {
-    LogError(("Button payload truncated"));
-  }
+        if( pdTRUE == pxButton->enabled )
+        {
+            /* Single shared reported topic for all buttons:
+             *   <thing>/sensor/button/reported
+             *
+             * The JSON is assumed to look like:
+             * {
+             *   "buttonStatus": {
+             *     "USER_Button": { "reported": "ON" }
+             *   }
+             * }
+             *
+             * So the value_template becomes:
+             *   {{ value_json.buttonStatus.<name>.reported }}
+             */
+            xPayloadLength = snprintf(
+                pcPayloadBuffer,
+                configPAYLOAD_BUFFER_LENGTH,
+                "{"
+                  "\"name\": \"%s\","
+                  "\"unique_id\": \"%s_%s\","
+                  "\"state_topic\": \"%s/sensor/button/reported\","
+                  "\"value_template\": \"{{ value_json.buttonStatus.%s.reported }}\","
+                  "\"payload_on\": \"ON\","
+                  "\"payload_off\": \"OFF\","
+                  "\"device_class\": \"occupancy\","
+                  "\"availability_topic\": \"%s/status/availability\","
+                  "\"payload_available\": \"online\","
+                  "\"payload_not_available\": \"offline\","
+                  "\"retain\": false,"
+                  "\"device\": {"
+                    "\"identifiers\": [\"%s\"],"
+                    "\"manufacturer\": \"STMicroelectronics\","
+                    "\"model\": \"%s\","
+                    "\"name\": \"%s\""
+                  "}"
+                "}",
+                pxButton->name,      /* name (HA entity name) */
+                pcThingName,         /* unique_id prefix  */
+                pxButton->name,      /* unique_id suffix  */
+                pcThingName,         /* state_topic prefix */
+                pxButton->name,      /* value_template button name */
+                pcThingName,         /* availability_topic prefix */
+                pcThingName,         /* identifiers       */
+                BOARD,               /* model             */
+                pcThingName          /* device name       */
+                );
 
-  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+            if( xPayloadLength < configPAYLOAD_BUFFER_LENGTH )
+            {
+                prvPublishToTopic( xQoS,
+                                   xRetain,
+                                   configPUBLISH_TOPIC,
+                                   ( uint8_t * ) pcPayloadBuffer,
+                                   xPayloadLength );
+            }
+            else
+            {
+                LogError( ( "Button %s payload truncated", pxButton->name ) );
+            }
+        }
+        else
+        {
+            /* Disabled button: clear its retained config. */
+            prvClearRetainedTopic( configPUBLISH_TOPIC );
+        }
+
+        vTaskDelay( MQTT_PUBLISH_TIME_BETWEEN_MS );
+    }
 }
 #endif
 
@@ -815,34 +999,6 @@ static void prvHandleCommand_Reboot(void *pxSubscriptionContext, MQTTPublishInfo
     }
 }
 
-static BaseType_t xSubscribeToTopic_Reboot(MQTTAgentHandle_t xMQTTAgentHandle, const char *pcThingName)
-{
-  BaseType_t xResult = pdPASS;
-  MQTTStatus_t xMQTTStatus;
-
-  char *pcTopicBuffer = pvPortMalloc(configMAX_TOPIC_LENGTH);
-  configASSERT(pcTopicBuffer != NULL);
-
-  snprintf(pcTopicBuffer, configMAX_TOPIC_LENGTH, "%s/cmd/action", pcThingName);
-
-  if ((xResult == pdPASS) && (xMQTTAgentHandle != NULL))
-  {
-    xMQTTStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle, pcTopicBuffer, MQTTQoS0, prvHandleCommand_Reboot, NULL);
-
-    if (xMQTTStatus != MQTTSuccess)
-    {
-      LogError("Failed to subscribe to reboot command topic: %s", pcTopicBuffer);
-      xResult = pdFAIL;
-    }
-  }
-
-  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
-
-  vPortFree(pcTopicBuffer);
-
-  return xResult;
-}
-
 static void publishHAConfig_RebootButton(const char *pcThingName, char *pcPayloadBuffer)
 {
   size_t xPayloadLength = 0;
@@ -921,7 +1077,11 @@ void vHAConfigPublishTask(void *pvParameters)
   configASSERT(xHAEventGroup != NULL);
 
 #if (DEMO_AWS_OTA == 1)
-  xSubscribeToTopic_FwUpdate(xMQTTAgentHandle, pcThingName);
+  xSubscribeToTopic( xMQTTAgentHandle,
+                     pcThingName,
+                     "fw/update",
+                     prvHandleCommand_FwUpdate,
+                     "FW update" );
 
   publishHAConfig_OTA(pcThingName, pcPayloadBuffer);
 #else
@@ -953,7 +1113,12 @@ void vHAConfigPublishTask(void *pvParameters)
 #endif
 
   /* Listen for reboot commands and publish reboot control. */
-  xSubscribeToTopic_Reboot(xMQTTAgentHandle, pcThingName);
+  xSubscribeToTopic( xMQTTAgentHandle,
+                     pcThingName,
+                     "cmd/action",
+                     prvHandleCommand_Reboot,
+                     "reboot command" );
+
   publishHAConfig_RebootButton(pcThingName, pcPayloadBuffer);
 
   vTaskDelay(1000);
@@ -1007,7 +1172,7 @@ void vHAConfigPublishTask(void *pvParameters)
     }
 #endif
 
-    if ((uxBits & EVT_COMMAND_RESET)/* || (0 == uxBits)*/)
+    if ((uxBits & EVT_COMMAND_RESET) || (0 == uxBits))
     {
       LogInfo("Reboot command");
       vPublishAvailabilityStatus(pcThingName, pcPayloadBuffer, "offline");

@@ -1,0 +1,30 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+# Toolchain: GNU Tools for STM32 (13.3.rel1)
+################################################################################
+
+# Add inputs and outputs from these tool invocations to the build variables 
+C_SRCS += \
+../Common/app/aws/defender/defender_task.c \
+../Common/app/aws/defender/metrics_collector_lwip.c 
+
+OBJS += \
+./Common/app/aws/defender/defender_task.o \
+./Common/app/aws/defender/metrics_collector_lwip.o 
+
+C_DEPS += \
+./Common/app/aws/defender/defender_task.d \
+./Common/app/aws/defender/metrics_collector_lwip.d 
+
+
+# Each subdirectory must supply rules for building sources it contributes
+Common/app/aws/defender/%.o Common/app/aws/defender/%.su Common/app/aws/defender/%.cyclo: ../Common/app/aws/defender/%.c Common/app/aws/defender/subdir.mk
+	arm-none-eabi-gcc "$<" -mcpu=cortex-m33 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32U585xx -DUSE_CUSTOM_SYSTICK_HANDLER_IMPLEMENTATION=1 '-DMBEDTLS_CONFIG_FILE="mbedtls_config_ntz.h"' '-DLFS_CONFIG=lfs_config.h' -DLFS_USE_INTERNAL_NOR -DST67W6X_RCP -DST67_ARCH=W6X_ARCH_T02 -c -Og -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -o "$@" @"Common/app/aws/defender/defender_task.c_includes.args"
+
+clean: clean-Common-2f-app-2f-aws-2f-defender
+
+clean-Common-2f-app-2f-aws-2f-defender:
+	-$(RM) ./Common/app/aws/defender/defender_task.cyclo ./Common/app/aws/defender/defender_task.d ./Common/app/aws/defender/defender_task.o ./Common/app/aws/defender/defender_task.su ./Common/app/aws/defender/metrics_collector_lwip.cyclo ./Common/app/aws/defender/metrics_collector_lwip.d ./Common/app/aws/defender/metrics_collector_lwip.o ./Common/app/aws/defender/metrics_collector_lwip.su
+
+.PHONY: clean-Common-2f-app-2f-aws-2f-defender
+

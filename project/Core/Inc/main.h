@@ -169,9 +169,14 @@ void Error_Handler(void);
 #define MXCHIP_NOTIFY_EXTI_IRQn                 STMOD_19_EXTI_IRQn
 #endif
 
-/************ Board LED Pin configuration *************/
+/************ Board LED and Button configuration *************/
 #define LED_RED_ON                              GPIO_PIN_RESET
 #define LED_RED_OFF                             GPIO_PIN_SET
+
+#define LED_GREEN_ON                            GPIO_PIN_RESET
+#define LED_GREEN_OFF                           GPIO_PIN_SET
+
+#define USER_BUTTON_ON                          GPIO_PIN_SET
 
 /**************** MbedTLS debug config ****************/
 #define MBEDTLS_DEBUG_NO_DEBUG                  0 /* No debug messages are displayed                                        */

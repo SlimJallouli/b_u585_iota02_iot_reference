@@ -1,33 +1,3 @@
-/*
- * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * http://www.FreeRTOS.org
- * http://aws.amazon.com/freertos
- */
-
-/**
- * @brief A test application which loops through subscribing to a topic and publishing message
- * to a topic. This test application can be used with AWS IoT device advisor test suite to
- * verify that an application implemented using MQTT agent follows best practices in connecting
- * to AWS IoT core.
- */
 /* Standard includes. */
 #include <string.h>
 #include <stdio.h>
@@ -51,12 +21,14 @@
 
 #include "interrupt_handlers.h"
 
-# define MAXT_TOPIC_LENGTH 64
-static char publish_topic[MAXT_TOPIC_LENGTH];
-#define BUTTON_RISING_EVENT    (1 << 0)
-#define BUTTON_FALLING_EVENT   (1 << 1)
+#define MAXT_TOPIC_LENGTH 64
+static char publish_topic[ MAXT_TOPIC_LENGTH ];
+
+/* One event bit per button; for now only USER_Button. */
+#define BUTTON_USER_EVENT      ( 1 << 0 )
 
 static EventGroupHandle_t xButtonEventGroup = NULL;
+
 /**
  * @brief The maximum amount of time in milliseconds to wait for the commands
  * to be posted to the MQTT agent should the MQTT agent's command queue be full.
@@ -77,8 +49,39 @@ static EventGroupHandle_t xButtonEventGroup = NULL;
 /**
  * @brief Format of topic used to subscribe to incoming messages.
  *
+ * (Not used in button task; kept for consistency with LED task.)
  */
 #define configSUBSCRIBE_TOPIC_FORMAT   configPUBLISH_TOPIC_FORMAT
+
+/*-----------------------------------------------------------*/
+
+/* Button descriptor (future-proof for multiple buttons). */
+typedef struct BUTTONDescriptor_t
+{
+    const char    *name;      /* logical name in JSON: "USER_Button", "BUTTON2", ... */
+    EventBits_t    eventBit;  /* event bit for this button in xButtonEventGroup    */
+    GPIO_TypeDef  *port;
+    uint16_t       pin;
+    GPIO_PinState  onLevel;   /* GPIO level that means "ON"/pressed                */
+    GPIO_PinState  pinState;  /* last sampled GPIO state                           */
+    uint8_t        index;     /* index in any future arrays if needed              */
+} BUTTONDescriptor_t;
+
+#define BUTTON_USER_INDEX   0
+
+/* For now only one button, user button. */
+static BUTTONDescriptor_t xBUTTONs[] =
+{
+    { "USER_Button",
+      BUTTON_USER_EVENT,
+      USER_Button_GPIO_Port,
+      USER_Button_Pin,
+      USER_BUTTON_ON,
+      USER_BUTTON_ON,
+      BUTTON_USER_INDEX }
+};
+
+#define BUTTON_COUNT   ( ( uint8_t ) ( sizeof( xBUTTONs ) / sizeof( xBUTTONs[ 0 ] ) ) )
 
 /*-----------------------------------------------------------*/
 
@@ -88,8 +91,8 @@ static EventGroupHandle_t xButtonEventGroup = NULL;
  */
 struct MQTTAgentCommandContext
 {
-  TaskHandle_t xTaskToNotify;
-  void *pArgs;
+    TaskHandle_t xTaskToNotify;
+    void        *pArgs;
 };
 
 /*-----------------------------------------------------------*/
@@ -100,66 +103,34 @@ static MQTTAgentHandle_t xMQTTAgentHandle = NULL;
 
 /**
  * @brief Passed into MQTTAgent_Publish() as the callback to execute when the
- * broker ACKs the PUBLISH message.  Its implementation sends a notification
- * to the task that called MQTTAgent_Publish() to let the task know the
- * PUBLISH operation completed.  It also sets the xReturnStatus of the
- * structure passed in as the command's context to the value of the
- * xReturnStatus parameter - which enables the task to check the status of the
- * operation.
- *
- * See https://freertos.org/mqtt/mqtt-agent-demo.html#example_mqtt_api_call
- *
- * @param[in] pxCommandContext Context of the initial command.
- * @param[in].xReturnStatus The result of the command.
+ * broker ACKs the PUBLISH message.
  */
-static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext, MQTTAgentReturnInfo_t *pxReturnInfo);
+static void prvPublishCommandCallback( MQTTAgentCommandContext_t *pxCommandContext,
+                                       MQTTAgentReturnInfo_t *pxReturnInfo );
 
 /**
  * @brief Publishes the given payload using the given qos to the topic provided.
- *
- * Function queues a publish command with the MQTT agent and waits for response. For
- * Qos0 publishes command is successful when the message is sent out of network. For Qos1
- * publishes, the command succeeds once a puback is received. If publish is unsuccessful, the function
- * retries the publish for a configure number of tries.
- *
- * @param[in] xQoS The quality of service (QoS) to use.  Can be zero or one
- * for all MQTT brokers.  Can also be QoS2 if supported by the broker.  AWS IoT
- * does not support QoS2.
- * @param[in] pcTopic NULL terminated topic string to which message is published.
- * @param[in] pucPayload The payload blob to be published.
- * @param[in] xPayloadLength Length of the payload blob to be published.
  */
-static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength);
+static MQTTStatus_t prvPublishToTopic( MQTTQoS_t xQoS,
+                                       bool xRetain,
+                                       char *pcTopic,
+                                       uint8_t *pucPayload,
+                                       size_t xPayloadLength );
 
 /**
  * @brief Callback function for GPIO rising edge interrupt on the user button.
- *
- * This function is registered with the EXTI driver and is triggered on a rising edge
- * (button released if active-low). It sets the corresponding event bit in the
- * xButtonEventGroup from ISR context.
- *
- * @param[in] pvContext Optional user context pointer passed during callback registration. Not used.
  */
-static void user_button_rising_event(void *pvContext);
+static void user_button_rising_event( void *pvContext );
 
 /**
  * @brief Callback function for GPIO falling edge interrupt on the user button.
- *
- * This function is registered with the EXTI driver and is triggered on a falling edge
- * (button pressed if active-low). It sets the appropriate event bit in the
- * xButtonEventGroup from ISR context.
- *
- * @param[in] pvContext Optional user context pointer passed during callback registration. Not used.
  */
-static void user_button_falling_event(void *pvContext);
-
+static void user_button_falling_event( void *pvContext );
 
 /**
- * @brief The function that implements the task demonstrated by this file.
- *
- * @param pvParameters The parameters to the task.
+ * @brief The function that implements the button reporting task.
  */
-void vButtonTask(void *pvParameters);
+void vButtonTask( void *pvParameters );
 
 /*-----------------------------------------------------------*/
 
@@ -171,186 +142,243 @@ extern MQTTAgentContext_t xGlobalMqttAgentContext;
 
 /*-----------------------------------------------------------*/
 
-static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext, MQTTAgentReturnInfo_t *pxReturnInfo)
+static void prvPublishCommandCallback( MQTTAgentCommandContext_t *pxCommandContext,
+                                       MQTTAgentReturnInfo_t *pxReturnInfo )
 {
-  if (pxCommandContext->xTaskToNotify != NULL)
-  {
-    xTaskNotify(pxCommandContext->xTaskToNotify, pxReturnInfo->returnCode, eSetValueWithOverwrite);
-  }
+    if( pxCommandContext->xTaskToNotify != NULL )
+    {
+        xTaskNotify( pxCommandContext->xTaskToNotify,
+                     pxReturnInfo->returnCode,
+                     eSetValueWithOverwrite );
+    }
 }
 
 /*-----------------------------------------------------------*/
 
-static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength)
+static MQTTStatus_t prvPublishToTopic( MQTTQoS_t xQoS,
+                                       bool xRetain,
+                                       char *pcTopic,
+                                       uint8_t *pucPayload,
+                                       size_t xPayloadLength )
 {
-  MQTTPublishInfo_t xPublishInfo = { 0UL };
-  MQTTAgentCommandContext_t xCommandContext = { 0 };
-  MQTTStatus_t xMQTTStatus;
-  BaseType_t xNotifyStatus;
-  MQTTAgentCommandInfo_t xCommandParams = { 0UL };
-  uint32_t ulNotifiedValue = 0U;
+    MQTTPublishInfo_t        xPublishInfo   = { 0UL };
+    MQTTAgentCommandContext_t xCommandContext = { 0 };
+    MQTTStatus_t             xMQTTStatus;
+    BaseType_t               xNotifyStatus;
+    MQTTAgentCommandInfo_t   xCommandParams = { 0UL };
+    uint32_t                 ulNotifiedValue = 0U;
 
-  /* Create a unique number of the subscribe that is about to be sent.  The number
-   * is used as the command context and is sent back to this task as a notification
-   * in the callback that executed upon receipt of the subscription acknowledgment.
-   * That way this task can match an acknowledgment to a subscription. */
-  xTaskNotifyStateClear(NULL);
+    xTaskNotifyStateClear( NULL );
 
-  /* Configure the publish operation. */
-  xPublishInfo.qos = xQoS;
-  xPublishInfo.retain = xRetain;
-  xPublishInfo.pTopicName = pcTopic;
-  xPublishInfo.topicNameLength = (uint16_t) strlen(pcTopic);
-  xPublishInfo.pPayload = pucPayload;
-  xPublishInfo.payloadLength = xPayloadLength;
+    xPublishInfo.qos              = xQoS;
+    xPublishInfo.retain           = xRetain;
+    xPublishInfo.pTopicName       = pcTopic;
+    xPublishInfo.topicNameLength  = ( uint16_t ) strlen( pcTopic );
+    xPublishInfo.pPayload         = pucPayload;
+    xPublishInfo.payloadLength    = xPayloadLength;
 
-  xCommandContext.xTaskToNotify = xTaskGetCurrentTaskHandle();
+    xCommandContext.xTaskToNotify = xTaskGetCurrentTaskHandle();
 
-  xCommandParams.blockTimeMs = configMAX_COMMAND_SEND_BLOCK_TIME_MS;
-  xCommandParams.cmdCompleteCallback = prvPublishCommandCallback;
-  xCommandParams.pCmdCompleteCallbackContext = &xCommandContext;
+    xCommandParams.blockTimeMs                 = configMAX_COMMAND_SEND_BLOCK_TIME_MS;
+    xCommandParams.cmdCompleteCallback        = prvPublishCommandCallback;
+    xCommandParams.pCmdCompleteCallbackContext = &xCommandContext;
 
-  /* Loop in case the queue used to communicate with the MQTT agent is full and
-   * attempts to post to it time out.  The queue will not become full if the
-   * priority of the MQTT agent task is higher than the priority of the task
-   * calling this function. */
-  do
-  {
-    xMQTTStatus = MQTTAgent_Publish(xMQTTAgentHandle, &xPublishInfo, &xCommandParams);
-
-    if (xMQTTStatus == MQTTSuccess)
+    do
     {
-      /* Wait for this task to get notified, passing out the value it gets  notified with. */
-      xNotifyStatus = xTaskNotifyWait(0, 0, &ulNotifiedValue, portMAX_DELAY);
+        xMQTTStatus = MQTTAgent_Publish( xMQTTAgentHandle,
+                                         &xPublishInfo,
+                                         &xCommandParams );
 
-      if (xNotifyStatus == pdTRUE)
-      {
-        if(ulNotifiedValue)
+        if( xMQTTStatus == MQTTSuccess )
         {
-          xMQTTStatus = MQTTSendFailed;
+            xNotifyStatus = xTaskNotifyWait( 0,
+                                             0,
+                                             &ulNotifiedValue,
+                                             portMAX_DELAY );
+
+            if( xNotifyStatus == pdTRUE )
+            {
+                if( ulNotifiedValue )
+                {
+                    xMQTTStatus = MQTTSendFailed;
+                }
+                else
+                {
+                    xMQTTStatus = MQTTSuccess;
+                }
+            }
+            else
+            {
+                xMQTTStatus = MQTTSendFailed;
+            }
         }
-        else
-        {
-          xMQTTStatus = MQTTSuccess;
-        }
-      }
-      else
-      {
-        xMQTTStatus = MQTTSendFailed;
-      }
     }
-  }
-  while (xMQTTStatus != MQTTSuccess);
+    while( xMQTTStatus != MQTTSuccess );
 
-  return xMQTTStatus;
+    return xMQTTStatus;
 }
 
 /*-----------------------------------------------------------*/
 
-static void user_button_rising_event(void *pvContext)
+static void user_button_rising_event( void *pvContext )
 {
-    (void) pvContext;
-    if (xButtonEventGroup != NULL)
+    ( void ) pvContext;
+
+    if( xButtonEventGroup != NULL )
     {
-        xEventGroupSetBitsFromISR(xButtonEventGroup, BUTTON_RISING_EVENT, NULL);
+        xEventGroupSetBitsFromISR( xButtonEventGroup, BUTTON_USER_EVENT, NULL );
     }
 }
 
 /*-----------------------------------------------------------*/
 
-static void user_button_falling_event(void *pvContext)
+static void user_button_falling_event( void *pvContext )
 {
-    (void) pvContext;
-    if (xButtonEventGroup != NULL)
+    ( void ) pvContext;
+
+    if( xButtonEventGroup != NULL )
     {
-        xEventGroupSetBitsFromISR(xButtonEventGroup, BUTTON_FALLING_EVENT, NULL);
+        xEventGroupSetBitsFromISR( xButtonEventGroup, BUTTON_USER_EVENT, NULL );
     }
 }
 
 /*-----------------------------------------------------------*/
 
-void vButtonTask(void *pvParameters)
+void vButtonTask( void *pvParameters )
 {
-    char *cPayloadBuf;
-    size_t xPayloadLength;
+    char       *cPayloadBuf;
+    size_t      xPayloadLength;
     MQTTStatus_t xMQTTStatus;
-    MQTTQoS_t xQoS = MQTTQoS0;
-    bool xRetain = pdTRUE;
-    char *pThingName = NULL;
-    size_t uxTempSize = 0;
+    MQTTQoS_t   xQoS      = MQTTQoS0;
+    bool        xRetain   = pdTRUE;
+    char       *pThingName = NULL;
+    size_t      uxTempSize = 0;
     EventBits_t uxBits;
 
-    (void) pvParameters;
+    ( void ) pvParameters;
 
     /* Wait until the MQTT agent is ready */
     vSleepUntilMQTTAgentReady();
 
     /* Get the MQTT Agent handle */
     xMQTTAgentHandle = xGetMqttAgentHandle();
-    configASSERT(xMQTTAgentHandle != NULL);
+    configASSERT( xMQTTAgentHandle != NULL );
 
     /* Wait until we are connected to AWS */
     vSleepUntilMQTTAgentConnected();
 
-    LogInfo(("MQTT Agent connected. Starting button reporting task."));
+    LogInfo( ( "MQTT Agent connected. Starting button reporting task." ) );
 
-    pThingName = KVStore_getStringHeap(CS_CORE_THING_NAME, &uxTempSize);
-    configASSERT(pThingName != NULL);
+    pThingName = KVStore_getStringHeap( CS_CORE_THING_NAME, &uxTempSize );
+    configASSERT( pThingName != NULL );
 
-    cPayloadBuf = (char *) pvPortMalloc(configPAYLOAD_BUFFER_LENGTH);
-    configASSERT(cPayloadBuf != NULL);
+    cPayloadBuf = ( char * ) pvPortMalloc( configPAYLOAD_BUFFER_LENGTH );
+    configASSERT( cPayloadBuf != NULL );
 
     xButtonEventGroup = xEventGroupCreate();
-    configASSERT(xButtonEventGroup != NULL);
+    configASSERT( xButtonEventGroup != NULL );
 
-    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "%s/sensor/button/reported", pThingName);
+    /* Single shared reported topic for all buttons */
+    snprintf( configPUBLISH_TOPIC,
+              MAXT_TOPIC_LENGTH,
+              "%s/sensor/button/reported",
+              pThingName );
 
-    // Register GPIO callbacks
-    GPIO_EXTI_Register_Rising_Callback (USER_Button_Pin, user_button_rising_event, NULL);
-    GPIO_EXTI_Register_Falling_Callback(USER_Button_Pin, user_button_falling_event, NULL);
+    /* Register GPIO callbacks for all buttons (currently only one). */
+    GPIO_EXTI_Register_Rising_Callback( USER_Button_Pin,
+                                        user_button_rising_event,
+                                        NULL );
+    GPIO_EXTI_Register_Falling_Callback( USER_Button_Pin,
+                                         user_button_falling_event,
+                                         NULL );
 
-    /* Force button state update */
-    xEventGroupSetBits(xButtonEventGroup, BUTTON_FALLING_EVENT);
-
-    for (;;)
+    /* Force initial state update for all enabled buttons */
+    for( uint8_t i = 0; i < BUTTON_COUNT; i++ )
     {
-        uxBits = xEventGroupWaitBits(xButtonEventGroup,
-                                     BUTTON_RISING_EVENT | BUTTON_FALLING_EVENT,
-                                     pdTRUE,
-                                     pdFALSE,
-                                     portMAX_DELAY);
+       xEventGroupSetBits( xButtonEventGroup, xBUTTONs[ i ].eventBit );
+    }
 
-        const char *status = (uxBits & BUTTON_RISING_EVENT) ? "ON" :
-                             (uxBits & BUTTON_FALLING_EVENT) ? "OFF" : "UNKNOWN";
-
-        xPayloadLength = snprintf(
-            cPayloadBuf,
-            configPAYLOAD_BUFFER_LENGTH,
-            "{ \"buttonStatus\": { \"reported\": \"%s\" } }",
-            status
-        );
-
-        configASSERT(xPayloadLength <= configPAYLOAD_BUFFER_LENGTH);
-
-        LogInfo(("Publishing button status to: %s, message: %.*s",
-                 configPUBLISH_TOPIC, xPayloadLength, cPayloadBuf));
-
-        xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC,
-                                        (uint8_t *) cPayloadBuf, xPayloadLength);
-
-        if (xMQTTStatus == MQTTSuccess)
+    for( ;; )
+    {
+        /* Wait for any button event bit to be set. */
+        EventBits_t allBitsMask = 0;
+        for( uint8_t i = 0; i < BUTTON_COUNT; i++ )
         {
-            LogInfo(("Successfully published button status: %s", status));
+            allBitsMask |= xBUTTONs[ i ].eventBit;
         }
-        else
+
+        uxBits = xEventGroupWaitBits( xButtonEventGroup,
+                                      allBitsMask,
+                                      pdTRUE,
+                                      pdFALSE,
+                                      portMAX_DELAY );
+
+        if( uxBits != 0 )
         {
-            LogError(("Failed to publish button status to topic: %s", configPUBLISH_TOPIC));
+            /* Sample all buttons and build JSON. */
+            int len = snprintf( cPayloadBuf,
+                                configPAYLOAD_BUFFER_LENGTH,
+                                "{ \"buttonStatus\": { " );
+            configASSERT( len >= 0 );
+
+            for( uint8_t i = 0; i < BUTTON_COUNT; i++ )
+            {
+                BUTTONDescriptor_t *pxBtn = &xBUTTONs[ i ];
+
+                /* Sample GPIO and update pinState. */
+                GPIO_PinState pinState = HAL_GPIO_ReadPin( pxBtn->port, pxBtn->pin );
+                pxBtn->pinState        = pinState;
+
+                /* Determine logical status. */
+                const char *status = ( pinState == pxBtn->onLevel ) ? "ON" : "OFF";
+
+                /* Append JSON fragment: "<name>": { "reported": "<status>" } */
+                int partLen = snprintf( cPayloadBuf + len,
+                                        configPAYLOAD_BUFFER_LENGTH - ( size_t ) len,
+                                        "%s\"%s\": { \"reported\": \"%s\" }",
+                                        ( len > ( int ) strlen( "{ \"buttonStatus\": { " ) ) ? ", " : "",
+                                        pxBtn->name,
+                                        status );
+                configASSERT( partLen >= 0 );
+                len += partLen;
+            }
+
+            /* Close JSON. */
+            int closeLen = snprintf( cPayloadBuf + len,
+                                     configPAYLOAD_BUFFER_LENGTH - ( size_t ) len,
+                                     " } }" );
+            configASSERT( closeLen >= 0 );
+            len += closeLen;
+
+            xPayloadLength = ( size_t ) len;
+            configASSERT( xPayloadLength < configPAYLOAD_BUFFER_LENGTH );
+
+            LogInfo( ( "Publishing button status to: %s, message: %.*s",
+                       configPUBLISH_TOPIC,
+                       ( int ) xPayloadLength,
+                       cPayloadBuf ) );
+
+            xMQTTStatus = prvPublishToTopic( xQoS,
+                                             xRetain,
+                                             configPUBLISH_TOPIC,
+                                             ( uint8_t * ) cPayloadBuf,
+                                             xPayloadLength );
+
+            if( xMQTTStatus == MQTTSuccess )
+            {
+                LogInfo( ( "Successfully published button status JSON" ) );
+            }
+            else
+            {
+                LogError( ( "Failed to publish button status to topic: %s",
+                            configPUBLISH_TOPIC ) );
+            }
         }
     }
 
-    // Clean up (only reached if loop is broken, not expected)
-    vPortFree(pThingName);
-    vPortFree(cPayloadBuf);
-    vEventGroupDelete(xButtonEventGroup);
-    vTaskDelete(NULL);
+    /* Not expected to be reached */
+    vPortFree( pThingName );
+    vPortFree( cPayloadBuf );
+    vEventGroupDelete( xButtonEventGroup );
+    vTaskDelete( NULL );
 }
