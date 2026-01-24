@@ -49,18 +49,22 @@ This example demonstrates how to control the onboard LED of the STM32 board via 
 Turn LED OFF:
 ```json
 {
-    "ledStatus": {
-        "desired": "OFF"
+  "ledStatus": {
+    "LED_RED": {
+      "desired": "OFF"
     }
+  }
 }
 ```
 
 Turn LED ON:
 ```json
 {
-    "ledStatus": {
-        "desired": "ON"
+  "ledStatus": {
+    "LED_RED": {
+      "desired": "ON"
     }
+  }
 }
 ```
 
@@ -76,7 +80,12 @@ After processing your command, , the onboard LED is updated accordingly, then th
 ```json
 {
   "ledStatus": {
-    "reported": "ON"
+    "LED_RED": {
+      "reported": "ON"
+    },
+    "LED_GREEN": {
+      "reported": "ON"
+    }
   }
 }
 ```
@@ -86,7 +95,12 @@ or
 ```json
 {
   "ledStatus": {
-    "reported": "OFF"
+    "LED_RED": {
+      "reported": "OFF"
+    },
+    "LED_GREEN": {
+      "reported": "OFF"
+    }
   }
 }
 ```

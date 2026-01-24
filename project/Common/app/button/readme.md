@@ -28,7 +28,9 @@ in JSON format.
 ```json
 {
   "buttonStatus": {
-    "reported": "OFF"
+    "USER_Button": {
+      "reported": "OFF"
+    }
   }
 }
 ```
@@ -36,7 +38,9 @@ or
 ```json
 {
   "buttonStatus": {
-    "reported": "ON"
+    "USER_Button": {
+      "reported": "ON"
+    }
   }
 }
 ```

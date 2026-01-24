@@ -220,34 +220,33 @@ start_update
 ### 5.2. LED Status and Control
 
 #### 5.2.1. Home Assistant discovery
-- **Topic**: `homeassistant/switch/< device_id >_led/config`
-- **Example**: `homeassistant/switch/stm32u585-003000523636500A20333342_led/config`
+- **Topic**: `homeassistant/switch/< device_id >_< led >/config` 
+- **Example**: `homeassistant/switch/eval3-0209E08B415AD42AC20139_LED_GREEN/config`
 - **Category**: Diagnostic
 
 #### 5.2.2. Config Payload Example:
 ```json
 {
-  "name": "LED",
-  "unique_id": "stm32u585-003000523636500A20333342_led",
-  "command_topic": "stm32u585-003000523636500A20333342/led/desired",
-  "state_topic": "stm32u585-003000523636500A20333342/led/reported",
-  "value_template": "{{ value_json.ledStatus.reported }}",
-  "payload_on": "ON",
-  "payload_off": "OFF",
+  "name": "LED_GREEN",
+  "unique_id": "eval3-0209E08B415AD42AC20139_LED_GREEN",
+  "command_topic": "eval3-0209E08B415AD42AC20139/led/desired",
+  "state_topic": "eval3-0209E08B415AD42AC20139/led/reported",
+  "value_template": "{{ value_json.ledStatus.LED_GREEN.reported }}",
+  "payload_on": "LED_GREEN_ON",
+  "payload_off": "LED_GREEN_OFF",
   "state_on": "ON",
   "state_off": "OFF",
-  "availability_topic": "stm32u585-003000523636500A20333342/status/availability",
+  "availability_topic": "eval3-0209E08B415AD42AC20139/status/availability",
   "payload_available": "online",
   "payload_not_available": "offline",
   "retain": false,
-  "entity_category": "diagnostic",
   "device": {
     "identifiers": [
-      "stm32u585-003000523636500A20333342"
+      "eval3-0209E08B415AD42AC20139"
     ],
     "manufacturer": "STMicroelectronics",
     "model": "B_U585_IOTA02",
-    "name": "stm32u585-003000523636500A20333342"
+    "name": "eval3-0209E08B415AD42AC20139"
   }
 }
 ```
@@ -263,15 +262,12 @@ start_update
 ```json
 {
   "ledStatus": {
-    "reported": "OFF"
-  }
-}
-```
-Or
-```json
-{
-  "ledStatus": {
-    "reported": "ON"
+    "LED_RED": {
+      "reported": "OFF"
+    },
+    "LED_GREEN": {
+      "reported": "ON"
+    }
   }
 }
 ```
@@ -283,42 +279,42 @@ Or
 #### 5.2.6. Example Payload:
 
 ```
-OFF 
+LED_GREEN_ON 
 ```
 
 Or
 
 ```
-ON
+LED_GREEN_FF
 ```
 
 ### 5.3. Button Status
 
 #### 5.3.1. Home Assistant discovery
-- **Topic**: `homeassistant/binary_sensor/< device_id >_button/config`
-- **Example**: `homeassistant/binary_sensor/stm32u585-003000523636500A20333342_button/config`
+- **Topic**: `homeassistant/binary_sensor/< device_id >_< Button >/config`
+- **Example**: `homeassistant/binary_sensor/eval3-0209E08B415AD42AC20139_USER_Button/config`
 
 #### 5.3.2. Config Payload Example:
 ```json
 {
-  "name": "Button",
-  "unique_id": "stm32u585-001C00444841500520363230_button",
-  "state_topic": "stm32u585-001C00444841500520363230/sensor/button/reported",
-  "value_template": "{{ value_json.buttonStatus.reported }}",
+  "name": "USER_Button",
+  "unique_id": "eval3-0209E08B415AD42AC20139_USER_Button",
+  "state_topic": "eval3-0209E08B415AD42AC20139/sensor/button/reported",
+  "value_template": "{{ value_json.buttonStatus.USER_Button.reported }}",
   "payload_on": "ON",
   "payload_off": "OFF",
   "device_class": "occupancy",
-  "availability_topic": "stm32u585-001C00444841500520363230/status/availability",
+  "availability_topic": "eval3-0209E08B415AD42AC20139/status/availability",
   "payload_available": "online",
   "payload_not_available": "offline",
   "retain": false,
   "device": {
     "identifiers": [
-      "stm32u585-001C00444841500520363230"
+      "eval3-0209E08B415AD42AC20139"
     ],
     "manufacturer": "STMicroelectronics",
     "model": "B_U585_IOTA02",
-    "name": "stm32u585-001C00444841500520363230"
+    "name": "eval3-0209E08B415AD42AC20139"
   }
 }
 ```
@@ -333,7 +329,9 @@ ON
 ```json
 {
   "buttonStatus": {
-    "reported": "OFF"
+    "USER_Button": {
+      "reported": "ON"
+    }
   }
 }
 ```
@@ -341,7 +339,9 @@ Or
 ```json
 {
   "buttonStatus": {
-    "reported": "ON"
+    "USER_Button": {
+      "reported": "OFF"
+    }
   }
 }
 ```
