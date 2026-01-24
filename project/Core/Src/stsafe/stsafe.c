@@ -33,7 +33,7 @@ const uint32_t zone_size[12] =
   3072, /* Zone 10 size */
   2944  /* Zone 11 size */
 };
-#else
+#elif defined(__STSAFE_A110__)
 const uint32_t zone_size[8] =
 { 1000, /* Zone 0 size */
   700,  /* Zone 1 size */

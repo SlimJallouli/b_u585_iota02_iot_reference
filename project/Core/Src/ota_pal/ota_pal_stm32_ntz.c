@@ -1066,11 +1066,7 @@ HAL_ICACHE_Enable();
     {
         uxOtaStatus = OTA_PAL_COMBINE_ERR( OtaPalRxFileTooLarge, 0 );
     }
-#if DEMO_HOME_ASSISTANT
     else if (strstr((char *) pxFileContext->pFilePath, OTA_FILE_NAME) == NULL)
-#else
-    else if( strncmp( OTA_FILE_NAME, ( char * ) pxFileContext->pFilePath, pxFileContext->filePathMaxSize ) != 0 )
-#endif
     {
         uxOtaStatus = OTA_PAL_COMBINE_ERR( OtaPalRxFileCreateFailed, 0 );
     }

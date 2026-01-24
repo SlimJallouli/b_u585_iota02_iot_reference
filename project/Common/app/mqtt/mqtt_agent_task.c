@@ -46,6 +46,7 @@
 #include "mqtt_metrics.h"
 
 /* MQTT library includes. */
+#include "core_mqtt_config.h"
 #include "core_mqtt.h"
 
 #include "core_mqtt_serializer.h"

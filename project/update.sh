@@ -13,7 +13,7 @@ mbedTLS_VERSON="3.1.1"
 mbedTLS_source="$HOME/STM32Cube/Repository/Packs/ARM/mbedTLS/$mbedTLS_VERSON/library/"
 mbedTLS_destination="./Middlewares/Third_Party/ARM_Security/"
 LwIP_destination="./Middlewares/Third_Party/lwIP_Network_lwIP/"
-
+ARM_CM33_FOLDER="./Middlewares/Third_Party/ARM_RTOS_FreeRTOS/Source/portable/GCC/ARM_CM33/"
 
 echo "Home : $HOME"
 
@@ -68,6 +68,7 @@ FILE_PATH=$LwIP_destination"ports/freertos/include"
 echo "Deleting $FILE_PATH"
 rm -r -f $FILE_PATH
 
-
+echo "Deleting $ARM_CM33_FOLDER"
+rm -rf "$ARM_CM33_FOLDER"
 
 echo "Cleanup for $STM32_SERIES complete."

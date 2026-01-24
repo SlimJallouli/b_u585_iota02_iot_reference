@@ -2,7 +2,7 @@
 # B-U585I-IOT02A FreeRTOS IoT Reference
 
 ## 1. Introduction
-This project demonstrates how to integrate modular <a href="https://www.freertos.org/Documentation/03-Libraries/01-Library-overview/03-LTS-libraries/01-LTS-libraries" target="_blank" rel="noopener noreferrer">FreeRTOS kernel and libraries</a>, <a href="https://savannah.nongnu.org/projects/lwip/" target="_blank" rel="noopener noreferrer">LwIP</a> and <a href="https://github.com/Mbed-TLS/mbedtls" target="_blank" rel="noopener noreferrer">MbedTLS</a> to enable secure, connected IoT applications. It offers five flexible configurations, making it adaptable for a variety of hardware setups and application needs. It is pre-configured to run on the <a href="https://www.st.com/en/evaluation-tools/b-u585i-iot02a.html" target="_blank" rel="noopener noreferrer"> B-U585I-IOT02A </a> <a href="https://www.st.com/en/evaluation-tools/x-nucleo-67w61m1.html" target="_blank" rel="noopener noreferrer">X-NUCLEO-67W61M1</a> Wi-Fi  and MXCHIP EMW3080B Wi-Fi.
+This project demonstrates how to integrate modular <a href="https://www.freertos.org/Documentation/03-Libraries/01-Library-overview/03-LTS-libraries/01-LTS-libraries" target="_blank" rel="noopener noreferrer">FreeRTOS kernel and libraries</a>, <a href="https://savannah.nongnu.org/projects/lwip/" target="_blank" rel="noopener noreferrer">LwIP</a> and <a href="https://github.com/Mbed-TLS/mbedtls" target="_blank" rel="noopener noreferrer">MbedTLS</a> to enable secure, connected IoT applications. It offers multiple flexible configurations, making it adaptable for a variety of hardware setups and application needs. It is pre-configured to run on the <a href="https://www.st.com/en/evaluation-tools/b-u585i-iot02a.html" target="_blank" rel="noopener noreferrer"> B-U585I-IOT02A </a> <a href="https://www.st.com/en/evaluation-tools/x-nucleo-67w61m1.html" target="_blank" rel="noopener noreferrer">X-NUCLEO-67W61M1</a> Wi-Fi  and MXCHIP EMW3080B Wi-Fi.
 
 The project supports TLS authentication with or without the <a href="https://www.st.com/resource/en/brochure/stsafe-brochure.pdf" target="_blank" rel="noopener noreferrer">STSAFE</a> secure element, providing both enhanced hardware-based credential protection and a fallback software-based implementation for systems without secure elements. Both <a href="https://www.st.com/en/secure-mcus/stsafe-a110.html" target="_blank" rel="noopener noreferrer">STSAFEA110</a> and <a href="https://www.st.com/en/secure-mcus/stsafe-a120.html" target="_blank" rel="noopener noreferrer">STSAFEA120</a> are supported.
 
@@ -32,9 +32,9 @@ To simplify large-scale deployments, the project supports AWS IoT <a href="https
 
 The project supports connections to <a href="https://aws.amazon.com/" target="_blank" rel="noopener noreferrer">AWS IoT Core</a>, <a href="https://test.mosquitto.org/" target="_blank" rel="noopener noreferrer">test.mosquitto.org</a> and <a href="https://www.emqx.com/en/mqtt/public-mqtt5-broker" target="_blank" rel="noopener noreferrer">broker.emqx.io</a>. In all cases, <a href="https://en.wikipedia.org/wiki/X.509" target="_blank" rel="noopener noreferrer">X.509 certificates</a> are required for device/server authentication, ensuring secure and trusted communication with the MQTT broker
 
-This project provides five (5) build configurations to support a variety of hardware platforms and secure connectivity methods. MXCHIP and ST67_NCP configurations offer flexibility by supporting different wireless connections. The remaining configurations FleetProvisioning, <a href="https://www.st.com/en/secure-mcus/stsafe-a110.html" target="_blank" rel="noopener noreferrer">STSAFEA110</a>, and <a href="https://www.st.com/en/secure-mcus/stsafe-a120.html" target="_blank" rel="noopener noreferrer">STSAFEA120</a> variants for MXCHIP are tailored specifically for <a href="https://aws.amazon.com/" target="_blank" rel="noopener noreferrer">AWS IoT Core</a>, utilizing features such as Just-In-Time Provisioning and hardware-based secure elements to enable secure device onboarding. 
+This project provides five (5) build configurations to support a variety of hardware platforms and secure connectivity methods. MXCHIP and ST67_T01_Single configurations offer flexibility by supporting different wireless connections. The remaining configurations FleetProvisioning, <a href="https://www.st.com/en/secure-mcus/stsafe-a110.html" target="_blank" rel="noopener noreferrer">STSAFEA110</a>, and <a href="https://www.st.com/en/secure-mcus/stsafe-a120.html" target="_blank" rel="noopener noreferrer">STSAFEA120</a> variants for MXCHIP are tailored specifically for <a href="https://aws.amazon.com/" target="_blank" rel="noopener noreferrer">AWS IoT Core</a>, utilizing features such as Just-In-Time Provisioning and hardware-based secure elements to enable secure device onboarding. 
 
-In most configurations, the TLS and MQTT stacks run on the host microcontroller. However, in the ST67_NCP configuration, TLS and MQTT communication are offloaded to the ST67 Wi-Fi module.
+In most configurations, the TLS and MQTT stacks run on the host microcontroller. However, in the ST67_T01_Single configuration, TLS and MQTT communication are offloaded to the ST67 Wi-Fi module.
 
 In the case of <a href="https://www.st.com/en/secure-mcus/stsafe-a110.html" target="_blank" rel="noopener noreferrer">STSAFEA110</a>, and <a href="https://www.st.com/en/secure-mcus/stsafe-a120.html" target="_blank" rel="noopener noreferrer">STSAFEA120</a> configurations, all sensitive assets—including the TLS private key, device certificate, broker root CA and device configuration parameters (e.g., MQTT endpoint, port, Wi-Fi credentials)—are securely stored within the non-volatile memory of the STSAFE-A secure element.
 
@@ -101,7 +101,7 @@ The PKCS11 API is used to handle keys and certificates, whether they are stored 
 
 >In STSAFE configurations, all certificates, keys, and runtime settings are stored in STSAFE. In other cases, they reside in the STM32’s internal Flash.
 
->In ST67_NCP configuration, certificates and keys are transferred from STM32's internal Flash to ST67’s internal file system, and TLS/MQTT connection is managed by ST67. Otherwise, TLS/MQTT runs on the host processor.
+>In ST67_T01_Single configuration, certificates and keys are transferred from STM32's internal Flash to ST67’s internal file system, and TLS/MQTT connection is managed by ST67. Otherwise, TLS/MQTT runs on the host processor.
 
 ## 4. Flash Memory Layout
 
@@ -196,17 +196,21 @@ After you clone the repository, make sure you have cloned it with submodules (us
 
 |       Build Config          | Connects to AWS IoT | Connects to Mosquitto  |Connects to emqx        |OTA       |
 |:---------                   |:----------          |:-------                |:-------                |:-------  | 
-| MXCHIP                      |         Yes         |           Yes          |           No           |    Yes   | 
+| MXCHIP_Single               |         Yes         |           Yes          |           No           |    Yes   | 
 | MXCHIP_FleetProvisioning    |         Yes         |           No           |           No           |    Yes   | 
 | MXCHIP_STSAFEA110           |         Yes         |           No           |           No           |    Yes   | 
 | MXCHIP_STSAFEA120           |         Yes         |           No           |           No           |    Yes   | 
-| ST67_NCP                    |         Yes         |           Yes          |           Yes          |    No    | 
+| ST67_T01_Single             |         Yes         |           Yes          |           Yes          |    No    | 
+| ST67_T02_Single             |         Yes         |           Yes          |           No           |    Yes   | 
+| ST67_T02_FleetProvisioning  |         Yes         |           No           |           No           |    Yes   | 
+| ST67_T02_STSAFEA110         |         Yes         |           No           |           No           |    Yes   | 
+| ST67_T02_STSAFEA120         |         Yes         |           No           |           No           |    Yes   | 
 
 >**Note:** Fleet provisioning, STSAFE and OTA options are available exclusively when connected to AWS.
 
 >**Note:** In STSAFE configurations, all certificates, keys, and runtime settings are stored in STSAFE. In other cases, they reside in the STM32’s internal Flash.
 
->**Note:** In ST67_NCP configuration, certificates and keys are transferred from STM32's internal Flash to ST67’s internal file system, and TLS/MQTT connection is managed by ST67. Otherwise, TLS/MQTT runs on the host processor.
+>**Note:** In ST67_T01_Single configuration, certificates and keys are transferred from STM32's internal Flash to ST67’s internal file system, and TLS/MQTT connection is managed by ST67. Otherwise, TLS/MQTT runs on the host processor.
 
 To view the available build configurations in STM32CubeIDE:
 
@@ -246,7 +250,7 @@ Choose your MQTT broker and provisioning method below. Each link provides step-b
 ### Option 1: Connect to Mosquitto (test.mosquitto.org)
 
 - **Supported Build Configurations:**  
-  `MXCHIP`, `ST67_NCP`
+  `MXCHIP_Single`, `ST67_T01_Single`, `ST67_T02_Single`
 - **Provisioning Method:**  
   Manual Single Thing Provisioning  
 - **Guide:**  
@@ -255,7 +259,7 @@ Choose your MQTT broker and provisioning method below. Each link provides step-b
 ### Option 2: Connect to EMQX (broker.emqx.io)
 
 - **Supported Build Configurations:**  
-  `ST67_NCP`
+  `ST67_T01_Single`
 - **Provisioning Method:**  
   Manual Single Thing Provisioning  
 - **Guide:**  
@@ -264,7 +268,7 @@ Choose your MQTT broker and provisioning method below. Each link provides step-b
 ### Option 3: Connect to AWS IoT Core (Single Thing Provisioning)
 
 - **Supported Build Configurations:**  
-  `MXCHIP`, `ST67_NCP`
+  `MXCHIP_Single`, `ST67_T01_Single`, `ST67_T02_Single`
 - **Provisioning Method:**  
   Manual/scripted Single Thing Provisioning   
 - **Guides:**  
@@ -274,7 +278,7 @@ Choose your MQTT broker and provisioning method below. Each link provides step-b
 ### Option 4: Connect to AWS IoT Core (Fleet Provisioning)
 
 - **Supported Build Configurations:**  
-  `MXCHIP_FleetProvisioning`
+  `MXCHIP_FleetProvisioning`, `ST67_T02_FleetProvisioning`
   - **Provisioning Method:**  
   Automated Thing Provisioning 
 - **Guide:**  
@@ -283,7 +287,7 @@ Choose your MQTT broker and provisioning method below. Each link provides step-b
 ### Option 5: Connect to AWS IoT Core  (STSAFE Provisioning)
 
 - **Supported Build Configurations:**  
-  `MXCHIP_STSAFEA110`, `MXCHIP_STSAFEA120`
+  `MXCHIP_STSAFEA110`, `MXCHIP_STSAFEA120`, `ST67_T02_STSAFEA110`, `ST67_T02_STSAFEA120`
 - **Provisioning Methods:**  
   Multi-Account Registration (MAR), Just-in-Time Provisioning (JITP), Just-in-Time Registration (JITR)
 - **Guide:**  
@@ -315,15 +319,16 @@ If you plan to regenerate the project using STM32CubeMX, you must download and i
 > Install these packs via the "STM32CubeMX Packs Manager" **before** opening the project with STM32CubeMX.
 
 **Required Packs:**
+- <a href="https://www.keil.com/pack/ARM.CMSIS-FreeRTOS.11.2.0.pack" target="_blank" rel="noopener noreferrer">ARM.CMSIS-FreeRTOS 11.2.0</a>  
 - <a href="https://www.keil.com/pack/ARM.mbedTLS.3.1.1.pack" target="_blank" rel="noopener noreferrer">mbedTLS 3.1.1</a>  
 - <a href="https://d1pm0k3vkcievw.cloudfront.net/AWS.AWS_IoT_Over-the-air_Update.5.0.1.pack" target="_blank" rel="noopener noreferrer">AWS IoT Over-the-air Update 5.0.1</a>  
-- <a href="https://d1pm0k3vkcievw.cloudfront.net/AWS.AWS_IoT_Device_Defender.4.1.1.pack" target="_blank" rel="noopener noreferrer">AWS IoT Device Defender 4.1.1</a>  
-- <a href="https://d1pm0k3vkcievw.cloudfront.net/AWS.AWS_IoT_Device_Shadow.5.0.1.pack" target="_blank" rel="noopener noreferrer">AWS IoT Device Shadow 5.0.1</a>  
-- <a href="https://d1pm0k3vkcievw.cloudfront.net/AWS.AWS_IoT_Fleet_Provisioning.1.0.1.pack" target="_blank" rel="noopener noreferrer">AWS IoT Fleet Provisioning 1.0.1</a>  
-- <a href="https://d1pm0k3vkcievw.cloudfront.net/AWS.backoffAlgorithm.4.1.1.pack" target="_blank" rel="noopener noreferrer">backoffAlgorithm 4.1.1</a>  
-- <a href="https://d1pm0k3vkcievw.cloudfront.net/AWS.coreJSON.4.1.1.pack" target="_blank" rel="noopener noreferrer">coreJSON 4.1.1</a>  
-- <a href="https://d1pm0k3vkcievw.cloudfront.net/AWS.coreMQTT.5.0.1.pack" target="_blank" rel="noopener noreferrer">coreMQTT 5.0.1</a>  
-- <a href="https://d1pm0k3vkcievw.cloudfront.net/AWS.coreMQTT_Agent.5.0.1.pack" target="_blank" rel="noopener noreferrer">coreMQTT_Agent 5.0.1</a> 
+- <a href="https://freertos-cmsis-packs.s3.us-west-2.amazonaws.com/AWS.AWS_IoT_Device_Defender.4.2.0.pack" target="_blank" rel="noopener noreferrer">AWS IoT Device Defender 4.2.0</a>  
+- <a href="https://freertos-cmsis-packs.s3.us-west-2.amazonaws.com/AWS.AWS_IoT_Device_Shadow.5.1.0.pack" target="_blank" rel="noopener noreferrer">AWS IoT Device Shadow 5.1.0</a>  
+- <a href="https://freertos-cmsis-packs.s3.us-west-2.amazonaws.com/AWS.AWS_IoT_Fleet_Provisioning.1.1.0.pack" target="_blank" rel="noopener noreferrer">AWS IoT Fleet Provisioning 1.1.0</a>  
+- <a href="https://freertos-cmsis-packs.s3.us-west-2.amazonaws.com/AWS.backoffAlgorithm.4.2.0.pack" target="_blank" rel="noopener noreferrer">backoffAlgorithm 4.2.0</a>  
+- <a href="https://freertos-cmsis-packs.s3.us-west-2.amazonaws.com/AWS.coreJSON.4.2.0.pack" target="_blank" rel="noopener noreferrer">coreJSON 4.2.0</a>  
+- <a href="https://freertos-cmsis-packs.s3.us-west-2.amazonaws.com/AWS.coreMQTT.5.1.0.pack" target="_blank" rel="noopener noreferrer">coreMQTT 5.1.0</a>  
+- <a href="https://freertos-cmsis-packs.s3.us-west-2.amazonaws.com/AWS.coreMQTT_Agent.5.1.0.pack" target="_blank" rel="noopener noreferrer">coreMQTT_Agent 5.1.0</a> 
 - <a href="https://www.keil.com/pack/lwIP.lwIP.2.3.0.pack" target="_blank" rel="noopener noreferrer">lwIP 2.3.0</a> 
 
 Other CMSIS Packs downloaded automatically by STM32CubeMX

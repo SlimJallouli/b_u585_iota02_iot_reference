@@ -196,7 +196,7 @@ void Error_Handler(void);
 #define DEMO_BUTTON                             1   // Button Status Example
 #define DEMO_ECHO_SERVER                        0   // Echo server example
 #define DEMO_ECHO_CLIENT                        0   // Echo Client example
-#define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
+#define DEMO_HOME_ASSISTANT                     0   // Home Assistant Discovery Example
 
 #define DEMO_AWS_SHADOW                         0   // AWS IoT Shadow Example
 #define DEMO_AWS_OTA                            1   // OTA Update Example
@@ -224,7 +224,6 @@ void Error_Handler(void);
                                                  defined(DEMO_AWS_FLEET_PROVISION))
 
 /******************** Tasks priority ********************/
-#define TASK_PRIO_OTA                           (tskIDLE_PRIORITY      + 1 )
 #define TASK_PRIO_fleetProvisioning             (tskIDLE_PRIORITY      + 1 )
 #define TASK_PRIO_SNTP                          (tskIDLE_PRIORITY      + 2 )
 #define TASK_PRIO_PING                          (tskIDLE_PRIORITY      + 3 )
@@ -239,8 +238,9 @@ void Error_Handler(void);
 #define TASK_PRIO_ENV                           (tskIDLE_PRIORITY      + 10)
 #define TASK_PRIO_MOTION                        (tskIDLE_PRIORITY      + 11)
 #define TASK_PRIO_HOMEASSISTANT                 (tskIDLE_PRIORITY      + 12)
-#define TASK_PRIO_CLI                           (tskIDLE_PRIORITY      + 13)
-#define TASK_PRIO_MQTTA_AGENT                   (tskIDLE_PRIORITY      + 14)
+#define TASK_PRIO_OTA                           (tskIDLE_PRIORITY      + 13)
+#define TASK_PRIO_CLI                           (tskIDLE_PRIORITY      + 14)
+#define TASK_PRIO_MQTTA_AGENT                   (tskIDLE_PRIORITY      + 15)
 #define TASK_PRIO_W6X                           (TASK_PRIO_MQTTA_AGENT + 1 )
 #define TASK_PRIO_MXCHIP                        (tskIDLE_PRIORITY      + 23)
 #define TASK_PRIO_NET_ETH                       (TASK_PRIO_MQTTA_AGENT + 1 )

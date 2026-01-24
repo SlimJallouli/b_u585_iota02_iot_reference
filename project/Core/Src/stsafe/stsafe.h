@@ -14,23 +14,22 @@
 
 #include "stsafea_types.h"
 
-#define STSAFE_ZONE_HEADER_SIZE        4    /* Header size */
+#define STSAFE_ZONE_HEADER_SIZE          4    /* Header size */
 #define STSAFE_VAL_MAX_LEN 64
 
 #if defined(__STSAFE_A120__)
-#define STSAFE_ZONE_1_SIZE             1000 /* Zone 1 size                 */
-#define STSAFE_ZONE_DeviceCertificate  0    /* Device Cert in zone 0       */
-#define STSAFE_ZONE_KVSTORE            1    /* KVSTORE is inSTSAFE Zone 1  */
-#define STSAFE_ZONE_CodeSigningKey     2    /* Code Signing Key zone  2    */
-#define STSAFE_ZONE_ServerCert         11   /* CA Cert in zone 11          */
-#else
-#define STSAFE_ZONE_1_SIZE             700  /* Zone 1 size */
-#define STSAFE_ZONE_DeviceCertificate  0    /* Device Cert in zone 0       */
-#define STSAFE_ZONE_KVSTORE            1    /* KVSTORE is inSTSAFE Zone 1  */
-#define STSAFE_ZONE_CodeSigningKey     2    /* Code Signing Key zone  2    */
-#define STSAFE_ZONE_ServerCert         4    /* CA Cert in zone 4           */
+  #define STSAFE_ZONE_1_SIZE             1000 /* Zone 1 size                 */
+  #define STSAFE_ZONE_DeviceCertificate  0    /* Device Cert in zone 0       */
+  #define STSAFE_ZONE_KVSTORE            1    /* KVSTORE is inSTSAFE Zone 1  */
+  #define STSAFE_ZONE_CodeSigningKey     2    /* Code Signing Key zone  2    */
+  #define STSAFE_ZONE_ServerCert         11   /* CA Cert in zone 11          */
+#elif defined(__STSAFE_A110__)
+  #define STSAFE_ZONE_1_SIZE             700  /* Zone 1 size */
+  #define STSAFE_ZONE_DeviceCertificate  0    /* Device Cert in zone 0       */
+  #define STSAFE_ZONE_KVSTORE            1    /* KVSTORE is inSTSAFE Zone 1  */
+  #define STSAFE_ZONE_CodeSigningKey     2    /* Code Signing Key zone  2    */
+  #define STSAFE_ZONE_ServerCert         4    /* CA Cert in zone 4           */
 #endif
-
 
 bool SAFEA1_Init(void);
 uint8_t SAFEA1_GenerateRandom(uint8_t size, uint8_t *random);
