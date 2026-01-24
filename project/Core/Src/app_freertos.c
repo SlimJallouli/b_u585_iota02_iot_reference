@@ -286,7 +286,7 @@ void StartDefaultTask(void *argument)
 
     pucMqttEndpoint = KVStore_getStringHeap( CS_CORE_MQTT_ENDPOINT, &uxMqttEndpointLen );
 
-#if DEMO_OTA
+#if DEMO_AWS_OTA
     if ((uxMqttEndpointLen>0) && (uxMqttEndpointLen < 0xffffffff))
     {
       /* If we are connecting to AWS */

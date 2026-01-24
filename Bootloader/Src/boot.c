@@ -47,9 +47,10 @@ static bool prvWriteToFlash(uint8_t *pSource, uint32_t destination,  uint32_t ul
 static bool prvEraseSectors(uint32_t Nb_Bank, uint32_t Nb_Sectors, uint32_t StartSector);
 static void copy_from_flash_to_buffer(uint8_t *dest, const uint32_t src_flash_addr, uint32_t size);
 
-
+#if (SWAP_APPLICATION_AND_OTA == 0)
 static bool prvEraseApplication(void);
 static bool prvEraseOTA(void);
+#endif
 
 /* Private user code ---------------------------------------------------------*/
 
@@ -353,6 +354,7 @@ static bool prvEraseSectors(uint32_t Nb_Bank, uint32_t Nb_Sectors, uint32_t Star
   return xResult;
 }
 
+#if (SWAP_APPLICATION_AND_OTA == 0)
 static bool prvEraseApplication(void)
 {
   return prvEraseSectors(FLASH_BANK_1, RESERVED_OTA_SECTORS, RESERVED_BOOT_SECTORS) == HAL_OK;
@@ -362,4 +364,4 @@ static bool prvEraseOTA(void)
 {
   return prvEraseSectors(FLASH_BANK_2, RESERVED_OTA_SECTORS, 0) == HAL_OK;
 }
-
+#endif
