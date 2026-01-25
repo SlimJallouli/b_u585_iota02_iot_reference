@@ -1,21 +1,22 @@
 # Provision single device with AWS using Python Script
 
-[Single Thing Provisioning](https://docs.aws.amazon.com/iot/latest/developerguide/single-thing-provisioning.html), is a method used to provision individual IoT devices in AWS IoT Core. This method is ideal for scenarios where you need to provision devices one at a time.
+[Single Thing Provisioning](https://docs.aws.amazon.com/iot/latest/developerguide/single-thing-provisioning.html) is a method used to provision individual IoT devices in AWS IoT Core. This method is ideal for scenarios where you need to provision devices one at a time.
 
-In this method you have two options: automated using a Python script or manual.  
+In this method, you have two options: automated using a Python script or manual.  
 **This document describes the automated method using the `provision.py` script.**
 
 This provisioning method is supported by the following project configurations:
 
-|       Build Config          | Provisioning method       |
-|:---------                   |:----------                |
-| Ethernet                    | Single Thing Provisioning |
-| MXCHIP                      | Single Thing Provisioning |
-| ST67_NCP                    | Single Thing Provisioning |
+| Build Config       | Provisioning method       |
+|:------------       |:--------------------------|
+| Ethernet_Single    | Single Thing Provisioning |
+| MXCHIP_Single      | Single Thing Provisioning |
+| ST67_T01_Single    | Single Thing Provisioning |
+| ST67_T02_Single    | Single Thing Provisioning |
 
 ## 1. Hardware Setup
 
-If you’ve selected the MXCHIP or ST67_NCP configuration, connect the Wi-Fi module to either the STMod+ or Arduino connector on the board.
+If you’ve selected the MXCHIP, ST67_T01 or ST67_T02 configuration, connect the Wi-Fi module to either the STMod+ or Arduino connector on the board.
 
 If you’re using the Ethernet configuration, connect the Ethernet cable to the board’s Ethernet port.
 
@@ -52,29 +53,29 @@ This method uses the `provision.py` script (included in this pack under the `too
 #### Steps
 
 1. **Navigate to the tools directory**
+   ```
+   cd tools
+   ```
 
-     ```
-     cd tools
-     ```
-
-2. **Install Python Requirements**
-
+2. **Install Python requirements**
    - Install required Python packages:
      ```
      pip install -r requirements.txt
      ```
-3. **Locate the Script**
+
+3. **Locate the script**
    - The `provision.py` script is available in the `tools` directory of this repository.
 
 4. **Connect your board**
-   - Make sure that your board is connected to the PC via the ST-Link USB port and you don't have any serial termian connected to it
+   - Make sure that your board is connected to the PC via the ST-Link USB port and that you do not have any serial terminal connected to it.
 
-5. **Run the Provisioning Script**
+5. **Run the provisioning script**
    - Open a terminal in the `tools` directory.
-   - Run the script in interactive mode
+   - Run the script in interactive mode:
      ```
      python provision.py -i
-     ```    
+     ```
+
 The script will first:
 
 - Prompt you for several configuration options:
@@ -88,8 +89,8 @@ The script will first:
 
 **Recommended settings:**
 - Accept the default values for `mqtt_endpoint`, `time_hwm`, `thing_name`, and `mqtt_port`.
-- For the **ST67_NCP** project, set `mqtt_security` to `4`.
-- For **MXCHIP** and **ST67_NCP**, set your `wifi_ssid` and `wifi_credential` as needed.
+- For the **ST67_T01** project, set `mqtt_security` to `4`.
+- For **MXCHIP**, **ST67_T01** and **ST67_T02**, set your `wifi_ssid` and `wifi_credential` as needed.
 
 After answering these prompts, the script will continue automatically to:
 
@@ -99,15 +100,15 @@ After answering these prompts, the script will continue automatically to:
 - Attach the specified policy.
 - Import the AWS root CA.
 
- ![alt text](assets/provision_py.png)
+![alt text](assets/provision_py.png)
 
 For more details and advanced options, see the [official documentation](https://github.com/FreeRTOS/iot-reference-stm32u5/blob/main/Getting_Started_Guide.md#option-8a-provision-automatically-with-provisionpy).
 
 ## 3. Delete old certs from ST67 internal file system
 
-If you are using the ST67_NCP configuration, it’s important to ensure that all previously stored certificates especially **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat** are removed from the module’s internal file system before importing new ones. This step is necessary to allow the firmware to load the updated certificates and private key into the ST67 module, which are then used for establishing the TLS/MQTT connection.
+If you are using the ST67_T01 configuration, it’s important to ensure that all previously stored certificates, especially **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat**, are removed from the module’s internal file system before importing new ones. This step is necessary to allow the firmware to load the updated certificates and private key into the ST67 module, which are then used for establishing the TLS/MQTT connection.
 
-On the serial terminal connected to your board, Type the following command to list all files currently stored in the module:
+On the serial terminal connected to your board, type the following command to list all files currently stored in the module:
 
 ```
 w6x_fs ls
@@ -116,6 +117,7 @@ w6x_fs ls
 ![alt text](assets/w6x_fs_ls.png)
 
 Delete any existing file using the following command:
+
 ```
 w6x_fs rm <filename>
 ```
@@ -134,7 +136,7 @@ This will reboot the device. Upon startup, the firmware will use the newly impor
 
 For all standard configurations, the host microcontroller handles the TLS and MQTT stack directly.
 
-For the ST67_NCP configuration, after each boot, the firmware checks for the presence of **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat** in the ST67's internal file system. If any of these files are missing, the firmware copies the corresponding certificates and private key from the microcontroller's internal file system to ST67.
+For the ST67_T01 configuration, after each boot, the firmware checks for the presence of **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat** in the ST67 internal file system. If any of these files are missing, the firmware copies the corresponding certificates and private key from the microcontroller's internal file system to ST67.
 
 Once connected, you should see confirmation messages in the terminal indicating a successful TLS handshake and MQTT session establishment.
 

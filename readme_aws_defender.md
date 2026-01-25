@@ -6,7 +6,7 @@ This document explains what AWS IoT Device Defender is and how it can be used wi
 
 ## What is AWS IoT Device Defender?
 
-[AWS IoT Device Defender](https://docs.aws.amazon.com/iot/latest/developerguide/device-defender.html) is a fully managed AWS IoT service that helps you secure your fleet of IoT devices. It continuously audits your IoT configurations to ensure they aren't deviating from security best practices, and it detects abnormal device behavior to help you identify potential security issues.
+[AWS IoT Device Defender](https://docs.aws.amazon.com/iot/latest/developerguide/device-defender.html) is a fully managed AWS IoT service that helps you secure your fleet of IoT devices. It continuously audits your IoT configurations to ensure they are not deviating from security best practices, and it detects abnormal device behavior to help you identify potential security issues.
 
 Device Defender provides two main capabilities:
 
@@ -18,7 +18,7 @@ Device Defender provides two main capabilities:
 
 ---
 
-## How is Device Defender Used in This Project?
+## How Is Device Defender Used in This Project?
 
 The STM32 FreeRTOS IoT Reference project includes support for AWS IoT Device Defender. When enabled and provisioned, your device can:
 
@@ -33,7 +33,7 @@ The STM32 FreeRTOS IoT Reference project includes support for AWS IoT Device Def
 2. **Ensure the Device Defender CMSIS pack is installed:**  
    - [AWS IoT Device Defender 4.1.1](https://d1pm0k3vkcievw.cloudfront.net/AWS.AWS_IoT_Device_Defender.4.1.1.pack)
 3. **Build and flash the firmware** with Device Defender support enabled (see your project configuration).
-4. **Monitor metrics in AWS Console:**  
+4. **Monitor metrics in the AWS Console:**  
    - Go to the AWS IoT Console.
    - Navigate to **Defend** > **Detect** to view reported metrics and alerts for your device.
 
@@ -41,7 +41,7 @@ The STM32 FreeRTOS IoT Reference project includes support for AWS IoT Device Def
 
 ## Example Device Defender Report
 
-The device will periodically publish JSON reports to the following MQTT topic:
+The device periodically publishes JSON reports to the following MQTT topic:
 
 ```
 $aws/things/<thing-name>/defender/metrics/json
@@ -83,4 +83,4 @@ Example payload:
 
 ---
 
-For more information, see
+For more information, see the AWS IoT Device Defender documentation.

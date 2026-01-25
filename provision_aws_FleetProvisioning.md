@@ -6,11 +6,12 @@ This provisioning method is supported by the following project configurations:
 |:---------                   |:----------                |
 | Ethernet_FleetProvisioning  | Fleet Provisioning        |
 | MXCHIP_FleetProvisioning    | Fleet Provisioning        |
+| ST67_T02_FleetProvisioning    | Fleet Provisioning        |
 
 
 ## 1. Hardware Setup
 
-If you’ve selected the MXCHIP configuration, connect the Wi-Fi module to the STMod+ connector on the board.
+If you’ve selected the MXCHIP or ST67_T02 configuration, connect the Wi-Fi module to either the STMod+ or Arduino connector on the board.
 
 If you’re using the Ethernet configuration, connect the Ethernet cable to the board’s Ethernet port.
 

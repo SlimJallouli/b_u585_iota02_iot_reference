@@ -32,7 +32,7 @@ To simplify large-scale deployments, the project supports AWS IoT <a href="https
 
 The project supports connections to <a href="https://aws.amazon.com/" target="_blank" rel="noopener noreferrer">AWS IoT Core</a>, <a href="https://test.mosquitto.org/" target="_blank" rel="noopener noreferrer">test.mosquitto.org</a> and <a href="https://www.emqx.com/en/mqtt/public-mqtt5-broker" target="_blank" rel="noopener noreferrer">broker.emqx.io</a>. In all cases, <a href="https://en.wikipedia.org/wiki/X.509" target="_blank" rel="noopener noreferrer">X.509 certificates</a> are required for device/server authentication, ensuring secure and trusted communication with the MQTT broker
 
-This project provides five (5) build configurations to support a variety of hardware platforms and secure connectivity methods. MXCHIP and ST67_T01_Single configurations offer flexibility by supporting different wireless connections. The remaining configurations FleetProvisioning, <a href="https://www.st.com/en/secure-mcus/stsafe-a110.html" target="_blank" rel="noopener noreferrer">STSAFEA110</a>, and <a href="https://www.st.com/en/secure-mcus/stsafe-a120.html" target="_blank" rel="noopener noreferrer">STSAFEA120</a> variants for MXCHIP are tailored specifically for <a href="https://aws.amazon.com/" target="_blank" rel="noopener noreferrer">AWS IoT Core</a>, utilizing features such as Just-In-Time Provisioning and hardware-based secure elements to enable secure device onboarding. 
+This project provides multiple build configurations to support a variety of hardware platforms and secure connectivity methods. MXCHIP, ST67_T01 and ST67_T02 configurations offer flexibility by supporting different wireless connections. The remaining configurations FleetProvisioning, <a href="https://www.st.com/en/secure-mcus/stsafe-a110.html" target="_blank" rel="noopener noreferrer">STSAFEA110</a>, and <a href="https://www.st.com/en/secure-mcus/stsafe-a120.html" target="_blank" rel="noopener noreferrer">STSAFEA120</a> variants are tailored specifically for <a href="https://aws.amazon.com/" target="_blank" rel="noopener noreferrer">AWS IoT Core</a>, utilizing features such as Just-In-Time Provisioning and hardware-based secure elements to enable secure device onboarding. 
 
 In most configurations, the TLS and MQTT stacks run on the host microcontroller. However, in the ST67_T01_Single configuration, TLS and MQTT communication are offloaded to the ST67 Wi-Fi module.
 
@@ -167,7 +167,9 @@ git submodule update --init --recursive
 
 ### Step 2. Update the X-NUCLEO-67W61M1 module
 
-If you are using the <a href="https://www.st.com/en/evaluation-tools/x-nucleo-67w61m1.html" target="_blank" rel="noopener noreferrer">X-NUCLEO-67W61M1</a> module, you need to make sure to update the module firmware to revision 1.0.0. Follow this <a href="https://github.com/STMicroelectronics/x-cube-st67w61/tree/main/Projects/ST67W6X_Scripts/Binaries" target="_blank" rel="noopener noreferrer">link</a> for instructions
+If you are using the <a href="https://www.st.com/en/evaluation-tools/x-nucleo-67w61m1.html" target="_blank" rel="noopener noreferrer">X-NUCLEO-67W61M1</a> module, you need to make sure to update the module firmware to revision 1.2.0. Follow this <a href="https://github.com/STMicroelectronics/x-cube-st67w61/tree/main/Projects/ST67W6X_Scripts/Binaries" target="_blank" rel="noopener noreferrer">link</a> for instructions
+
+>**Note:** If you want to use the ST67 module, you need to load either `profile_t01` or `profile_t02` to the module before using it. `profile_t01` runs TCP/IP, MQTT, and TLS on the ST67 module, while `profile_t02` runs TCP/IP, MQTT, and TLS on the host STM32.
 
 ### Step 3. Import the projects to STM32CubeIDE
 
