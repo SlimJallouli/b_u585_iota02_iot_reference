@@ -196,7 +196,7 @@ void Error_Handler(void);
 #define DEMO_BUTTON                             1   // Button Status Example
 #define DEMO_ECHO_SERVER                        0   // Echo server example
 #define DEMO_ECHO_CLIENT                        0   // Echo Client example
-#define DEMO_HOME_ASSISTANT                     0   // Home Assistant Discovery Example
+#define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
 
 #define DEMO_AWS_SHADOW                         0   // AWS IoT Shadow Example
 #define DEMO_AWS_OTA                            1   // OTA Update Example
