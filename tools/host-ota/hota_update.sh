@@ -28,9 +28,13 @@ if [ -z "$1" ]; then
 fi
 
 export FILE_VERSION="$1"
-export BIN_LOCATION="../../project/MXCHIP_STSAFEA110/"
+export BIN_LOCATION="../../project/ST67_T02_STSAFEA110/"
 export BIN_FILE="b_u585_iota02_iot_reference.bin"
-export THING_NAME='eval3-0209E08B415AD42AC20139'
+
+export THING_NAME='eval3-0209001E215AD42AC20139'
+# export THING_NAME='eval3-0209E08B415AD42AC20139'
+# export THING_NAME='eval3-0209706C215AD42AC20139'
+
 export THING_GROUP_NAME="BU585MXFP"
 
 export AWS_CLI_PROFILE='default'
