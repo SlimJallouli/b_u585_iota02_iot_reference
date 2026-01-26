@@ -1188,43 +1188,50 @@ OtaPalStatus_t otaPal_CloseFile( OtaFileContext_t * const pxFileContext )
     if( ( pxFileContext->pFile == ( uint8_t * ) ( pxContext ) ) &&
         ( pxContext->xPalState == OTA_PAL_FILE_OPEN ) )
 
+  {
+    unsigned char pucHashBuffer[MBEDTLS_MD_MAX_SIZE];
+    size_t uxHashLength = 0;
+
+    if (xCalculateImageHash((unsigned char*) (pxContext->ulBaseAddress),
+                            (size_t) pxContext->ulImageSize, pucHashBuffer,
+                            MBEDTLS_MD_MAX_SIZE, &uxHashLength) != pdTRUE)
     {
-        unsigned char pucHashBuffer[ MBEDTLS_MD_MAX_SIZE ];
-        size_t uxHashLength = 0;
-
-        if( xCalculateImageHash( ( unsigned char * ) ( pxContext->ulBaseAddress ),
-                                 ( size_t ) pxContext->ulImageSize,
-                                 pucHashBuffer, MBEDTLS_MD_MAX_SIZE, &uxHashLength ) != pdTRUE )
-        {
-            uxOtaStatus = OTA_PAL_COMBINE_ERR( OtaPalFileClose, 0 );
-        }
-
-        if( OTA_PAL_MAIN_ERR( uxOtaStatus ) == OtaPalSuccess )
-        {
-            uxOtaStatus = prvValidateSignature( ( char * ) pxFileContext->pCertFilepath,
-                                                pxFileContext->pSignature->data,
-                                                pxFileContext->pSignature->size,
-                                                pucHashBuffer,
-                                                uxHashLength );
-        }
-
-        if( OTA_PAL_MAIN_ERR( uxOtaStatus ) == OtaPalSuccess )
-        {
-            pxContext->xPalState = OTA_PAL_PENDING_ACTIVATION;
-        }
-        else
-        {
-            otaPal_SetPlatformImageState( pxFileContext, OtaImageStateRejected );
-        }
+      uxOtaStatus = OTA_PAL_COMBINE_ERR(OtaPalFileClose, 0);
     }
-    else if( pxFileContext == NULL )
+
+    if ( OTA_PAL_MAIN_ERR( uxOtaStatus ) == OtaPalSuccess)
     {
-        uxOtaStatus = OTA_PAL_COMBINE_ERR( OtaPalNullFileContext, 0 );
+      uxOtaStatus = prvValidateSignature((char*) pxFileContext->pCertFilepath,
+                                                 pxFileContext->pSignature->data,
+                                                 pxFileContext->pSignature->size,
+                                                 pucHashBuffer,
+                                                 uxHashLength);
+
+#if DEMO_HOME_ASSISTANT
+      if (OtaPalSuccess != uxOtaStatus)
+      {
+        xEventGroupSetBits(xHAEventGroup, EVT_OTA_UPDATE_ABORT);
+      }
+#endif
+    }
+
+    if ( OTA_PAL_MAIN_ERR( uxOtaStatus ) == OtaPalSuccess)
+    {
+      pxContext->xPalState = OTA_PAL_PENDING_ACTIVATION;
     }
     else
     {
-        uxOtaStatus = OTA_PAL_COMBINE_ERR( OtaPalFileClose, 0 );
+      otaPal_SetPlatformImageState(pxFileContext, OtaImageStateRejected);
     }
+  }
+  else if (pxFileContext == NULL)
+  {
+    uxOtaStatus = OTA_PAL_COMBINE_ERR(OtaPalNullFileContext, 0);
+  }
+  else
+  {
+    uxOtaStatus = OTA_PAL_COMBINE_ERR(OtaPalFileClose, 0);
+  }
 
     return uxOtaStatus;
 }

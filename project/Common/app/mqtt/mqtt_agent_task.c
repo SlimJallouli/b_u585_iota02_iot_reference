@@ -870,9 +870,34 @@ static MQTTStatus_t prvConfigureAgentTaskCtx( MQTTAgentTaskCtx_t * pxCtx,
         pxCtx->xConnectInfo.cleanSession = true;
         pxCtx->xConnectInfo.keepAliveSeconds = KEEP_ALIVE_INTERVAL_S;
 
-        pxCtx->xConnectInfo.pUserName = AWS_IOT_METRICS_STRING;
-        pxCtx->xConnectInfo.userNameLength = AWS_IOT_METRICS_STRING_LENGTH;
+#if !defined(ST67W6X_NCP)
+        char * pucMqttEndpoint = NULL;
+        size_t uxMqttEndpointLen = -1;
 
+        pucMqttEndpoint = KVStore_getStringHeap( CS_CORE_MQTT_ENDPOINT, &uxMqttEndpointLen );
+
+        if ((uxMqttEndpointLen>0) && (uxMqttEndpointLen < 0xffffffff))
+        {
+          /* If we are connecting to AWS */
+          if (strstr(pucMqttEndpoint, "amazonaws") != NULL)
+          {
+            pxCtx->xConnectInfo.pUserName = AWS_IOT_METRICS_STRING;
+            pxCtx->xConnectInfo.userNameLength = AWS_IOT_METRICS_STRING_LENGTH;
+          }
+        }
+        else
+#endif
+        {
+          pxCtx->xConnectInfo.pUserName = NULL;
+          pxCtx->xConnectInfo.userNameLength = 0U;
+        }
+
+#if !defined(ST67W6X_NCP)
+        if(pucMqttEndpoint != NULL)
+        {
+           vPortFree(pucMqttEndpoint);
+        }
+#endif
         pxCtx->xConnectInfo.pPassword = NULL;
         pxCtx->xConnectInfo.passwordLength = 0U;
 

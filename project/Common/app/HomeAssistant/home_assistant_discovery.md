@@ -1,10 +1,10 @@
 # MQTT Auto-Discovery with Home Assistant
 
-This document describes the MQTT topic structure and Home Assistant discovery configuration for your STM32-based IoT device.
+This document describes the MQTT topic structure and [Home Assistant discovery](https://www.home-assistant.io/integrations/mqtt) configuration for your STM32-based IoT device.
 
 ## 1. Home Assistant MQTT Discovery Topics
 
-Home Assistant uses MQTT discovery to automatically register devices and sensors. Each discovery message must be published to:
+Home Assistant uses MQTT discovery to automatically register devices and sensors. Each discovery message must be published to a [discovery topic](https://www.home-assistant.io/integrations/mqtt#discovery-topic):
 
 ```
 homeassistant/< component >/< device_id >_< sensor >/config

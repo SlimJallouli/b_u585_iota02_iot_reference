@@ -26,6 +26,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include <stddef.h>
+#include <stdint.h>
 #include "w6x_default_config.h"
 #include "w61_default_config.h"
 

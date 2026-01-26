@@ -49,7 +49,6 @@
 									<listOptionValue builtIn="false" value="LFS_USE_INTERNAL_NOR"/>
 									<listOptionValue builtIn="false" value="ST67W6X_NCP"/>
 									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T01"/>
-									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T02"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.783730064" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
@@ -140,6 +139,7 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/ARM_RTOS_FreeRTOS/Source/portable/GCC/ARM_CM33/non_secure/"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/interface"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Common/app/HomeAssistant}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.1885909092" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -227,7 +227,6 @@
 									<listOptionValue builtIn="false" value="LFS_CONFIG=lfs_config.h"/>
 									<listOptionValue builtIn="false" value="LFS_USE_INTERNAL_NOR"/>
 									<listOptionValue builtIn="false" value="MXCHIP"/>
-									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T02"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.1389933556" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
@@ -315,6 +314,7 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/ARM_RTOS_FreeRTOS/Source/portable/GCC/ARM_CM33/non_secure/"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/interface"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Common/app/HomeAssistant}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.1838146147" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -404,7 +404,6 @@
 									<listOptionValue builtIn="false" value="MXCHIP"/>
 									<listOptionValue builtIn="false" value="__USE_STSAFE__"/>
 									<listOptionValue builtIn="false" value="__STSAFE_A110__"/>
-									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T02"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.1521604653" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
@@ -495,6 +494,7 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/ARM_RTOS_FreeRTOS/Source/portable/GCC/ARM_CM33/non_secure/"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/interface"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Common/app/HomeAssistant}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.1831672200" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -521,14 +521,14 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ST67W6X_Network_Driver"/>
+						<entry excluding="app/HomeAssistant/HomeAssistant_Task.c|net/W6X_ARCH_T02|net/W6X_ARCH_T01|net/ST67W6X_RCP|cli/cli_w6x_fs.c|app/echo_client|app/sntp|app/aws/FleetProvisioning|net/eth|net/ST67W6X" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Common"/>
 						<entry excluding="Src/ota_pal/ota_pal_stm32u5_ntz.c|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
-						<entry excluding="w6x_mqtt|littlefs/runners|fs/lfs_port_internal_nor_stm32h5_old.c|tinycbor/examples|corePKCS11/source/portable|littlefs/bd|tinycbor/src/open_memstream.c|w6x_fs|tinycbor/tests|corePKCS11/test|tinycbor/tools" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Libraries"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="STSAFE"/>
-						<entry excluding="net/W6X_ARCH_T02|net/W6X_ARCH_T01|net/ST67W6X_RCP|cli/cli_w6x_fs.c|app/echo_client|app/sntp|app/aws/FleetProvisioning|net/eth|net/ST67W6X" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Common"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="X-CUBE-MEMS1"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry excluding="w6x_mqtt|littlefs/runners|fs/lfs_port_internal_nor_stm32h5_old.c|tinycbor/examples|corePKCS11/source/portable|littlefs/bd|tinycbor/src/open_memstream.c|w6x_fs|tinycbor/tests|corePKCS11/test|tinycbor/tools" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Libraries"/>
 						<entry excluding="ST/ST67W6X_Network_Driver/Core/w6x_mqtt_shell.c|ST/ST67W6X_Network_Driver/Utils/Performance|ST/ST67W6X_Network_Driver/Core/w6x_wifi_shell.c|Third_Party/AWS_AWS IoT/Fleet-Provisioning-for-AWS-IoT-embedded-sdk|Third_Party/ARM_Security/library/pk_wrap.c|ST/ST67W6X_Network_Driver|ST/ST67W6X_Network_Driver/Core/w6x_ble_shell.c|ST/ST67W6X_Network_Driver/Utils/Shell|ST/ST67W6X_Network_Driver/Conf|ST/ST67W6X_Network_Driver/Utils/Logging|ST/ST67W6X_Network_Driver/Core/w6x_net_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_sys_shell.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ST67W6X_Network_Driver"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="STSAFE"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="X-CUBE-MEMS1"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -584,7 +584,6 @@
 									<listOptionValue builtIn="false" value="MXCHIP"/>
 									<listOptionValue builtIn="false" value="__USE_STSAFE__"/>
 									<listOptionValue builtIn="false" value="__STSAFE_A120__"/>
-									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T02"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.1957005365" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
@@ -675,6 +674,7 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/ARM_RTOS_FreeRTOS/Source/portable/GCC/ARM_CM33/non_secure/"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/interface"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Common/app/HomeAssistant}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.390144410" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -763,7 +763,6 @@
 									<listOptionValue builtIn="false" value="LFS_USE_INTERNAL_NOR"/>
 									<listOptionValue builtIn="false" value="MXCHIP"/>
 									<listOptionValue builtIn="false" value="DEMO_AWS_FLEET_PROVISION"/>
-									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T02"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.243148445" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
@@ -853,6 +852,7 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/ARM_RTOS_FreeRTOS/Source/portable/GCC/ARM_CM33/non_secure/"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/interface"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Common/app/HomeAssistant}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.2050476619" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -1032,6 +1032,7 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/ARM_RTOS_FreeRTOS/Source/portable/GCC/ARM_CM33/non_secure/"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/interface"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Common/app/HomeAssistant}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.568449494" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -1215,6 +1216,7 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/ARM_RTOS_FreeRTOS/Source/portable/GCC/ARM_CM33/non_secure/"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/interface"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Common/app/HomeAssistant}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.1608303310" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -1393,6 +1395,7 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/ARM_RTOS_FreeRTOS/Source/portable/GCC/ARM_CM33/non_secure/"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/interface"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Common/app/HomeAssistant}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.502904898" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -1576,6 +1579,7 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/ARM_RTOS_FreeRTOS/Source/portable/GCC/ARM_CM33/non_secure/"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/interface"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Common/app/HomeAssistant}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.611738690" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -1650,6 +1654,7 @@
 			<resource resourceType="PROJECT" workspacePath="/b_u585_iota02_iot_reference"/>
 		</configuration>
 		<configuration configurationName="ST67 Single"/>
+		<configuration configurationName="ST67_T02_STSAFEA120"/>
 		<configuration configurationName="Ethernet Single"/>
 		<configuration configurationName="ST67_T02_STSAFEA110">
 			<resource resourceType="PROJECT" workspacePath="/b_u585_iota02_iot_reference"/>
