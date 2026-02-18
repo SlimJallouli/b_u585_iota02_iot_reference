@@ -62,12 +62,14 @@ void Error_Handler(void);
 #define RunTimeStats_Timer htim5
 #define xConsoleHandle huart1
 #define w6x_spi hspi1
+#define OTA_FILE_NAME "b_u585_iota02_iot_reference"
 #define MXCHIP_SPI hspi2
 #define democonfigDEVICE_PREFIX "stm32u585"
+#define USE_PRE_LOADED_HOST_KEYS 0
 #define USE_SENSORS 1
 #define RESERVED_OTA_SECTORS 96
-#define OTA_FILE_NAME "b_u585_iota02_iot_reference"
-#define USE_PRE_LOADED_HOST_KEYS 0
+#define ARD_I2C hi2c1
+#define M24SR_I2C ARD_I2C
 #define MXCHIP_FLOW_Pin GPIO_PIN_15
 #define MXCHIP_FLOW_GPIO_Port GPIOG
 #define MXCHIP_FLOW_EXTI_IRQn EXTI15_IRQn
@@ -79,6 +81,8 @@ void Error_Handler(void);
 #define PC14_OSC32_IN_GPIO_Port GPIOC
 #define ARD_D05_Pin GPIO_PIN_0
 #define ARD_D05_GPIO_Port GPIOE
+#define ARD_I2C_SDA_Pin GPIO_PIN_9
+#define ARD_I2C_SDA_GPIO_Port GPIOB
 #define MXCHIP_MISO_Pin GPIO_PIN_3
 #define MXCHIP_MISO_GPIO_Port GPIOD
 #define PC15_OSC32_OUT_Pin GPIO_PIN_15
@@ -86,6 +90,8 @@ void Error_Handler(void);
 #define USER_Button_Pin GPIO_PIN_13
 #define USER_Button_GPIO_Port GPIOC
 #define USER_Button_EXTI_IRQn EXTI13_IRQn
+#define ARD_I2C_SCL_Pin GPIO_PIN_8
+#define ARD_I2C_SCL_GPIO_Port GPIOB
 #define LED_RED_Pin GPIO_PIN_6
 #define LED_RED_GPIO_Port GPIOH
 #define MXCHIP_SCK_Pin GPIO_PIN_1
@@ -94,22 +100,36 @@ void Error_Handler(void);
 #define LED_GREEN_GPIO_Port GPIOH
 #define T_VCP_RX_Pin GPIO_PIN_10
 #define T_VCP_RX_GPIO_Port GPIOA
+#define ARD_D09_Pin GPIO_PIN_8
+#define ARD_D09_GPIO_Port GPIOA
 #define T_VCP_TX_Pin GPIO_PIN_9
 #define T_VCP_TX_GPIO_Port GPIOA
+#define ARD_D08_Pin GPIO_PIN_1
+#define ARD_D08_GPIO_Port GPIOC
 #define MXCHIP_NOTIFY_Pin GPIO_PIN_14
 #define MXCHIP_NOTIFY_GPIO_Port GPIOD
 #define MXCHIP_NOTIFY_EXTI_IRQn EXTI14_IRQn
+#define ARD_D02_Pin GPIO_PIN_15
+#define ARD_D02_GPIO_Port GPIOD
 #define ARD_SPI_MISO_Pin GPIO_PIN_14
 #define ARD_SPI_MISO_GPIO_Port GPIOE
 #define ARD_D03_Pin GPIO_PIN_2
 #define ARD_D03_GPIO_Port GPIOB
 #define ARD_D03_EXTI_IRQn EXTI2_IRQn
+#define ARD_D04_Pin GPIO_PIN_7
+#define ARD_D04_GPIO_Port GPIOE
 #define ARD_SPI_SCK_Pin GPIO_PIN_13
 #define ARD_SPI_SCK_GPIO_Port GPIOE
 #define MXCHIP_NSS_Pin GPIO_PIN_12
 #define MXCHIP_NSS_GPIO_Port GPIOB
+#define ARD_D01_Pin GPIO_PIN_8
+#define ARD_D01_GPIO_Port GPIOD
+#define ARD_D00_Pin GPIO_PIN_9
+#define ARD_D00_GPIO_Port GPIOD
 #define STSAFE_EN_Pin GPIO_PIN_11
 #define STSAFE_EN_GPIO_Port GPIOF
+#define ARD_D07_Pin GPIO_PIN_13
+#define ARD_D07_GPIO_Port GPIOF
 #define ARD_SPI_MOSI_Pin GPIO_PIN_15
 #define ARD_SPI_MOSI_GPIO_Port GPIOE
 #define MXCHIP_RESET_Pin GPIO_PIN_15
@@ -140,6 +160,41 @@ void Error_Handler(void);
 #define SPI_RDY_EXTI_IRQn                       ARD_D03_EXTI_IRQn
 #endif
 
+/********** Seed Relay V2 Pin definition ***********/
+#define RELAY_1_Pin                             ARD_D07_Pin
+#define RELAY_1_Port                            ARD_D07_GPIO_Port
+
+#define RELAY_2_Pin                             ARD_D06_Pin
+#define RELAY_2_Port                            ARD_D06_GPIO_Port
+
+#define RELAY_3_Pin                             ARD_D05_Pin
+#define RELAY_3_Port                            ARD_D05_GPIO_Port
+
+#define RELAY_4_Pin                             ARD_D04_Pin
+#define RELAY_4_Port                            ARD_D04_GPIO_Port
+
+#define DOOR_SENSPR_1_Pin                       ARD_D02_Pin
+#define DOOR_SENSPR_1_Port                      ARD_D02_GPIO_Port
+#define DOOR_SENSPR_1_STATE_OPEN                GPIO_PIN_SET
+
+
+#define DOOR_SENSPR_2_Pin                       ARD_D08_Pin
+#define DOOR_SENSPR_2_Port                      ARD_D08_GPIO_Port
+#define DOOR_SENSPR_2_STATE_OPEN                GPIO_PIN_SET
+
+#define DOOR_SENSPR_3_Pin                       ARD_D09_Pin
+#define DOOR_SENSPR_3_Port                      ARD_D09_GPIO_Port
+#define DOOR_SENSPR_3_STATE_OPEN                GPIO_PIN_SET
+
+/* The number of garage doors */
+#define NUM_COVERS                              1 /* 1, 2 or 3 */
+
+/* Define if door sensors are used 0: not used, 1: used */
+#define USE_DOOR_SENSPR                         1
+
+#if NUM_COVERS < 1 || NUM_COVERS > 3
+#error "NUM_COVERS must be 1, 2, or 3"
+#endif
 /********** X-NUCLEO-STSAFE Pin definition ***********/
 #if !defined(STSAFE_EN_Pin)
 #define STSAFE_EN_Pin                           ARD_D02_Pin
@@ -197,7 +252,7 @@ void Error_Handler(void);
 #define DEMO_ECHO_SERVER                        0   // Echo server example
 #define DEMO_ECHO_CLIENT                        0   // Echo Client example
 #define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
-
+#define DEMO_COVER                              1
 #define DEMO_AWS_SHADOW                         0   // AWS IoT Shadow Example
 #define DEMO_AWS_OTA                            1   // OTA Update Example
 //DEMO_AWS_FLEET_PROVISION                          // Defined in project properties->C C++ Build->Settings->Tool Settings->GCC Compiler

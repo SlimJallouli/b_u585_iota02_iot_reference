@@ -22,6 +22,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stsafea_service.h"
 #include "safea1_conf.h"
+#include "custom_bus_os.h"
 #include <string.h>
 
 /** MISRA C:2012 deviation rule has been granted for following rules:
@@ -315,8 +316,8 @@ int8_t StSafeA_HW_Probe(STSAFEA_HW_t  *pCtx)
 {
   STSAFEA_HW_t *HwCtx = pCtx;
 
-  HwCtx->BusInit    = SAFEA1_I2C_Init;
-  HwCtx->BusDeInit  = SAFEA1_I2C_DeInit;
+  HwCtx->BusInit    = BSP_I2C2_Init_OS;
+  HwCtx->BusDeInit  = BSP_I2C2_DeInit_OS;
   HwCtx->BusSend    = SAFEA1_I2C_Send;
   HwCtx->BusRecv    = SAFEA1_I2C_Recv;
   HwCtx->CrcInit    = CRC16X25_Init;
@@ -521,7 +522,7 @@ int32_t SAFEA1_I2C_Send(uint16_t DevAddr, uint8_t *pData, uint16_t Length)
 {
   int32_t ret;
 
-  ret = BSP_I2C1_Send(DevAddr, pData, Length);
+  ret = BSP_I2C2_Send_OS(DevAddr, pData, Length);
   if (ret == BSP_ERROR_BUS_ACKNOWLEDGE_FAILURE)
   {
     return STSAFEA_BUS_NACK;
@@ -548,7 +549,7 @@ int32_t SAFEA1_I2C_Recv(uint16_t DevAddr, uint8_t *pData, uint16_t Length)
 {
   int32_t ret;
 
-  ret = BSP_I2C1_Recv(DevAddr, pData, Length);
+  ret = BSP_I2C2_Recv_OS(DevAddr, pData, Length);
   if (ret == BSP_ERROR_BUS_ACKNOWLEDGE_FAILURE)
   {
     return STSAFEA_BUS_NACK;

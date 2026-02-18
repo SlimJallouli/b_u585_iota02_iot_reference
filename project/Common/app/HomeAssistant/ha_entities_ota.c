@@ -45,20 +45,20 @@ void HA_OTA_PublishConfig( const char * pcThingName,
     /* Compose firmware version string (major.minor.build). */
     char pcFwVersionString[ 17 ] = { 0 };
 
-    ( void ) snprintf( pcFwVersionString,
-                       sizeof( pcFwVersionString ),
-                       "%u.%u.%u",
-                       ( unsigned ) appFirmwareVersion.u.x.major,
-                       ( unsigned ) appFirmwareVersion.u.x.minor,
-                       ( unsigned ) appFirmwareVersion.u.x.build );
+    snprintf( pcFwVersionString,
+              sizeof( pcFwVersionString ),
+              "%u.%u.%u",
+              (unsigned) appFirmwareVersion.u.x.major,
+              (unsigned) appFirmwareVersion.u.x.minor,
+              (unsigned) appFirmwareVersion.u.x.build );
 
-    ( void ) snprintf( configPUBLISH_TOPIC,
-                       HA_CONFIG_MAX_TOPIC_LENGTH,
-                       "homeassistant/%s/%s_fw/config",
-                       entity,
-                       pcThingName );
+    snprintf( configPUBLISH_TOPIC,
+              HA_CONFIG_MAX_TOPIC_LENGTH,
+              "homeassistant/%s/%s_fw/config",
+              entity,
+              pcThingName );
 
-    size_t xPayloadLength = ( size_t ) snprintf(
+    size_t xPayloadLength = snprintf(
         pcPayloadBuffer,
         HA_CONFIG_PAYLOAD_BUFFER_LENGTH,
         "{"
@@ -68,6 +68,8 @@ void HA_OTA_PublishConfig( const char * pcThingName,
           "\"value_template\": \"{{ value_json.installed_version }}\","
           "\"latest_version_topic\": \"%s/fw/state\","
           "\"latest_version_template\": \"{{ value_json.latest_version }}\","
+          "\"json_attributes_topic\": \"%s/fw/state\","
+          "\"json_attributes_template\": \"{{ value_json | tojson }}\","
           "\"command_topic\": \"%s/fw/update\","
           "\"payload_install\": \"start_update\","
           "\"availability_topic\": \"%s/status/availability\","
@@ -86,6 +88,7 @@ void HA_OTA_PublishConfig( const char * pcThingName,
         pcThingName,     /* unique_id */
         pcThingName,     /* state_topic */
         pcThingName,     /* latest_version_topic */
+        pcThingName,     /* json_attributes_topic */
         pcThingName,     /* command_topic */
         pcThingName,     /* availability_topic */
         pcThingName,     /* identifiers */
@@ -95,23 +98,24 @@ void HA_OTA_PublishConfig( const char * pcThingName,
 
     if( xPayloadLength < HA_CONFIG_PAYLOAD_BUFFER_LENGTH )
     {
-        ( void ) HA_PublishToTopic( MQTTQoS0,
-                                    true,
-                                    configPUBLISH_TOPIC,
-                                    ( const uint8_t * ) pcPayloadBuffer,
-                                    xPayloadLength );
+        HA_PublishToTopic( MQTTQoS0,
+                           true,
+                           configPUBLISH_TOPIC,
+                           (const uint8_t *) pcPayloadBuffer,
+                           xPayloadLength );
     }
     else
     {
-        LogError( ( "Firmware update payload truncated" ) );
+        LogError( ("Firmware update payload truncated") );
     }
 
     vTaskDelay( pdMS_TO_TICKS( HA_MQTT_PUBLISH_TIME_BETWEEN_MS ) );
 #else
-    ( void ) pcThingName;
-    ( void ) pcPayloadBuffer;
+    (void) pcThingName;
+    (void) pcPayloadBuffer;
 #endif
 }
+
 
 /*-----------------------------------------------------------*/
 

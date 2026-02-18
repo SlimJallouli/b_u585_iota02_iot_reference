@@ -49,6 +49,7 @@
 									<listOptionValue builtIn="false" value="LFS_USE_INTERNAL_NOR"/>
 									<listOptionValue builtIn="false" value="ST67W6X_NCP"/>
 									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T01"/>
+									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T02"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.783730064" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
@@ -227,6 +228,7 @@
 									<listOptionValue builtIn="false" value="LFS_CONFIG=lfs_config.h"/>
 									<listOptionValue builtIn="false" value="LFS_USE_INTERNAL_NOR"/>
 									<listOptionValue builtIn="false" value="MXCHIP"/>
+									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T02"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.1389933556" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
@@ -380,6 +382,7 @@
 							<option id="com.st.stm32cube.ide.mcu.debug.option.cpuclock.576817142" name="Cpu clock frequence" superClass="com.st.stm32cube.ide.mcu.debug.option.cpuclock" useByScannerDiscovery="false" value="160" valueType="string"/>
 							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.nanoprintffloat.143612047" name="Use float with printf from newlib-nano (-u _printf_float)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.nanoprintffloat" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.convertbinary.511635163" name="Convert to binary file (-O binary)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.convertbinary" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+							<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.converthex.1074395743" name="Convert to Intel Hex file (-O ihex)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.option.converthex" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.targetplatform.1668650715" isAbstract="false" osList="all" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.targetplatform"/>
 							<builder buildPath="${workspace_loc:/b_u585_iota02_iot_reference}/Debug" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.builder.746780000" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.builder"/>
 							<tool id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.698637273" name="MCU/MPU GCC Assembler" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler">
@@ -404,6 +407,7 @@
 									<listOptionValue builtIn="false" value="MXCHIP"/>
 									<listOptionValue builtIn="false" value="__USE_STSAFE__"/>
 									<listOptionValue builtIn="false" value="__STSAFE_A110__"/>
+									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T02"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.1521604653" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
@@ -495,6 +499,9 @@
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/AWS_FreeRTOS/coreMQTT/source/interface"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Common/app/HomeAssistant}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Core/Src/I2C_M24SR}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middlewares/ST/lib_NDEF/inc}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Middlewares/ST/M24SR}&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.1831672200" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -521,14 +528,14 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="app/HomeAssistant/HomeAssistant_Task.c|net/W6X_ARCH_T02|net/W6X_ARCH_T01|net/ST67W6X_RCP|cli/cli_w6x_fs.c|app/echo_client|app/sntp|app/aws/FleetProvisioning|net/eth|net/ST67W6X" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Common"/>
-						<entry excluding="Src/ota_pal/ota_pal_stm32u5_ntz.c|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
-						<entry excluding="w6x_mqtt|littlefs/runners|fs/lfs_port_internal_nor_stm32h5_old.c|tinycbor/examples|corePKCS11/source/portable|littlefs/bd|tinycbor/src/open_memstream.c|w6x_fs|tinycbor/tests|corePKCS11/test|tinycbor/tools" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Libraries"/>
-						<entry excluding="ST/ST67W6X_Network_Driver/Core/w6x_mqtt_shell.c|ST/ST67W6X_Network_Driver/Utils/Performance|ST/ST67W6X_Network_Driver/Core/w6x_wifi_shell.c|Third_Party/AWS_AWS IoT/Fleet-Provisioning-for-AWS-IoT-embedded-sdk|Third_Party/ARM_Security/library/pk_wrap.c|ST/ST67W6X_Network_Driver|ST/ST67W6X_Network_Driver/Core/w6x_ble_shell.c|ST/ST67W6X_Network_Driver/Utils/Shell|ST/ST67W6X_Network_Driver/Conf|ST/ST67W6X_Network_Driver/Utils/Logging|ST/ST67W6X_Network_Driver/Core/w6x_net_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_sys_shell.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="ST67W6X_Network_Driver"/>
+						<entry excluding="Src/ota_pal/ota_pal_stm32u5_ntz.c|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="app/HomeAssistant/HomeAssistant_Task.c|net/W6X_ARCH_T02|net/W6X_ARCH_T01|net/ST67W6X_RCP|cli/cli_w6x_fs.c|app/echo_client|app/sntp|app/aws/FleetProvisioning|net/eth|net/ST67W6X" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Common"/>
+						<entry excluding="BSP/SAFE_Axx0/stsafea_service.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
+						<entry excluding="w6x_mqtt|littlefs/runners|fs/lfs_port_internal_nor_stm32h5_old.c|tinycbor/examples|corePKCS11/source/portable|littlefs/bd|tinycbor/src/open_memstream.c|w6x_fs|tinycbor/tests|corePKCS11/test|tinycbor/tools" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Libraries"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="STSAFE"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="X-CUBE-MEMS1"/>
+						<entry excluding="ST/ST67W6X_Network_Driver/Core/w6x_mqtt_shell.c|ST/ST67W6X_Network_Driver/Utils/Performance|ST/ST67W6X_Network_Driver/Core/w6x_wifi_shell.c|Third_Party/AWS_AWS IoT/Fleet-Provisioning-for-AWS-IoT-embedded-sdk|Third_Party/ARM_Security/library/pk_wrap.c|ST/ST67W6X_Network_Driver|ST/ST67W6X_Network_Driver/Core/w6x_ble_shell.c|ST/ST67W6X_Network_Driver/Utils/Shell|ST/ST67W6X_Network_Driver/Conf|ST/ST67W6X_Network_Driver/Utils/Logging|ST/ST67W6X_Network_Driver/Core/w6x_net_shell.c|ST/ST67W6X_Network_Driver/Core/w6x_sys_shell.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -584,6 +591,7 @@
 									<listOptionValue builtIn="false" value="MXCHIP"/>
 									<listOptionValue builtIn="false" value="__USE_STSAFE__"/>
 									<listOptionValue builtIn="false" value="__STSAFE_A120__"/>
+									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T02"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.1957005365" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
@@ -763,6 +771,7 @@
 									<listOptionValue builtIn="false" value="LFS_USE_INTERNAL_NOR"/>
 									<listOptionValue builtIn="false" value="MXCHIP"/>
 									<listOptionValue builtIn="false" value="DEMO_AWS_FLEET_PROVISION"/>
+									<listOptionValue builtIn="false" value="ST67_ARCH=W6X_ARCH_T02"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.243148445" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>

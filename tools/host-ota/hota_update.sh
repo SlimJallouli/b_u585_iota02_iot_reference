@@ -28,14 +28,26 @@ if [ -z "$1" ]; then
 fi
 
 export FILE_VERSION="$1"
-export BIN_LOCATION="../../project/ST67_T02_STSAFEA110/"
+export BIN_LOCATION="../../project/MXCHIP_STSAFEA110/"
 export BIN_FILE="b_u585_iota02_iot_reference.bin"
 
-export THING_NAME='eval3-0209001E215AD42AC20139'
-# export THING_NAME='eval3-0209E08B415AD42AC20139'
-# export THING_NAME='eval3-0209706C215AD42AC20139'
+# Office (Redmond)
+# export THING_NAME=' eval3-0209001E215AD42AC20139'
 
-export THING_GROUP_NAME="BU585MXFP"
+# Office (Bothell)
+# export THING_NAME='eval3-0209C04B825AD42AC20139'
+
+# Living Room
+export THING_NAME='eval3-0209706C215AD42AC20139'
+
+# Garage door
+# export THING_NAME='eval3-02093088825AD42AC20139'
+
+# Bed room
+# export THING_NAME='eval3-0209203A825AD42AC20139'
+
+# export THING_GROUP_NAME="BU585MXFP"
+export THING_GROUP_NAME="BU585MXSTSAFEA110"
 
 export AWS_CLI_PROFILE='default'
 export ROLE='ld-st67-OTA_ROLE'
@@ -58,11 +70,10 @@ clear
 
 # source ../.venv/bin/activate
 
-python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
-# python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$THING_GROUP_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
+# python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
 
 # Reserved for thing group updates
-# python3 $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$BOARD --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path=$BIN_LOCATION --certarn=$CERT_ARN
+python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$THING_GROUP_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
 
 # Reserved for workshop
 # python3 $QC_PATH/hota_update.py                          --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path=$BIN_LOCATION --certarn=$CERT_ARN --region=$AWS_REGION --accesskey=$AWS_ACCESS_KEY_ID --secretkey=$AWS_SECRET_ACCESS_KEY --sessiontoken=$AWS_SESSION_TOKEN

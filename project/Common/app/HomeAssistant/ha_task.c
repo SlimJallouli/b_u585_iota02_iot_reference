@@ -34,6 +34,7 @@
 #include "ha_entities_button.h"
 #include "ha_entities_sensors.h"
 #include "ha_entities_reset.h"
+#include "ha_entities_cover.h"
 
 /*-----------------------------------------------------------*/
 /* Globals (shared across modules). */
@@ -119,6 +120,12 @@ static void prvPublishAllHAConfigs( const char * pcThingName,
     HA_MotionSensors_PublishConfig( pcThingName, pcPayloadBuffer );
 #else
     HA_MotionSensors_ClearConfig( pcThingName );
+#endif
+
+#if ( DEMO_COVER == 1 )
+    HA_COVER_PublishConfig( pcThingName, pcPayloadBuffer );
+#else
+    HA_COVER_ClearConfig( pcThingName );
 #endif
 
     /* Reset entity (reboot button) discovery. */
@@ -238,7 +245,7 @@ void vHAConfigPublishTask(void *pvParameters)
 
       (void) HA_OTA_PublishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pcThingName, FW_UPDATE_STATUS_UPDATING);
 
-      HA_PublishAvailabilityStatus(pcThingName, pcPayloadBuffer, "offline");
+//      HA_PublishAvailabilityStatus(pcThingName, pcPayloadBuffer, "offline");
     }
 
     if ((uxBits & EVT_OTA_COMPLETED) != 0)

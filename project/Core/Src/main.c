@@ -65,6 +65,8 @@
 
 CRC_HandleTypeDef hcrc;
 
+I2C_HandleTypeDef hi2c1;
+
 IWDG_HandleTypeDef hiwdg;
 
 RNG_HandleTypeDef hrng;
@@ -103,6 +105,7 @@ static void MX_TIM5_Init(void);
 static void MX_RTC_Init(void);
 static void MX_IWDG_Init(void);
 static void MX_SPI2_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 #if defined(ETHERNET)
 int32_t ETH_PHY_IO_Init(void);
@@ -160,6 +163,7 @@ int main(void)
   MX_RTC_Init();
   MX_IWDG_Init();
   MX_SPI2_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
   MX_FREERTOS_Init();
@@ -325,6 +329,54 @@ static void MX_GPDMA1_Init(void)
   /* USER CODE BEGIN GPDMA1_Init 2 */
 
   /* USER CODE END GPDMA1_Init 2 */
+
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.Timing = 0x00F07BFF;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
 
 }
 
@@ -724,13 +776,13 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, ARD_D06_Pin|MXCHIP_NSS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, ARD_D05_Pin|ARD_D10_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, ARD_D05_Pin|ARD_D04_Pin|ARD_D10_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOH, LED_RED_Pin|LED_GREEN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOF, STSAFE_EN_Pin|MXCHIP_RESET_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOF, STSAFE_EN_Pin|ARD_D07_Pin|MXCHIP_RESET_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : MXCHIP_FLOW_Pin */
   GPIO_InitStruct.Pin = MXCHIP_FLOW_Pin;
@@ -738,18 +790,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(MXCHIP_FLOW_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ARD_D06_Pin MXCHIP_NSS_Pin */
-  GPIO_InitStruct.Pin = ARD_D06_Pin|MXCHIP_NSS_Pin;
+  /*Configure GPIO pin : ARD_D06_Pin */
+  GPIO_InitStruct.Pin = ARD_D06_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(ARD_D06_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ARD_D05_Pin ARD_D10_Pin */
-  GPIO_InitStruct.Pin = ARD_D05_Pin|ARD_D10_Pin;
+  /*Configure GPIO pins : ARD_D05_Pin ARD_D04_Pin */
+  GPIO_InitStruct.Pin = ARD_D05_Pin|ARD_D04_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pin : USER_Button_Pin */
@@ -765,17 +817,50 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : ARD_D09_Pin */
+  GPIO_InitStruct.Pin = ARD_D09_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(ARD_D09_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ARD_D08_Pin */
+  GPIO_InitStruct.Pin = ARD_D08_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(ARD_D08_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : MXCHIP_NOTIFY_Pin */
   GPIO_InitStruct.Pin = MXCHIP_NOTIFY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(MXCHIP_NOTIFY_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : ARD_D02_Pin */
+  GPIO_InitStruct.Pin = ARD_D02_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(ARD_D02_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : ARD_D03_Pin */
   GPIO_InitStruct.Pin = ARD_D03_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ARD_D03_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : MXCHIP_NSS_Pin */
+  GPIO_InitStruct.Pin = MXCHIP_NSS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(MXCHIP_NSS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : ARD_D01_Pin ARD_D00_Pin */
+  GPIO_InitStruct.Pin = ARD_D01_Pin|ARD_D00_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pin : STSAFE_EN_Pin */
   GPIO_InitStruct.Pin = STSAFE_EN_Pin;
@@ -784,12 +869,26 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(STSAFE_EN_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : ARD_D07_Pin */
+  GPIO_InitStruct.Pin = ARD_D07_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(ARD_D07_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : MXCHIP_RESET_Pin */
   GPIO_InitStruct.Pin = MXCHIP_RESET_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(MXCHIP_RESET_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ARD_D10_Pin */
+  GPIO_InitStruct.Pin = ARD_D10_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(ARD_D10_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI2_IRQn, 5, 0);

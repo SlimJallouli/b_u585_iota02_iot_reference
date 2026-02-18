@@ -139,9 +139,15 @@ Home Assistant will pick the devices and you should be able to see them on the d
 
 ## 5. MQTT Topics
 
-This is a description of the MQTT messages sent by STM32 to AWS IoT Core.
+This is a description of the MQTT messages exchanged between STM32 and Home Assistant through AWS IoT Core.
+
+This is just a description on how STM32 and Home Assistant interact with each other. You don't need to do anything.
+
+For more details, please refer to https://www.home-assistant.io/integrations/mqtt
 
 ### 5.1. Firmware state and revision
+
+Source file: *ha_entities_ota.c*
 
 #### 5.1.1. Home Assistant discovery
 - **Topic**: `homeassistant/update/< device_id >_fw/config`
@@ -219,6 +225,8 @@ start_update
 
 ### 5.2. LED Status and Control
 
+Source file: *ha_entities_led.c*
+
 #### 5.2.1. Home Assistant discovery
 - **Topic**: `homeassistant/switch/< device_id >_< led >/config` 
 - **Example**: `homeassistant/switch/eval3-0209E08B415AD42AC20139_LED_GREEN/config`
@@ -288,7 +296,13 @@ Or
 LED_GREEN_FF
 ```
 
+#### 5.2.7. Related Documentation
+
+For more details see  [related README.md](../led/readme.md)
+
 ### 5.3. Button Status
+
+Source file: *ha_entities_button.c*
 
 #### 5.3.1. Home Assistant discovery
 - **Topic**: `homeassistant/binary_sensor/< device_id >_< Button >/config`
@@ -319,6 +333,7 @@ LED_GREEN_FF
 }
 ```
 
+
 #### 5.3.3. Device Message
 - Indicates the button status (pressed or released).
 - **Topic**: `< device_id >/sensor/button/reported`
@@ -346,7 +361,13 @@ Or
 }
 ```
 
+#### 5.3.4. Related Documentation
+
+For more details see  [related README.md](../button/readme.md)
+
 ### 5.4. Reboot
+
+Source file: *ha_entities_reset.c*
 
 #### 5.4.1. Home Assistant discovery
 - **Topic**: `homeassistant/button/< device_id >_reboot/config`
@@ -390,6 +411,8 @@ Or
 ```
 
 ### 5.5. Env sensors (unified)
+
+Source file: *ha_entities_sensors.c*
 
 #### 5.5.1. Env Sensors Home Assistant discovery
 
@@ -446,7 +469,13 @@ Each environmental metric is registered as a separate sensor in Home Assistant:
 }
 ```
 
+#### 5.5.5. Related Documentation
+
+For more details see  [related README.md](../sensors/env_sensor_readme.md)
+
 ### 5.6. Motion Sensors (Accel, Gyro, Mag)
+
+Source file: *ha_entities_sensors.c*
 
 #### 5.6.1. Motion Sensors Home Assistant discovery
 
@@ -517,8 +546,12 @@ Each axis is registered as a separate sensor in Home Assistant:
   }
 }
 ```
+#### 5.6.4. Related Documentation
+For more details see  [related README.md](../sensors/motion_sensor_readme.md)
 
 ### 5.7. Device Availability
+
+Source file: *ha_helpers.c*
 
 #### 5.7.1. Device Message
 - **Topic**: `< device_id >/status/availability`
@@ -537,5 +570,96 @@ Or
 offline
 ```
 
+### 5.8. Cover (Garage Door)
+The MQTT cover integration allows you to control an MQTT cover (such as blinds, a roller shutter or a garage door).
 
+https://www.home-assistant.io/integrations/cover.mqtt/
 
+Here we have an example of a garage door.
+
+#### 5.8.1. Cover Home Assistant discovery
+
+Source file: *ha_entities_cover.c*
+
+1. Key points from the MQTT Cover, Home Assistant expects at minimum:
+
+    - platform: "cover" (required for discovery)
+    - command_topic
+    - state_topic (optional but recommended)
+    - payload_open, payload_close, payload_stop
+    - state_open, state_opening, state_closed, state_closing  
+
+2. Home Assistant Will Discover
+- You will get three separate entities:
+
+    - cover.garage_door_1
+    - cover.garage_door_2
+    - cover.garage_door_3
+
+Each with its own:
+
+Commands
+
+- Commands
+    - OPEN
+    - CLOSE
+    - STOP
+
+- State reporting
+    - open
+    - opening
+    - closed
+    - closing
+
+#### 5.8.2. Cover Payload Example:
+```json
+{
+  "platform": "cover",
+  "name": "GARAGE_DOOR_1",
+  "unique_id": "eval3-02093088825AD42AC20139_GARAGE_DOOR_1",
+  "command_topic": "eval3-02093088825AD42AC20139/cover/GARAGE_DOOR_1/desired",
+  "state_topic": "eval3-02093088825AD42AC20139/cover/GARAGE_DOOR_1/state",
+  "payload_open": "OPEN",
+  "payload_close": "CLOSE",
+  "payload_stop": "STOP",
+  "state_open": "open",
+  "state_opening": "opening",
+  "state_closed": "closed",
+  "state_closing": "closing",
+  "availability_topic": "eval3-02093088825AD42AC20139/status/availability",
+  "payload_available": "online",
+  "payload_not_available": "offline",
+  "retain": false,
+  "device": {
+    "identifiers": [
+      "eval3-02093088825AD42AC20139"
+    ],
+    "manufacturer": "STMicroelectronics",
+    "model": "B_U585_IOTA02",
+    "name": "eval3-02093088825AD42AC20139"
+  }
+}
+```
+
+#### 5.8.3. Topics
+Command:
+```
+<thing>/cover/GARAGE_DOOR_1/desired
+<thing>/cover/GARAGE_DOOR_2/desired
+<thing>/cover/GARAGE_DOOR_3/desired
+```
+
+State:
+```
+<thing>/cover/GARAGE_DOOR_1/state
+<thing>/cover/GARAGE_DOOR_2/state
+<thing>/cover/GARAGE_DOOR_3/state
+```
+
+Availability:
+```
+<thing>/status/availability
+```
+
+#### 5.8.4. Related Documentation
+For full details on the garage door cover implementation, including relay wiring, sensor configuration, MQTT topics, and firmware architecture, see the [cover README.md](../cover/README.md)

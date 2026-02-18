@@ -48,6 +48,11 @@
 #include "stsafe.h"
 #endif
 
+#if defined(__USE_M24SR__)
+#include "mx_prv.h"
+#include "lib_TagType4.h"
+#endif
+
 #if defined(MXCHIP)
 #include "mx_netconn.h"
 #endif
@@ -103,6 +108,12 @@ EventGroupHandle_t xSystemEvents = NULL;
 #if defined(LFS_CONFIG)
 static lfs_t *pxLfsCtx = NULL;
 #endif
+
+#if defined(__USE_M24SR__)
+static char pcSSID[ MX_SSID_BUF_LEN ] = { 0 };
+static char pcPSK[ MX_PSK_BUF_LEN ] = { 0 };
+#endif
+
 /* USER CODE END Variables */
 
 
@@ -128,6 +139,7 @@ extern void vDefenderAgentTask           ( void * pvParameters );
 extern void vLEDTask                     ( void * pvParameters );
 extern void vButtonTask                  ( void * pvParameters );
 extern void vHAConfigPublishTask         ( void * pvParameters );
+extern void vCoverTask                   ( void *pvParameters  );
 /* USER CODE END FunctionPrototypes */
 
 /* USER CODE BEGIN 5 */
@@ -248,6 +260,11 @@ void StartDefaultTask(void *argument)
   uint32_t provisioned = 0;
 #endif
 
+#if defined(__USE_M24SR__)
+  uint16_t error = 0;
+  sWifi_Info xWiFi_credentials = {0};
+#endif
+
 #if defined(LFS_CONFIG)
   int xMountStatus;
 #endif
@@ -342,6 +359,64 @@ void StartDefaultTask(void *argument)
   }
 #endif
 
+#if defined(__USE_M24SR__)
+  M24SR_RFConfig(ENABLE);
+
+  error = TT4_Init();
+
+  if (error == SUCCESS)
+  {
+    LogInfo("Reading Wi-Fi credentials\r\n");
+
+    if (TT4_ReadWiFi(&xWiFi_credentials) == SUCCESS)
+    {
+      ( void ) KVStore_getString( CS_WIFI_SSID, pcSSID, MX_SSID_BUF_LEN );
+      ( void ) KVStore_getString( CS_WIFI_CREDENTIAL, pcPSK, MX_PSK_BUF_LEN );
+
+      if(( strcmp( pcSSID, xWiFi_credentials.SSID ) != 0 ) || ( strcmp( pcPSK, xWiFi_credentials.Password ) != 0 ))
+      {
+          ( void ) KVStore_setString( CS_WIFI_SSID, xWiFi_credentials.SSID );
+          ( void ) KVStore_setString( CS_WIFI_CREDENTIAL, xWiFi_credentials.Password );
+
+          KVStore_xCommitChanges();
+      }
+    }
+    else
+    {
+      LogInfo("Could not read Wi-Fi credentials\r\n");
+    }
+  }
+#if 0
+  if (error == SUCCESS)
+  {
+    size_t      uxTempSize = 0;
+    char       *pThingName = KVStore_getStringHeap(CS_CORE_THING_NAME, &uxTempSize);
+    configASSERT(pThingName != NULL);
+
+    if (TT4_WriteText("test") == SUCCESS)
+    {
+      printf("Text: %s write success\r\n", "test");
+    }
+    else
+    {
+      printf("Could not write text\r\n");
+    }
+
+    // Only write when different
+    if (TT4_WriteText(pThingName) == SUCCESS)
+    {
+      printf("Text: %s write success\r\n", pThingName);
+    }
+    else
+    {
+      printf("Could not write text\r\n");
+    }
+
+    vPortFree( pThingName );
+  }
+#endif
+#endif
+
 #if defined(MXCHIP)
   xTaskCreate(net_main, "MxNet", TASK_STACK_SIZE_MXCHIP, NULL, TASK_PRIO_MXCHIP, NULL);
 #endif
@@ -407,6 +482,10 @@ void StartDefaultTask(void *argument)
 
 #if DEMO_BUTTON
       xTaskCreate(vButtonTask, "ButtonTask", TASK_STACK_SIZE_BUTTON, NULL, TASK_PRIO_BUTTON, NULL);
+#endif
+
+#if DEMO_COVER
+      xTaskCreate(vCoverTask, "vCoverTask", TASK_STACK_SIZE_BUTTON, NULL, TASK_PRIO_BUTTON, NULL);
 #endif
 
   if ((uxMqttEndpointLen>0) && (uxMqttEndpointLen < 0xffffffff))
