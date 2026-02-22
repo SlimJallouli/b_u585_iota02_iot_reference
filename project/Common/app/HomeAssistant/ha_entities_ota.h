@@ -31,9 +31,18 @@ MQTTStatus_t HA_OTA_PublishFirmwareVersionStatus( AppVersion32_t appFirmwareVers
                                                   const char * pcThingName,
                                                   FwUpdateStatus_t xStatus );
 
+MQTTStatus_t HA_OTA_PublishFirmwareProgress( AppVersion32_t xInstalled,
+                                             AppVersion32_t xLatest,
+                                             const char * pcThingName,
+                                             uint32_t ulProgress,
+                                             uint32_t ulBlocksRemaining );
+
 /* MQTT callback for <thing>/fw/update commands. */
 void HA_OTA_HandleFwUpdateCommand( void * pxSubscriptionContext,
                                   MQTTPublishInfo_t * pPublishInfo );
+
+void vOtaProgressTask( void * pvParameters );
+
 #endif
 
 #ifdef __cplusplus

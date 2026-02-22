@@ -2,7 +2,7 @@
 # B-U585I-IOT02A FreeRTOS IoT Reference
 
 ## 1. Introduction
-This project demonstrates how to integrate modular <a href="https://www.freertos.org/Documentation/03-Libraries/01-Library-overview/03-LTS-libraries/01-LTS-libraries" target="_blank" rel="noopener noreferrer">FreeRTOS kernel and libraries</a>, <a href="https://savannah.nongnu.org/projects/lwip/" target="_blank" rel="noopener noreferrer">LwIP</a> and <a href="https://github.com/Mbed-TLS/mbedtls" target="_blank" rel="noopener noreferrer">MbedTLS</a> to enable secure, connected IoT applications. It offers multiple flexible configurations, making it adaptable for a variety of hardware setups and application needs. It is pre-configured to run on the <a href="https://www.st.com/en/evaluation-tools/b-u585i-iot02a.html" target="_blank" rel="noopener noreferrer"> B-U585I-IOT02A </a> <a href="https://www.st.com/en/evaluation-tools/x-nucleo-67w61m1.html" target="_blank" rel="noopener noreferrer">X-NUCLEO-67W61M1</a> Wi-Fi  and MXCHIP EMW3080B Wi-Fi.
+This project demonstrates how to integrate modular <a href="https://www.freertos.org/Documentation/03-Libraries/01-Library-overview/03-LTS-libraries/01-LTS-libraries" target="_blank" rel="noopener noreferrer">FreeRTOS kernel and libraries</a>, <a href="https://savannah.nongnu.org/projects/lwip/" target="_blank" rel="noopener noreferrer">LwIP</a> and <a href="https://github.com/Mbed-TLS/mbedtls" target="_blank" rel="noopener noreferrer">MbedTLS</a> to enable secure, connected IoT applications. It offers multiple flexible configurations, making it adaptable for a variety of hardware setups and application needs. It is pre-configured to run on the <a href="https://www.st.com/en/evaluation-tools/b-u585i-iot02a.html" target="_blank" rel="noopener noreferrer"> B-U585I-IOT02A </a>  with <a href="https://www.st.com/en/evaluation-tools/x-nucleo-67w61m1.html" target="_blank" rel="noopener noreferrer">X-NUCLEO-67W61M1</a> Wi-Fi  or MXCHIP EMW3080B Wi-Fi.
 
 The project supports TLS authentication with or without the <a href="https://www.st.com/resource/en/brochure/stsafe-brochure.pdf" target="_blank" rel="noopener noreferrer">STSAFE</a> secure element, providing both enhanced hardware-based credential protection and a fallback software-based implementation for systems without secure elements. Both <a href="https://www.st.com/en/secure-mcus/stsafe-a110.html" target="_blank" rel="noopener noreferrer">STSAFEA110</a> and <a href="https://www.st.com/en/secure-mcus/stsafe-a120.html" target="_blank" rel="noopener noreferrer">STSAFEA120</a> are supported.
 
@@ -25,6 +25,14 @@ Secure MQTT connectivity is supported, with working examples provided for <a hre
   * Publish and Subscribe
   * Env Sensor
   * Motion sensor
+
+- The following sensors are used:
+  * Humidity and Temperature : [HTS221](https://www.st.com/resource/en/datasheet/hts221.pdf)
+  * Magnetometer : [IIS2MDC](https://www.st.com/en/mems-and-sensors/iis2mdc.html) 
+  * IMU : [ISM330DHCX](https://www.st.com/en/mems-and-sensors/ism330dhcx.html)
+  * Pressure : [LPS22HH](https://www.st.com/en/mems-and-sensors/lps22hh.html)
+  * Ambient Light : [VEML3235](https://www.vishay.com/en/product/80131/)
+  * Time-of-Flight : [VL53L5CX](https://www.st.com/en/imaging-and-photonics-solutions/vl53l5cx.html)
 
 To simplify large-scale deployments, the project supports AWS IoT <a href="https://docs.aws.amazon.com/iot/latest/developerguide/provision-wo-cert.html#claim-based" target="_blank" rel="noopener noreferrer">Fleet Provisioning</a> via Claim-based registration, <a href="https://aws.amazon.com/about-aws/whats-new/2020/04/simplify-iot-device-registration-and-easily-move-devices-between-aws-accounts-with-aws-iot-core-multi-account-registration/" target="_blank" rel="noopener noreferrer">Multi-Account Registration</a>, <a href="https://aws.amazon.com/blogs/iot/setting-up-just-in-time-provisioning-with-aws-iot-core/" target="_blank" rel="noopener noreferrer">Just-in-Time Provisioning (JITP)</a> or <a href="https://aws.amazon.com/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/" target="_blank" rel="noopener noreferrer">Just-in-Time Registration</a> allowing devices to be automatically onboarded and securely authenticated with AWS IoT Core. This streamlines the setup and management of large fleets of devices, saving time and reducing manual configuration effort.
 
@@ -303,6 +311,7 @@ After provisioning your board, you can run and test the application features. Re
 - <a href="project/Common/app/button/readme.md" target="_blank" rel="noopener noreferrer">Button Status Example</a> *(Available for all connections)*
 - <a href="project/Common/app/HomeAssistant/home_assistant_discovery.md" target="_blank" rel="noopener noreferrer">Home Assistant Discovery Example</a> *(Available for all connections)*
 - <a href="project/Common/app/sensors/env_sensor_readme.md" target="_blank" rel="noopener noreferrer">Environmental Sensor Example</a> *(Available for all connections)*
+- <a href="project/Common/app/cover/README.md" target="_blank" rel="noopener noreferrer">Garage Door Cover Control Example</a> *(Available for all connections)*
 - <a href="project/Common/app/sensors/motion_sensor_readme.md" target="_blank" rel="noopener noreferrer">Motion Sensor Example</a> *(Available for all connections)*
 - <a href="https://github.com/stm32-hotspot/stm32mcu_aws_fleetProvisioning" target="_blank" rel="noopener noreferrer">AWS Fleet Provisioning</a> *(Available only when connected to AWS IoT Core)*
 - <a href="readme_aws_defender.md" target="_blank" rel="noopener noreferrer">AWS Defender</a> *(Available only when connected to AWS IoT Core)*

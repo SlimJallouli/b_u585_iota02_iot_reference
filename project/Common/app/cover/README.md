@@ -14,40 +14,43 @@ The Seeed Relay Shield V2 uses four active‑high relays.
 This firmware uses up to three of them:
 
 ```c
-#define RELAY_1_Pin   ARD_D07_Pin
-#define RELAY_1_Port  ARD_D07_GPIO_Port
+#define RELAY_1_Pin                  ARD_D07_Pin
+#define RELAY_1_Port                 ARD_D07_GPIO_Port
 
-#define RELAY_2_Pin   ARD_D06_Pin
-#define RELAY_2_Port  ARD_D06_GPIO_Port
+#define RELAY_2_Pin                  ARD_D06_Pin
+#define RELAY_2_Port                 ARD_D06_GPIO_Port
 
-#define RELAY_3_Pin   ARD_D05_Pin
-#define RELAY_3_Port  ARD_D05_GPIO_Port
+#define RELAY_3_Pin                  ARD_D05_Pin
+#define RELAY_3_Port                 ARD_D05_GPIO_Port
 
-#define RELAY_4_Pin   ARD_D04_Pin
-#define RELAY_4_Port  ARD_D04_GPIO_Port
+#define RELAY_4_Pin                  ARD_D04_Pin
+#define RELAY_4_Port                 ARD_D04_GPIO_Port
 ```
 
 Each relay produces a 1‑second pulse, simulating a physical garage door button press.
 
 Optional Magnetic Door Sensors
 ```c
-#define DOOR_SENSPR_1_Pin        ARD_D02_Pin
-#define DOOR_SENSPR_1_Port       ARD_D02_GPIO_Port
-#define DOOR_SENSPR_1_STATE_OPEN GPIO_PIN_SET
+#define DOOR_SENSPR_1_Pin            ARD_D03_Pin
+#define DOOR_SENSPR_1_Port           ARD_D03_GPIO_Port
+#define DOOR_SENSPR_1_IRQn           ARD_D03_EXTI_IRQn
+#define DOOR_SENSPR_1_STATE_OPEN     GPIO_PIN_SET
 
-#define DOOR_SENSPR_2_Pin        ARD_D08_Pin
-#define DOOR_SENSPR_2_Port       ARD_D08_GPIO_Port
-#define DOOR_SENSPR_2_STATE_OPEN GPIO_PIN_SET
+#define DOOR_SENSPR_2_Pin            ARD_D08_Pin
+#define DOOR_SENSPR_2_Port           ARD_D08_GPIO_Port
+#define DOOR_SENSPR_2_IRQn           ARD_D08_EXTI_IRQn
+#define DOOR_SENSPR_2_STATE_OPEN     GPIO_PIN_SET
 
-#define DOOR_SENSPR_3_Pin        ARD_D09_Pin
-#define DOOR_SENSPR_3_Port       ARD_D09_GPIO_Port
-#define DOOR_SENSPR_3_STATE_OPEN GPIO_PIN_SET
+#define DOOR_SENSPR_3_Pin            ARD_D09_Pin
+#define DOOR_SENSPR_3_Port           ARD_D09_GPIO_Port
+#define DOOR_SENSPR_3_IRQn           ARD_D09_EXTI_IRQn
+#define DOOR_SENSPR_3_STATE_OPEN     GPIO_PIN_SET
 ```
 
 To disable sensors entirely:
 
 ```c
-#define USE_DOOR_SENSPR 0
+#define USE_MAGNETIC_SENSOR 0
 ```
 
 When disabled, the firmware reports:
@@ -240,6 +243,7 @@ This firmware provides a complete, robust, and flexible garage door controller:
 - Supports 1–3 garage doors
 - Relay pulse control using Seeed Relay Shield V2
 - Optional magnetic door sensors
+- Optional ranging sensor as door sensor
 - Full Home Assistant MQTT discovery
 - Clean state reporting
 - Simple command interface

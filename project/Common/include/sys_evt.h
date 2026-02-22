@@ -44,6 +44,9 @@
 #define EVT_OTA_UPDATE_ABORT         (0x01 << 3)
 #define EVT_COMMAND_RESET            (0x01 << 4)
 #define EVT_COMMAND_REPUBLISH_CONFIG (0x01 << 5)
+#define EVT_DOOR_OPENED              (0x01 << 7)
+#define EVT_DOOR_CLOSED              (0x01 << 8)
+#define EVT_DOOR_STATE_CHANGED       (0x01 << 9)
 
 extern EventGroupHandle_t xSystemEvents;
 

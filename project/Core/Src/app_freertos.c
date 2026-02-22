@@ -139,7 +139,8 @@ extern void vDefenderAgentTask           ( void * pvParameters );
 extern void vLEDTask                     ( void * pvParameters );
 extern void vButtonTask                  ( void * pvParameters );
 extern void vHAConfigPublishTask         ( void * pvParameters );
-extern void vCoverTask                   ( void *pvParameters  );
+extern void vCoverTask                   ( void * pvParameters );
+extern void vRangingSensorTask           ( void * pvParameters );
 /* USER CODE END FunctionPrototypes */
 
 /* USER CODE BEGIN 5 */
@@ -485,7 +486,11 @@ void StartDefaultTask(void *argument)
 #endif
 
 #if DEMO_COVER
-      xTaskCreate(vCoverTask, "vCoverTask", TASK_STACK_SIZE_BUTTON, NULL, TASK_PRIO_BUTTON, NULL);
+      xTaskCreate(vCoverTask, "CoverTask", TASK_STACK_SIZE_BUTTON, NULL, TASK_PRIO_BUTTON, NULL);
+#endif
+
+#if USE_RANGING_SENSOR
+      xTaskCreate(vRangingSensorTask, "RangingTask", TASK_STACK_SIZE_RANGING, NULL, TASK_PRIO_RANGING, NULL);
 #endif
 
   if ((uxMqttEndpointLen>0) && (uxMqttEndpointLen < 0xffffffff))

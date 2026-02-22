@@ -43,7 +43,7 @@ This guide outlines the steps to configure Home Assistant (HA) to connect to AWS
 
 ### 3.3. Step 2: Install File Editor Add-on
 
-1. Go to **Settings > Add-ons > Add-on Store**
+1. Go to **Settings > Apps > Add-on Store**
 2. Search for **File Editor** and install it
 3. Under the **Configuration** tab:
    - Disable `enforce_basepath` to allow editing any file
@@ -94,7 +94,7 @@ notifications false
 
 ### 3.6. Step 5: Install Mosquitto Broker Add-on
 
-1. Go to **Settings > Add-ons > Add-on Store**
+1. Go to **Settings > Apps > Add-on Store**
 2. Search for **Mosquitto Broker** and install it
 3. Under the **Configuration** tab:
    - Enable `Customize configuration`

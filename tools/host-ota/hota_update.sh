@@ -31,6 +31,9 @@ export FILE_VERSION="$1"
 export BIN_LOCATION="../../project/MXCHIP_STSAFEA110/"
 export BIN_FILE="b_u585_iota02_iot_reference.bin"
 
+# Test
+export THING_NAME='eval3-020910DF415AD42AC20139'
+
 # Office (Redmond)
 # export THING_NAME=' eval3-0209001E215AD42AC20139'
 
@@ -38,7 +41,7 @@ export BIN_FILE="b_u585_iota02_iot_reference.bin"
 # export THING_NAME='eval3-0209C04B825AD42AC20139'
 
 # Living Room
-export THING_NAME='eval3-0209706C215AD42AC20139'
+# export THING_NAME='eval3-0209706C215AD42AC20139'
 
 # Garage door
 # export THING_NAME='eval3-02093088825AD42AC20139'

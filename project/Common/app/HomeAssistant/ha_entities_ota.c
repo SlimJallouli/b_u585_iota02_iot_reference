@@ -1,5 +1,7 @@
 #include "ha_entities_ota.h"
 
+#include "queue.h"   /* For QueueHandle_t / xQueueReceive */
+
 #include <string.h>
 #include <stdio.h>
 
@@ -13,6 +15,9 @@ static char * entity = "update";
 #if (DEMO_AWS_OTA == 1)
 volatile AppVersion32_t newAppFirmwareVersion;
 #endif
+
+/* Queue created in otaPal_EarlyInit (ota_pal.c) to report OTA blocks remaining. */
+extern QueueHandle_t xOtaBlocksRemainingQueue;
 
 /*-----------------------------------------------------------*/
 
@@ -126,7 +131,7 @@ static const char * prvFwUpdateStatusToString( FwUpdateStatus_t xStatus )
     switch( xStatus )
     {
         case FW_UPDATE_STATUS_IDLE:      return "idle";
-        case FW_UPDATE_STATUS_UPDATING:  return "updating";
+        case FW_UPDATE_STATUS_UPDATING:  return "installing";
         case FW_UPDATE_STATUS_COMPLETED: return "completed";
         default:                         return "unknown";
     }
@@ -166,7 +171,62 @@ MQTTStatus_t HA_OTA_PublishFirmwareVersionStatus( AppVersion32_t xInstalled,
         return MQTTBadParameter;
     }
 
-    MQTTStatus_t xMqtt = HA_PublishToTopic( MQTTQoS0,
+    MQTTStatus_t xMqtt = HA_PublishToTopic( MQTTQoS1,
+                                           true,
+                                           cTopicBuf,
+                                           ( const uint8_t * ) pcPayloadBuffer,
+                                           ( size_t ) msgLen );
+
+    vTaskDelay( pdMS_TO_TICKS( HA_MQTT_PUBLISH_TIME_BETWEEN_MS ) );
+
+    return xMqtt;
+}
+
+/* New: publish OTA progress + blocks_remaining as attributes on the same state topic. */
+MQTTStatus_t HA_OTA_PublishFirmwareProgress( AppVersion32_t xInstalled,
+                                             AppVersion32_t xLatest,
+                                             const char * pcThingName,
+                                             uint32_t ulProgress,
+                                             uint32_t ulBlocksRemaining )
+{
+    char pcPayloadBuffer[ 192 ];
+    char cTopicBuf[ 64 ];
+
+    /* Compose topic: <ThingName>/fw/state */
+    int msgLen = snprintf( cTopicBuf, sizeof( cTopicBuf ), "%s/fw/state", pcThingName );
+
+    if( ( msgLen < 0 ) || ( ( size_t ) msgLen >= sizeof( cTopicBuf ) ) )
+    {
+        return MQTTBadParameter;
+    }
+
+    /* Status is always "updating" when we send progress. */
+    msgLen = snprintf( pcPayloadBuffer,
+                       sizeof( pcPayloadBuffer ),
+                       "{"
+                         "\"installed_version\": \"%u.%u.%u\","
+                         "\"latest_version\": \"%u.%u.%u\","
+                         "\"status\": \"installing\","
+                         "\"in_progress\": true,"
+                         "\"update_percentage\": %u,"
+                         "\"blocks_remaining\": %u"
+                       "}",
+                       xInstalled.u.x.major,
+                       xInstalled.u.x.minor,
+                       xInstalled.u.x.build,
+                       xLatest.u.x.major,
+                       xLatest.u.x.minor,
+                       xLatest.u.x.build,
+                       ulProgress,
+                       ulBlocksRemaining );
+
+
+    if( ( msgLen < 0 ) || ( ( size_t ) msgLen >= sizeof( pcPayloadBuffer ) ) )
+    {
+        return MQTTBadParameter;
+    }
+
+    MQTTStatus_t xMqtt = HA_PublishToTopic( MQTTQoS1,
                                            true,
                                            cTopicBuf,
                                            ( const uint8_t * ) pcPayloadBuffer,
@@ -206,4 +266,64 @@ void HA_OTA_HandleFwUpdateCommand( void * pxSubscriptionContext,
     }
 }
 
+/*-----------------------------------------------------------*/
+/* OTA progress reporting task (separate from HA main task). */
+void vOtaProgressTask( void * pvParameters )
+{
+    const char * pcThingName = ( const char * ) pvParameters;
+    uint32_t ulTotalBlocks   = 0;
+    uint32_t ulLastProgress  = 0xFFFFFFFFu;
+
+    LogInfo( "OTA Progress Task started" );
+
+    for( ;; )
+    {
+        EventBits_t uxBits = xEventGroupGetBits( xHAEventGroup );
+
+        if( ( uxBits & EVT_OTA_COMPLETED ) != 0U ||
+            ( uxBits & EVT_OTA_UPDATE_ABORT ) != 0U )
+        {
+            LogInfo( "OTA Progress Task exiting" );
+            vTaskDelete( NULL );
+        }
+
+        if( xOtaBlocksRemainingQueue != NULL )
+        {
+            uint32_t ulBlocksRemaining = 0;
+
+            if( xQueueReceive( xOtaBlocksRemainingQueue,
+                               &ulBlocksRemaining,
+                               0 ) == pdTRUE )
+            {
+                if( ( ulTotalBlocks == 0U ) && ( ulBlocksRemaining > 0U ) )
+                {
+                    ulTotalBlocks = ulBlocksRemaining;
+                }
+
+                if( ( ulTotalBlocks > 0U ) && ( ulBlocksRemaining <= ulTotalBlocks ) )
+                {
+                    uint32_t ulProgress =
+                        100U - ( ( ulBlocksRemaining * 100U ) / ulTotalBlocks );
+
+                    if( ulProgress != ulLastProgress )
+                    {
+                        ulLastProgress = ulProgress;
+
+                        LogInfo( "OTA progress: %lu%% (%lu blocks remaining)",
+                                 ( unsigned long ) ulProgress,
+                                 ( unsigned long ) ulBlocksRemaining );
+
+                        ( void ) HA_OTA_PublishFirmwareProgress( appFirmwareVersion,
+                                                                 newAppFirmwareVersion,
+                                                                 pcThingName,
+                                                                 ulProgress,
+                                                                 ulBlocksRemaining );
+                    }
+                }
+            }
+        }
+
+        vTaskDelay( pdMS_TO_TICKS( 200 ) );
+    }
+}
 #endif /* DEMO_AWS_OTA */

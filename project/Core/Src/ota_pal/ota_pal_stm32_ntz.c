@@ -57,6 +57,7 @@
 
 extern EventGroupHandle_t xHAEventGroup;
 extern AppVersion32_t newAppFirmwareVersion;
+QueueHandle_t xOtaBlocksRemainingQueue = NULL;
 #endif
 
 #define FLASH_START_INACTIVE_BANK        ( ( uint32_t ) ( FLASH_BASE + FLASH_BANK_SIZE ) )
@@ -1090,6 +1091,12 @@ HAL_ICACHE_Enable();
 
         xEventGroupSetBits(xHAEventGroup, EVT_OTA_UPDATE_AVAILABLE);
 
+        if (xOtaBlocksRemainingQueue != NULL)
+        {
+            uint32_t val = pxFileContext->blocksRemaining;
+            xQueueOverwrite(xOtaBlocksRemainingQueue, &val);
+        }
+
         waitForOtaStart();
         vTaskDelay(10);
 #endif
@@ -1172,6 +1179,14 @@ int16_t otaPal_WriteBlock( OtaFileContext_t * const pxFileContext,
         sBytesWritten = ( int16_t ) blockSize;
     }
 
+#if DEMO_HOME_ASSISTANT
+  if (xOtaBlocksRemainingQueue != NULL)
+  {
+    uint32_t val = pxFileContext->blocksRemaining;
+    xQueueOverwrite(xOtaBlocksRemainingQueue, &val);
+  }
+#endif
+
     return sBytesWritten;
 }
 
@@ -1233,6 +1248,14 @@ OtaPalStatus_t otaPal_CloseFile( OtaFileContext_t * const pxFileContext )
     uxOtaStatus = OTA_PAL_COMBINE_ERR(OtaPalFileClose, 0);
   }
 
+#if DEMO_HOME_ASSISTANT
+  if (xOtaBlocksRemainingQueue != NULL)
+  {
+    uint32_t val = pxFileContext->blocksRemaining;
+    xQueueOverwrite(xOtaBlocksRemainingQueue, &val);
+  }
+#endif
+
     return uxOtaStatus;
 }
 
@@ -1269,6 +1292,17 @@ OtaPalStatus_t otaPal_ActivateNewImage( OtaFileContext_t * const pxFileContext )
 void otaPal_EarlyInit( void )
 {
     OtaPalContext_t * pxCtx = prvGetImageContext();
+
+#if DEMO_HOME_ASSISTANT
+if (xOtaBlocksRemainingQueue == NULL)
+{
+    xOtaBlocksRemainingQueue = xQueueCreate(1, sizeof(uint32_t));
+    if (xOtaBlocksRemainingQueue == NULL)
+    {
+        LogError("Failed to create OTA blocksRemaining queue");
+    }
+}
+#endif
 
     ( void ) prvGetActiveBank();
 

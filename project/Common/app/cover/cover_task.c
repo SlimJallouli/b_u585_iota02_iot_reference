@@ -11,6 +11,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "event_groups.h"
+#include "sys_evt.h"
 
 #include "core_mqtt.h"
 #include "core_mqtt_agent.h"
@@ -19,90 +20,126 @@
 #include "kvstore.h"
 #include "core_json.h"
 
+#include "interrupt_handlers.h"
+
+#if (USE_MAGNETIC_SENSOR)&&(USE_RANGING_SENSOR)
+#error please select either USE_MAGNETIC_SENSOR or USE_RANGING_SENSOR
+#endif
+
+#if (USE_RANGING_SENSOR) && (NUM_COVERS > 1)
+#error only one cover is allowed when using the USE_RANGING_SENSOR
+#endif
+
 /* -------------------------------------------------------------------------- */
 /* Cover model                                                                */
 /* -------------------------------------------------------------------------- */
 
 typedef enum
 {
-    COVER_STATE_OPEN,
-    COVER_STATE_CLOSED,
-    COVER_STATE_STOPPED,
-    COVER_STATE_UNKNOWN
-} CoverState_t;
+    eCOVER_STATE_OPEN,
+    eCOVER_STATE_CLOSED,
+    eCOVER_STATE_STOPPED,
+    eCOVER_STATE_UNKNOWN
+} eCoverState_t;
 
 typedef struct
 {
-    const char  *name;          /* "GARAGE_DOOR_1" etc. */
-    uint8_t      relayIndex;    /* index into relay[]   */
-    CoverState_t stateReported; /* last reported state  */
-} CoverDescriptor_t;
+    uint16_t      usPin;
+    GPIO_TypeDef *pxPort;
+} Relay_t;
 
-/* Relay hardware descriptor (provided elsewhere) */
+#if USE_MAGNETIC_SENSOR
 typedef struct
 {
-    uint16_t      GPIO_Pin;
-    GPIO_TypeDef *GPIO_Port;
-} relay_t;
-
-static relay_t relay[] = {
-#if (NUM_COVERS>0)
-                          {RELAY_1_Pin, RELAY_1_Port}
+    GPIO_TypeDef *pxPort;
+    uint16_t      usPin;
+    GPIO_PinState xOpenState;
+} DoorSensor_t;
 #endif
-#if (NUM_COVERS>1)
-                          ,{RELAY_2_Pin, RELAY_2_Port}
-#endif
-#if (NUM_COVERS>2)
-                          ,{RELAY_3_Pin, RELAY_3_Port}
-#endif
-                          };
 
-#define RELAY_COUNT (sizeof(relay) / sizeof(relay[0]))
-
-/* Map covers to relays: 3 doors → first 3 relays */
-static CoverDescriptor_t xCovers[] =
+typedef struct
 {
-#if (NUM_COVERS>0)
-     { "GARAGE_DOOR_1", 0, COVER_STATE_UNKNOWN }
+    const char        *pcName;
+    const Relay_t      xRelay;
+#if USE_MAGNETIC_SENSOR
+    const DoorSensor_t xSensor;
 #endif
-#if (NUM_COVERS>1)
-    ,{ "GARAGE_DOOR_2", 1, COVER_STATE_UNKNOWN }
-#endif
-#if (NUM_COVERS>2)
-    ,{ "GARAGE_DOOR_3", 2, COVER_STATE_UNKNOWN }
+    eCoverState_t      eStateReported;
+} Cover_t;
+
+#if USE_RANGING_SENSOR
+typedef enum
+{
+    eDOOR_STATE_UNKNOWN = 0,
+    eDOOR_STATE_OPEN,
+    eDOOR_STATE_CLOSED
+} eDoorState_t;
+
+extern volatile const eDoorState_t gDoorState;
 #endif
 
+/* -------------------------------------------------------------------------- */
+/* Static cover table                                                         */
+/* -------------------------------------------------------------------------- */
+
+static Cover_t xCovers[] =
+{
+#if (NUM_COVERS > 0)
+    {
+        .pcName = "GARAGE_DOOR_1",
+        .xRelay = {
+            .usPin      = RELAY_1_Pin,
+            .pxPort     = RELAY_1_Port
+        },
+    #if USE_MAGNETIC_SENSOR
+        .xSensor = {
+            .pxPort     = DOOR_SENSPR_1_Port,
+            .usPin      = DOOR_SENSPR_1_Pin,
+            .xOpenState = DOOR_SENSPR_1_STATE_OPEN
+        },
+    #endif
+        .eStateReported = eCOVER_STATE_UNKNOWN
+    }
+#endif
+
+#if (NUM_COVERS > 1)
+    ,{
+        .pcName = "GARAGE_DOOR_2",
+        .xRelay = {
+            .usPin      = RELAY_2_Pin,
+            .pxPort     = RELAY_2_Port
+        },
+    #if USE_MAGNETIC_SENSOR
+        .xSensor = {
+            .pxPort     = DOOR_SENSPR_2_Port,
+            .usPin      = DOOR_SENSPR_2_Pin,
+            .xOpenState = DOOR_SENSPR_2_STATE_OPEN
+        },
+    #endif
+        .eStateReported = eCOVER_STATE_UNKNOWN
+    }
+#endif
+
+#if (NUM_COVERS > 2)
+    ,{
+        .pcName = "GARAGE_DOOR_3",
+        .xRelay = {
+            .usPin      = RELAY_3_Pin,
+            .pxPort     = RELAY_3_Port
+        },
+    #if USE_MAGNETIC_SENSOR
+        .xSensor = {
+            .pxPort     = DOOR_SENSPR_3_Port,
+            .usPin      = DOOR_SENSPR_3_Pin,
+            .xOpenState = DOOR_SENSPR_3_STATE_OPEN
+        },
+    #endif
+        .eStateReported = eCOVER_STATE_UNKNOWN
+    }
+#endif
 };
 
 #define COVER_COUNT ( (uint8_t)( sizeof( xCovers ) / sizeof( xCovers[0] ) ) )
-
-typedef struct
-{
-    GPIO_TypeDef *port;
-    uint16_t      pin;
-    GPIO_PinState openState;   /* GPIO_PIN_SET or GPIO_PIN_RESET */
-} DoorSensor_t;
-
-static DoorSensor_t doorSensors[] =
-{
-#if USE_DOOR_SENSPR
-#if (NUM_COVERS>0)
-    { DOOR_SENSPR_1_Port, DOOR_SENSPR_1_Pin, DOOR_SENSPR_1_STATE_OPEN }
-#endif
-#if (NUM_COVERS>1)
-    ,{ DOOR_SENSPR_2_Port, DOOR_SENSPR_2_Pin, DOOR_SENSPR_2_STATE_OPEN }
-#endif
-#if (NUM_COVERS>2)
-    ,{ DOOR_SENSPR_3_Port, DOOR_SENSPR_3_Pin, DOOR_SENSPR_3_STATE_OPEN }
-#endif
-#endif
-};
-
-
-#define DOOR_SENSOR_COUNT (sizeof(doorSensors) / sizeof(doorSensors[0]))
-
-/* Polling interval for door sensors */
-const TickType_t xPollRate = pdMS_TO_TICKS(200);  /* 5 Hz */
 
 /* -------------------------------------------------------------------------- */
 /* MQTT topics                                                                */
@@ -110,14 +147,8 @@ const TickType_t xPollRate = pdMS_TO_TICKS(200);  /* 5 Hz */
 
 #define MAX_TOPIC_LEN 128
 
-static char thingName[64]; /* cached thing name */
+static char thingName[64];
 static MQTTAgentHandle_t xMQTTAgentHandle = NULL;
-
-static EventGroupHandle_t xCoverEventGroup;
-#define COVER_STATUS_CHANGED_EVENT   (1 << 0)
-
-/* We’ll publish state per cover, so we don’t need a single global topic buffer.
- * We build topics on the fly in the publish path. */
 
 /* -------------------------------------------------------------------------- */
 /* Command context for synchronous publish                                    */
@@ -126,82 +157,87 @@ static EventGroupHandle_t xCoverEventGroup;
 typedef struct MQTTAgentCommandContext
 {
     TaskHandle_t xTaskToNotify;
-    void       * pArgs;
+    void       *pArgs;
 } MQTTAgentCommandContext_t;
 
 /* -------------------------------------------------------------------------- */
 /* Door sensor                                                                */
 /* -------------------------------------------------------------------------- */
 
-static CoverState_t prvReadDoorSensor(uint8_t index)
+static eCoverState_t prvReadDoorSensor(uint8_t ucIndex)
 {
-    if (index >= DOOR_SENSOR_COUNT)
-        return COVER_STATE_UNKNOWN;
+#if USE_MAGNETIC_SENSOR
+    const DoorSensor_t *pxSensor = &xCovers[ucIndex].xSensor;
 
-    GPIO_PinState raw = HAL_GPIO_ReadPin(doorSensors[index].port,
-                                         doorSensors[index].pin);
+    GPIO_PinState xRaw = HAL_GPIO_ReadPin(pxSensor->pxPort, pxSensor->usPin);
 
-    if (raw == doorSensors[index].openState)
-        return COVER_STATE_OPEN;
-    else
-        return COVER_STATE_CLOSED;
+    return (xRaw == pxSensor->xOpenState)
+           ? eCOVER_STATE_OPEN
+           : eCOVER_STATE_CLOSED;
+
+#elif USE_RANGING_SENSOR
+
+    switch (gDoorState)
+    {
+        case eDOOR_STATE_OPEN:   return eCOVER_STATE_OPEN;
+        case eDOOR_STATE_CLOSED: return eCOVER_STATE_CLOSED;
+        default:                 return eCOVER_STATE_UNKNOWN;
+    }
+
+#else
+    (void) ucIndex;
+    return eCOVER_STATE_UNKNOWN;
+#endif
 }
 
 /* -------------------------------------------------------------------------- */
 /* Relay pulse and motor actions                                              */
 /* -------------------------------------------------------------------------- */
 
-static void Relay_Pulse( uint8_t index )
+static void prvRelayPulse(const Relay_t *pxRelay)
 {
-    if( index >= RELAY_COUNT )
-    {
-        return;
-    }
-
-    HAL_GPIO_WritePin( relay[ index ].GPIO_Port, relay[ index ].GPIO_Pin, GPIO_PIN_SET );
-    HAL_Delay( 1000 ); /* 1 second pulse */
-    HAL_GPIO_WritePin( relay[ index ].GPIO_Port, relay[ index ].GPIO_Pin, GPIO_PIN_RESET );
+    HAL_GPIO_WritePin(pxRelay->pxPort, pxRelay->usPin, GPIO_PIN_SET);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    HAL_GPIO_WritePin(pxRelay->pxPort, pxRelay->usPin, GPIO_PIN_RESET);
 }
 
-static void CoverMotor_Open( CoverDescriptor_t *pxCover )
+static void prvCoverMotorOpen(Cover_t *pxCover)
 {
-    Relay_Pulse( pxCover->relayIndex );
+    prvRelayPulse(&pxCover->xRelay);
 }
 
-static void CoverMotor_Close( CoverDescriptor_t *pxCover )
+static void prvCoverMotorClose(Cover_t *pxCover)
 {
-    Relay_Pulse( pxCover->relayIndex );
+    prvRelayPulse(&pxCover->xRelay);
 }
 
-static void CoverMotor_Stop( CoverDescriptor_t *pxCover )
+static void prvCoverMotorStop(Cover_t *pxCover)
 {
-    Relay_Pulse( pxCover->relayIndex );
+    prvRelayPulse(&pxCover->xRelay);
 }
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
 
-static CoverDescriptor_t * prvFindCoverByName( const char *pcName )
+static Cover_t *prvFindCoverByName(const char *pcName)
 {
-    for( uint8_t i = 0; i < COVER_COUNT; i++ )
+    for(uint8_t i = 0; i < COVER_COUNT; i++)
     {
-        if( strcmp( xCovers[ i ].name, pcName ) == 0 )
-        {
-            return &xCovers[ i ];
-        }
+        if(strcmp(xCovers[i].pcName, pcName) == 0)
+            return &xCovers[i];
     }
     return NULL;
 }
 
-static const char * prvStateToString( CoverState_t state )
+static const char *prvStateToString(eCoverState_t eState)
 {
-    switch( state )
+    switch(eState)
     {
-        case COVER_STATE_OPEN:    return "open";
-        case COVER_STATE_CLOSED:  return "closed";
-        case COVER_STATE_STOPPED: return "stopped"; /* not in HA schema, but useful */
-        default:                  return "unknown";
+        case eCOVER_STATE_OPEN:    return "open";
+        case eCOVER_STATE_CLOSED:  return "closed";
+        case eCOVER_STATE_STOPPED: return "stopped";
+        default:                   return "unknown";
     }
 }
 
@@ -209,14 +245,14 @@ static const char * prvStateToString( CoverState_t state )
 /* Publish command callback                                                   */
 /* -------------------------------------------------------------------------- */
 
-static void prvPublishCommandCallback( MQTTAgentCommandContext_t *pxCommandContext,
-                                       MQTTAgentReturnInfo_t     *pxReturnInfo )
+static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCtx,
+                                      MQTTAgentReturnInfo_t     *pxReturn)
 {
-    if( pxCommandContext->xTaskToNotify != NULL )
+    if(pxCtx->xTaskToNotify != NULL)
     {
-        xTaskNotify( pxCommandContext->xTaskToNotify,
-                     pxReturnInfo->returnCode,
-                     eSetValueWithOverwrite );
+        xTaskNotify(pxCtx->xTaskToNotify,
+                    pxReturn->returnCode,
+                    eSetValueWithOverwrite);
     }
 }
 
@@ -224,202 +260,169 @@ static void prvPublishCommandCallback( MQTTAgentCommandContext_t *pxCommandConte
 /* Synchronous publish wrapper                                                */
 /* -------------------------------------------------------------------------- */
 
-static MQTTStatus_t prvPublishToTopic( MQTTQoS_t   xQoS,
-                                       bool        xRetain,
-                                       char       *pcTopic,
-                                       uint8_t    *pucPayload,
-                                       size_t      xPayloadLength )
+static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS,
+                                      bool      bRetain,
+                                      char     *pcTopic,
+                                      uint8_t  *pucPayload,
+                                      size_t    xPayloadLen)
 {
-    MQTTPublishInfo_t         xPublishInfo  = { 0 };
-    MQTTAgentCommandInfo_t    xCommandInfo  = { 0 };
-    MQTTAgentCommandContext_t xCommandCtx   = { 0 };
-    MQTTStatus_t              xMQTTStatus;
-    BaseType_t                xNotifyStatus;
-    uint32_t                  ulNotifiedVal = 0;
+    MQTTPublishInfo_t         xPubInfo = {0};
+    MQTTAgentCommandInfo_t    xCmdInfo = {0};
+    MQTTAgentCommandContext_t xCtx     = {0};
+    MQTTStatus_t              xStatus;
+    uint32_t                  ulNotifyVal = 0;
 
-    xTaskNotifyStateClear( NULL );
+    xTaskNotifyStateClear(NULL);
 
-    xPublishInfo.qos              = xQoS;
-    xPublishInfo.retain           = xRetain;
-    xPublishInfo.pTopicName       = pcTopic;
-    xPublishInfo.topicNameLength  = ( uint16_t ) strlen( pcTopic );
-    xPublishInfo.pPayload         = pucPayload;
-    xPublishInfo.payloadLength    = xPayloadLength;
+    xPubInfo.qos             = xQoS;
+    xPubInfo.retain          = bRetain;
+    xPubInfo.pTopicName      = pcTopic;
+    xPubInfo.topicNameLength = (uint16_t) strlen(pcTopic);
+    xPubInfo.pPayload        = pucPayload;
+    xPubInfo.payloadLength   = xPayloadLen;
 
-    xCommandCtx.xTaskToNotify     = xTaskGetCurrentTaskHandle();
-    xCommandCtx.pArgs             = NULL;
+    xCtx.xTaskToNotify = xTaskGetCurrentTaskHandle();
 
-    xCommandInfo.blockTimeMs              = 500;
-    xCommandInfo.cmdCompleteCallback      = prvPublishCommandCallback;
-    xCommandInfo.pCmdCompleteCallbackContext = &xCommandCtx;
+    xCmdInfo.blockTimeMs                 = 500;
+    xCmdInfo.cmdCompleteCallback         = prvPublishCommandCallback;
+    xCmdInfo.pCmdCompleteCallbackContext = &xCtx;
 
     do
     {
-        xMQTTStatus = MQTTAgent_Publish( xMQTTAgentHandle,
-                                         &xPublishInfo,
-                                         &xCommandInfo );
+        xStatus = MQTTAgent_Publish(xMQTTAgentHandle, &xPubInfo, &xCmdInfo);
 
-        if( xMQTTStatus == MQTTSuccess )
+        if(xStatus == MQTTSuccess)
         {
-            xNotifyStatus = xTaskNotifyWait( 0, 0, &ulNotifiedVal, portMAX_DELAY );
-
-            if( xNotifyStatus == pdTRUE )
-            {
-                xMQTTStatus = ( ulNotifiedVal == 0 ) ? MQTTSuccess : MQTTSendFailed;
-            }
+            if(xTaskNotifyWait(0, 0, &ulNotifyVal, portMAX_DELAY) == pdTRUE)
+                xStatus = (ulNotifyVal == 0) ? MQTTSuccess : MQTTSendFailed;
             else
-            {
-                xMQTTStatus = MQTTSendFailed;
-            }
+                xStatus = MQTTSendFailed;
         }
     }
-    while( xMQTTStatus != MQTTSuccess );
+    while(xStatus != MQTTSuccess);
 
-    return xMQTTStatus;
+    return xStatus;
 }
 
 /* -------------------------------------------------------------------------- */
 /* JSON / command parsing                                                     */
 /* -------------------------------------------------------------------------- */
 
-static void prvHandleCoverCommand( const char *pcCoverName,
-                                   const char *pcCommand )
+static void prvHandleCoverCommand(const char *pcCoverName,
+                                  const char *pcCommand)
 {
-    CoverDescriptor_t *pxCover = prvFindCoverByName( pcCoverName );
-    BaseType_t         anyChanged = pdFALSE;
+    Cover_t *pxCover = prvFindCoverByName(pcCoverName);
 
-    if( pxCover == NULL )
+    if(pxCover == NULL)
     {
-        LogWarn( ( "Unknown cover name in topic: %s", pcCoverName ) );
+        LogWarn(("Unknown cover name: %s", pcCoverName));
         return;
     }
 
-    if( strcmp( pcCommand, "OPEN" ) == 0 )
+    if(strcmp(pcCommand, "OPEN") == 0)
     {
-        CoverMotor_Open( pxCover );
-        pxCover->stateReported = COVER_STATE_OPEN;
-        anyChanged = pdTRUE;
+        prvCoverMotorOpen(pxCover);
+
+#if (!USE_MAGNETIC_SENSOR)&&(!USE_RANGING_SENSOR)
+        pxCover->eStateReported = eCOVER_STATE_OPEN;
+#endif
     }
-    else if( strcmp( pcCommand, "CLOSE" ) == 0 )
+    else if(strcmp(pcCommand, "CLOSE") == 0)
     {
-        CoverMotor_Close( pxCover );
-        pxCover->stateReported = COVER_STATE_CLOSED;
-        anyChanged = pdTRUE;
+        prvCoverMotorClose(pxCover);
+
+#if (!USE_MAGNETIC_SENSOR)&&(!USE_RANGING_SENSOR)
+        pxCover->eStateReported = eCOVER_STATE_CLOSED;
+#endif
     }
-    else if( strcmp( pcCommand, "STOP" ) == 0 )
+    else if(strcmp(pcCommand, "STOP") == 0)
     {
-        CoverMotor_Stop( pxCover );
-        pxCover->stateReported = COVER_STATE_STOPPED;
-        anyChanged = pdTRUE;
+        prvCoverMotorStop(pxCover);
+
+#if (!USE_MAGNETIC_SENSOR)&&(!USE_RANGING_SENSOR)
+        pxCover->eStateReported = eCOVER_STATE_STOPPED;
+#endif
     }
 
-    if( anyChanged == pdTRUE )
-    {
-        xEventGroupSetBits( xCoverEventGroup, COVER_STATUS_CHANGED_EVENT );
-    }
+#if (!USE_MAGNETIC_SENSOR)&&(!USE_RANGING_SENSOR)
+    xEventGroupSetBits(xSystemEvents, EVT_DOOR_STATE_CHANGED);
+#endif
 }
 
 /* -------------------------------------------------------------------------- */
 /* Incoming publish callback                                                  */
 /* -------------------------------------------------------------------------- */
 
-static void prvIncomingPublishCallback( void *pvContext,
-                                        MQTTPublishInfo_t *pxPublishInfo )
+static void prvIncomingPublishCallback(void *pvCtx,
+                                       MQTTPublishInfo_t *pxInfo)
 {
-    ( void ) pvContext;
+    (void) pvCtx;
 
-    /* Topic format: <thingName>/cover/<COVER_NAME>/desired */
-    char topicBuf[ MAX_TOPIC_LEN ];
-    char payloadBuf[ 64 ];
+    char pcTopic[MAX_TOPIC_LEN];
+    char pcPayload[64];
 
-    size_t topicLen = pxPublishInfo->topicNameLength;
-    if( topicLen >= sizeof( topicBuf ) )
-    {
-        topicLen = sizeof( topicBuf ) - 1;
-    }
+    size_t xTopicLen = pxInfo->topicNameLength;
+    if(xTopicLen >= sizeof(pcTopic))
+        xTopicLen = sizeof(pcTopic) - 1;
 
-    memcpy( topicBuf, pxPublishInfo->pTopicName, topicLen );
-    topicBuf[ topicLen ] = '\0';
+    memcpy(pcTopic, pxInfo->pTopicName, xTopicLen);
+    pcTopic[xTopicLen] = '\0';
 
-    size_t payloadLen = pxPublishInfo->payloadLength;
+    size_t xPayloadLen = pxInfo->payloadLength;
+    if(xPayloadLen >= sizeof(pcPayload))
+        xPayloadLen = sizeof(pcPayload) - 1;
 
-    if( payloadLen >= sizeof( payloadBuf ) )
-    {
-        payloadLen = sizeof( payloadBuf ) - 1;
-    }
+    memcpy(pcPayload, pxInfo->pPayload, xPayloadLen);
+    pcPayload[xPayloadLen] = '\0';
 
-    memcpy( payloadBuf, pxPublishInfo->pPayload, payloadLen );
-    payloadBuf[ payloadLen ] = '\0';
-
-    LogInfo( ( "Cover incoming: topic=%s payload=%s", topicBuf, payloadBuf ) );
-
-    /* Extract cover name from topic: "<thing>/cover/<NAME>/desired" */
-    const char *p = strstr( topicBuf, "/cover/" );
-
-    if( p == NULL )
-    {
+    const char *pc = strstr(pcTopic, "/cover/");
+    if(pc == NULL)
         return;
-    }
 
-    p += strlen( "/cover/" );
-    const char *nameStart = p;
-    const char *slash = strchr( nameStart, '/' );
-
-    if( slash == NULL )
-    {
+    pc += strlen("/cover/");
+    const char *pcNameStart = pc;
+    const char *pcSlash = strchr(pcNameStart, '/');
+    if(pcSlash == NULL)
         return;
-    }
 
-    char coverName[ 32 ];
-    size_t nameLen = ( size_t )( slash - nameStart );
+    char pcCoverName[32];
+    size_t xNameLen = (size_t)(pcSlash - pcNameStart);
+    if(xNameLen >= sizeof(pcCoverName))
+        xNameLen = sizeof(pcCoverName) - 1;
 
-    if( nameLen >= sizeof( coverName ) )
-    {
-        nameLen = sizeof( coverName ) - 1;
-    }
+    memcpy(pcCoverName, pcNameStart, xNameLen);
+    pcCoverName[xNameLen] = '\0';
 
-    memcpy( coverName, nameStart, nameLen );
-    coverName[ nameLen ] = '\0';
-
-    /* payload is a simple string: "OPEN", "CLOSE", "STOP" */
-    prvHandleCoverCommand( coverName, payloadBuf );
+    prvHandleCoverCommand(pcCoverName, pcPayload);
 }
 
 /* -------------------------------------------------------------------------- */
 /* Subscribe                                                                  */
 /* -------------------------------------------------------------------------- */
 
-static MQTTStatus_t prvSubscribeToCovers( MQTTQoS_t xQoS )
+static MQTTStatus_t prvSubscribeToCovers(MQTTQoS_t xQoS)
 {
-    MQTTStatus_t xStatus;
-    char         topicFilter[ MAX_TOPIC_LEN ];
+    char pcFilter[MAX_TOPIC_LEN];
 
-    /* Wildcard subscription: <thingName>/cover/+/desired */
-    snprintf( topicFilter,
-              sizeof( topicFilter ),
-              "%s/cover/+/desired",
-              thingName );
+    snprintf(pcFilter, sizeof(pcFilter),
+             "%s/cover/+/desired", thingName);
+
+    MQTTStatus_t xStatus;
 
     do
     {
-        xStatus = MqttAgent_SubscribeSync( xMQTTAgentHandle,
-                                           topicFilter,
-                                           xQoS,
-                                           prvIncomingPublishCallback,
-                                           NULL );
+        xStatus = MqttAgent_SubscribeSync(xMQTTAgentHandle,
+                                          pcFilter,
+                                          xQoS,
+                                          prvIncomingPublishCallback,
+                                          NULL);
 
-        if( xStatus != MQTTSuccess )
-        {
-            LogError( ( "Failed to SUBSCRIBE to topic %s, error=%u",
-                        topicFilter,
-                        xStatus ) );
-        }
+        if(xStatus != MQTTSuccess)
+            LogError(("Failed to subscribe: %s", pcFilter));
         else
-        {
-            LogInfo( ( "Subscribed to topic filter: %s", topicFilter ) );
-        }
-    }
-    while( xStatus != MQTTSuccess );
+            LogInfo(("Subscribed: %s", pcFilter));
+
+    } while(xStatus != MQTTSuccess);
 
     return xStatus;
 }
@@ -428,110 +431,105 @@ static MQTTStatus_t prvSubscribeToCovers( MQTTQoS_t xQoS )
 /* State publishing                                                           */
 /* -------------------------------------------------------------------------- */
 
-static void prvPublishCoverStates( void )
+static void prvPublishCoverStates(void)
 {
-    char   topic[ MAX_TOPIC_LEN ];
-    char   payload[ 32 ];
-    size_t len;
-    MQTTStatus_t xStatus;
+    char pcTopic[MAX_TOPIC_LEN];
+    char pcPayload[32];
 
-    for( uint8_t i = 0; i < COVER_COUNT; i++ )
+    for(uint8_t i = 0; i < COVER_COUNT; i++)
     {
-        CoverDescriptor_t *pxCover = &xCovers[ i ];
+        Cover_t *pxCover = &xCovers[i];
 
-        snprintf( topic,
-                  sizeof( topic ),
-                  "%s/cover/%s/state",
-                  thingName,
-                  pxCover->name );
+        pxCover->eStateReported = prvReadDoorSensor(i);
 
-        const char *stateStr = prvStateToString( pxCover->stateReported );
+        snprintf(pcTopic, sizeof(pcTopic),
+                 "%s/cover/%s/state",
+                 thingName, pxCover->pcName);
 
-        len = snprintf( payload,
-                        sizeof( payload ),
-                        "%s",
-                        stateStr );
+        const char *pcState = prvStateToString(pxCover->eStateReported);
 
-        xStatus = prvPublishToTopic( MQTTQoS1,
-                                     false,
-                                     topic,
-                                     (uint8_t *) payload,
-                                     len );
+        size_t xLen = snprintf(pcPayload, sizeof(pcPayload), "%s", pcState);
 
-        if( xStatus == MQTTSuccess )
-        {
-            LogInfo( ( "Published cover state: %s -> %s",
-                       pxCover->name,
-                       stateStr ) );
-        }
-        else
-        {
-            LogError( ( "Failed to publish cover state: %s", pxCover->name ) );
-        }
+        prvPublishToTopic(MQTTQoS1, false,
+                          pcTopic,
+                          (uint8_t *)pcPayload,
+                          xLen);
     }
 }
+
+#if USE_MAGNETIC_SENSOR
+static void prvDoorSensorInterrupt(void *pvCtx)
+{
+    (void) pvCtx;
+    xEventGroupSetBits(xSystemEvents, EVT_DOOR_STATE_CHANGED);
+}
+
+static void prvRegisterDoorInterrupts(void)
+{
+    for(uint8_t i = 0; i < COVER_COUNT; i++)
+    {
+        const DoorSensor_t *pxSensor = &xCovers[i].xSensor;
+
+        GPIO_EXTI_Register_Rising_Callback(pxSensor->usPin,
+                                           prvDoorSensorInterrupt,
+                                           (void *)(uintptr_t)i);
+
+        GPIO_EXTI_Register_Falling_Callback(pxSensor->usPin,
+                                            prvDoorSensorInterrupt,
+                                            (void *)(uintptr_t)i);
+    }
+}
+#endif
 
 /* -------------------------------------------------------------------------- */
 /* Cover task                                                                 */
 /* -------------------------------------------------------------------------- */
 
-void vCoverTask( void *pvParameters )
+void vCoverTask(void *pvParams)
 {
-    ( void ) pvParameters;
+    (void) pvParams;
 
     vSleepUntilMQTTAgentReady();
     xMQTTAgentHandle = xGetMqttAgentHandle();
-    configASSERT( xMQTTAgentHandle != NULL );
+    configASSERT(xMQTTAgentHandle != NULL);
 
     vSleepUntilMQTTAgentConnected();
 
-    size_t thingLen = 0;
-    char *pThing = KVStore_getStringHeap( CS_CORE_THING_NAME, &thingLen );
-    configASSERT( pThing != NULL );
+    size_t xThingLen = 0;
+    char *pcThing = KVStore_getStringHeap(CS_CORE_THING_NAME, &xThingLen);
+    configASSERT(pcThing != NULL);
 
-    configASSERT( thingLen < sizeof( thingName ) );
-    memcpy( thingName, pThing, thingLen );
-    thingName[ thingLen ] = '\0';
-    vPortFree( pThing );
+    memcpy(thingName, pcThing, xThingLen);
+    thingName[xThingLen] = '\0';
+    vPortFree(pcThing);
 
-    LogInfo( ( "MQTT Agent connected. Starting cover task for thing: %s", thingName ) );
+    LogInfo(("Cover task starting for thing: %s", thingName));
 
-    xCoverEventGroup = xEventGroupCreate();
-    configASSERT( xCoverEventGroup != NULL );
+#if USE_MAGNETIC_SENSOR
+    prvRegisterDoorInterrupts();
+#endif
 
-    /* Subscribe to all cover commands */
-    prvSubscribeToCovers( MQTTQoS1 );
+    prvSubscribeToCovers(MQTTQoS1);
 
-    /* Force initial state publish (all unknown) */
-    xEventGroupSetBits( xCoverEventGroup, COVER_STATUS_CHANGED_EVENT );
+    prvPublishCoverStates();
 
-    for (;;)
+    for(;;)
     {
-        /* 1. Poll sensors */
-        for (uint8_t i = 0; i < COVER_COUNT; i++)
-        {
-            CoverState_t sensed = prvReadDoorSensor(i);
+        xEventGroupWaitBits(xSystemEvents,
+                            EVT_DOOR_STATE_CHANGED,
+                            pdTRUE,
+                            pdFALSE,
+                            portMAX_DELAY);
 
-            if (sensed != xCovers[i].stateReported)
+        for(uint8_t i = 0; i < COVER_COUNT; i++)
+        {
+            eCoverState_t eSensed = prvReadDoorSensor(i);
+
+            if(eSensed != xCovers[i].eStateReported)
             {
-                xCovers[i].stateReported = sensed;
-                xEventGroupSetBits(xCoverEventGroup, COVER_STATUS_CHANGED_EVENT);
+                xCovers[i].eStateReported = eSensed;
+                prvPublishCoverStates();
             }
         }
-
-        /* 2. Handle MQTT publishes */
-        EventBits_t bits = xEventGroupWaitBits(
-            xCoverEventGroup,
-            COVER_STATUS_CHANGED_EVENT,
-            pdTRUE,
-            pdTRUE,
-            xPollRate  /* timeout so we can poll again */
-        );
-
-        if (bits & COVER_STATUS_CHANGED_EVENT)
-        {
-            prvPublishCoverStates();
-        }
     }
-
 }

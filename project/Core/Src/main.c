@@ -114,6 +114,10 @@ int32_t ETH_PHY_IO_ReadReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t *pRegVal
 int32_t ETH_PHY_IO_WriteReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t RegVal);
 int32_t ETH_PHY_IO_GetTick(void);
 #endif
+
+#if USE_RANGING_SENSOR
+static int32_t vl53l5cx_i2c_recover(void);
+#endif
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -341,7 +345,9 @@ static void MX_I2C1_Init(void)
 {
 
   /* USER CODE BEGIN I2C1_Init 0 */
-
+#if USE_RANGING_SENSOR
+  vl53l5cx_i2c_recover();
+#endif
   /* USER CODE END I2C1_Init 0 */
 
   /* USER CODE BEGIN I2C1_Init 1 */
@@ -782,6 +788,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOH, LED_RED_Pin|LED_GREEN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(VL53L5A1_LP_GPIO_Port, VL53L5A1_LP_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOF, STSAFE_EN_Pin|ARD_D07_Pin|MXCHIP_RESET_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : MXCHIP_FLOW_Pin */
@@ -819,13 +828,20 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : ARD_D09_Pin */
   GPIO_InitStruct.Pin = ARD_D09_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(ARD_D09_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : VL53L5A1_LP_Pin */
+  GPIO_InitStruct.Pin = VL53L5A1_LP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(VL53L5A1_LP_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : ARD_D08_Pin */
   GPIO_InitStruct.Pin = ARD_D08_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(ARD_D08_GPIO_Port, &GPIO_InitStruct);
 
@@ -835,16 +851,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(MXCHIP_NOTIFY_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : ARD_D02_Pin */
-  GPIO_InitStruct.Pin = ARD_D02_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(ARD_D02_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : ARD_D03_Pin */
   GPIO_InitStruct.Pin = ARD_D03_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(ARD_D03_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : MXCHIP_NSS_Pin */
@@ -1062,6 +1072,73 @@ int32_t ETH_PHY_IO_WriteReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t RegVal)
 int32_t ETH_PHY_IO_GetTick(void)
 {
   return HAL_GetTick();
+}
+#endif
+
+#if USE_RANGING_SENSOR
+/**
+  * @brief This functions permits to avoid HW reset due to an I2C bug on the device.
+  */
+int32_t vl53l5cx_i2c_recover(void)
+{
+  /* We can't assume bus state based on SDA and SCL state (we may be in a data or NAK bit so SCL=SDA=1)
+  * by setting SDA high and toggling SCL at least 10 time we ensure whatever agent and state
+  * all agent should end up seeing a "stop" and bus get back to an known idle i2c  bus state */
+
+  uint8_t i;
+  uint8_t retry_cnt = 0;
+  static uint8_t is_already_init = 0U;
+  GPIO_InitTypeDef GPIO_InitStruct;
+
+  if (is_already_init == 1U)
+  {
+    return BSP_ERROR_NONE;
+  }
+
+  /* Enable I/O */
+  __HAL_RCC_GPIOH_CLK_ENABLE();
+
+  GPIO_InitStruct.Pin = VL53L5A1_LP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init    (VL53L5A1_LP_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_WritePin(VL53L5A1_LP_GPIO_Port, VL53L5A1_LP_Pin, GPIO_PIN_SET);
+
+  GPIO_InitStruct.Pin = BUS_I2C2_SCL_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(BUS_I2C2_SCL_GPIO_Port, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = BUS_I2C2_SDA_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(BUS_I2C2_SDA_GPIO_Port, &GPIO_InitStruct);
+
+  HAL_GPIO_WritePin(BUS_I2C2_SCL_GPIO_Port, BUS_I2C2_SCL_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(BUS_I2C2_SDA_GPIO_Port, BUS_I2C2_SDA_Pin, GPIO_PIN_SET);
+
+  do
+  {
+    for (i = 0; i < 10U; i++)
+    {
+      HAL_GPIO_WritePin(BUS_I2C2_SCL_GPIO_Port, BUS_I2C2_SCL_Pin, GPIO_PIN_RESET);
+      HAL_Delay(1);
+      HAL_GPIO_WritePin(BUS_I2C2_SCL_GPIO_Port, BUS_I2C2_SCL_Pin, GPIO_PIN_SET);
+      HAL_Delay(1);
+    }
+
+    retry_cnt++;
+  } while ((HAL_GPIO_ReadPin(BUS_I2C2_SDA_GPIO_Port, BUS_I2C2_SDA_Pin) == GPIO_PIN_RESET) && (retry_cnt < 7U));
+
+  if (HAL_GPIO_ReadPin(BUS_I2C2_SCL_GPIO_Port, BUS_I2C2_SDA_Pin) == GPIO_PIN_RESET)
+  {
+    /* We are still in a bad i2c state, return error */
+    return BSP_ERROR_COMPONENT_FAILURE;
+  }
+
+  is_already_init = 1U;
+
+  return BSP_ERROR_NONE;
 }
 #endif
 /* USER CODE END 4 */

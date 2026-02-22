@@ -135,16 +135,11 @@ static void prvPublishAllHAConfigs( const char * pcThingName,
     vTaskDelay( pdMS_TO_TICKS( 1000 ) );
 
 #if ( DEMO_AWS_OTA == 1 )
-    /* Initialize advertised version to current and publish state. */
-    newAppFirmwareVersion.u.x.major = appFirmwareVersion.u.x.major;
-    newAppFirmwareVersion.u.x.minor = appFirmwareVersion.u.x.minor;
-    newAppFirmwareVersion.u.x.build = appFirmwareVersion.u.x.build;
-
     /* Publish the firmware version. */
     ( void ) HA_OTA_PublishFirmwareVersionStatus( appFirmwareVersion,
-                                                 newAppFirmwareVersion,
-                                                 pcThingName,
-                                                 FW_UPDATE_STATUS_COMPLETED );
+                                                  appFirmwareVersion,
+                                                  pcThingName,
+                                                  FW_UPDATE_STATUS_COMPLETED );
 #endif
 
     /* Publish the availability message. */
@@ -245,7 +240,13 @@ void vHAConfigPublishTask(void *pvParameters)
 
       (void) HA_OTA_PublishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pcThingName, FW_UPDATE_STATUS_UPDATING);
 
-//      HA_PublishAvailabilityStatus(pcThingName, pcPayloadBuffer, "offline");
+      /* Start OTA progress reporting task. */
+      (void) xTaskCreate( vOtaProgressTask,
+                          "OTA_Progress",
+                          1024,
+                          ( void * ) pcThingName,
+                          tskIDLE_PRIORITY + 2,
+                          NULL );
     }
 
     if ((uxBits & EVT_OTA_COMPLETED) != 0)

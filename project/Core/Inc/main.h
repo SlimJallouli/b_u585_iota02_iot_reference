@@ -92,25 +92,29 @@ void Error_Handler(void);
 #define USER_Button_EXTI_IRQn EXTI13_IRQn
 #define ARD_I2C_SCL_Pin GPIO_PIN_8
 #define ARD_I2C_SCL_GPIO_Port GPIOB
+#define BUS_I2C2_SCL_Pin GPIO_PIN_4
+#define BUS_I2C2_SCL_GPIO_Port GPIOH
 #define LED_RED_Pin GPIO_PIN_6
 #define LED_RED_GPIO_Port GPIOH
 #define MXCHIP_SCK_Pin GPIO_PIN_1
 #define MXCHIP_SCK_GPIO_Port GPIOD
 #define LED_GREEN_Pin GPIO_PIN_7
 #define LED_GREEN_GPIO_Port GPIOH
+#define BUS_I2C2_SDA_Pin GPIO_PIN_5
+#define BUS_I2C2_SDA_GPIO_Port GPIOH
 #define T_VCP_RX_Pin GPIO_PIN_10
 #define T_VCP_RX_GPIO_Port GPIOA
 #define ARD_D09_Pin GPIO_PIN_8
 #define ARD_D09_GPIO_Port GPIOA
 #define T_VCP_TX_Pin GPIO_PIN_9
 #define T_VCP_TX_GPIO_Port GPIOA
+#define VL53L5A1_LP_Pin GPIO_PIN_1
+#define VL53L5A1_LP_GPIO_Port GPIOH
 #define ARD_D08_Pin GPIO_PIN_1
 #define ARD_D08_GPIO_Port GPIOC
 #define MXCHIP_NOTIFY_Pin GPIO_PIN_14
 #define MXCHIP_NOTIFY_GPIO_Port GPIOD
 #define MXCHIP_NOTIFY_EXTI_IRQn EXTI14_IRQn
-#define ARD_D02_Pin GPIO_PIN_15
-#define ARD_D02_GPIO_Port GPIOD
 #define ARD_SPI_MISO_Pin GPIO_PIN_14
 #define ARD_SPI_MISO_GPIO_Port GPIOE
 #define ARD_D03_Pin GPIO_PIN_2
@@ -161,40 +165,53 @@ void Error_Handler(void);
 #endif
 
 /********** Seed Relay V2 Pin definition ***********/
-#define RELAY_1_Pin                             ARD_D07_Pin
-#define RELAY_1_Port                            ARD_D07_GPIO_Port
+#define RELAY_4_Pin                             ARD_D07_Pin
+#define RELAY_4_Port                            ARD_D07_GPIO_Port
 
-#define RELAY_2_Pin                             ARD_D06_Pin
-#define RELAY_2_Port                            ARD_D06_GPIO_Port
+#define RELAY_3_Pin                             ARD_D06_Pin
+#define RELAY_3_Port                            ARD_D06_GPIO_Port
 
-#define RELAY_3_Pin                             ARD_D05_Pin
-#define RELAY_3_Port                            ARD_D05_GPIO_Port
+#define RELAY_2_Pin                             ARD_D05_Pin
+#define RELAY_2_Port                            ARD_D05_GPIO_Port
 
-#define RELAY_4_Pin                             ARD_D04_Pin
-#define RELAY_4_Port                            ARD_D04_GPIO_Port
+#define RELAY_1_Pin                             ARD_D04_Pin
+#define RELAY_1_Port                            ARD_D04_GPIO_Port
 
-#define DOOR_SENSPR_1_Pin                       ARD_D02_Pin
-#define DOOR_SENSPR_1_Port                      ARD_D02_GPIO_Port
-#define DOOR_SENSPR_1_STATE_OPEN                GPIO_PIN_SET
-
+#define DOOR_SENSPR_3_Pin                       ARD_D03_Pin
+#define DOOR_SENSPR_3_Port                      ARD_D03_GPIO_Port
+#define DOOR_SENSPR_3_IRQn                      ARD_D03_EXTI_IRQn
+#define DOOR_SENSPR_3_STATE_OPEN                GPIO_PIN_SET
 
 #define DOOR_SENSPR_2_Pin                       ARD_D08_Pin
 #define DOOR_SENSPR_2_Port                      ARD_D08_GPIO_Port
+#define DOOR_SENSPR_2_IRQn                      ARD_D08_EXTI_IRQn
 #define DOOR_SENSPR_2_STATE_OPEN                GPIO_PIN_SET
 
-#define DOOR_SENSPR_3_Pin                       ARD_D09_Pin
-#define DOOR_SENSPR_3_Port                      ARD_D09_GPIO_Port
-#define DOOR_SENSPR_3_STATE_OPEN                GPIO_PIN_SET
+#define DOOR_SENSPR_1_Pin                       ARD_D09_Pin
+#define DOOR_SENSPR_1_Port                      ARD_D09_GPIO_Port
+#define DOOR_SENSPR_1_IRQn                      ARD_D09_EXTI_IRQn
+#define DOOR_SENSPR_1_STATE_OPEN                GPIO_PIN_SET
 
+/********** Cover demo configuration ***********/
 /* The number of garage doors */
 #define NUM_COVERS                              1 /* 1, 2 or 3 */
 
 /* Define if door sensors are used 0: not used, 1: used */
-#define USE_DOOR_SENSPR                         1
+#define USE_MAGNETIC_SENSOR                     0
+#define USE_RANGING_SENSOR                      1
 
-#if NUM_COVERS < 1 || NUM_COVERS > 3
+#if (NUM_COVERS < 1) || (NUM_COVERS > 3)
 #error "NUM_COVERS must be 1, 2, or 3"
 #endif
+
+#if (USE_MAGNETIC_SENSOR) && (USE_RANGING_SENSOR)
+#error please select either USE_MAGNETIC_SENSOR or USE_RANGING_SENSOR
+#endif
+
+#if (USE_RANGING_SENSOR) && (NUM_COVERS > 1)
+#error only one cover is allowed when using the USE_RANGING_SENSOR
+#endif
+
 /********** X-NUCLEO-STSAFE Pin definition ***********/
 #if !defined(STSAFE_EN_Pin)
 #define STSAFE_EN_Pin                           ARD_D02_Pin
@@ -286,16 +303,17 @@ void Error_Handler(void);
 #define TASK_PRIO_ECHO_CLIENT                   (tskIDLE_PRIORITY      + 5 )
 #define TASK_PRIO_DEFENDER                      (tskIDLE_PRIORITY      + 6 )
 #define TASK_PRIO_BUTTON                        (tskIDLE_PRIORITY      + 6 )
-#define TASK_PRIO_SHADOW                        (tskIDLE_PRIORITY      + 7 )
-#define TASK_PRIO_LED                           (tskIDLE_PRIORITY      + 7 )
-#define TASK_PRIO_PUBLISH                       (tskIDLE_PRIORITY      + 8 )
-#define TASK_PRIO_LIGHT                         (tskIDLE_PRIORITY      + 9 )
-#define TASK_PRIO_ENV                           (tskIDLE_PRIORITY      + 10)
-#define TASK_PRIO_MOTION                        (tskIDLE_PRIORITY      + 11)
-#define TASK_PRIO_HOMEASSISTANT                 (tskIDLE_PRIORITY      + 12)
-#define TASK_PRIO_OTA                           (tskIDLE_PRIORITY      + 13)
-#define TASK_PRIO_CLI                           (tskIDLE_PRIORITY      + 14)
-#define TASK_PRIO_MQTTA_AGENT                   (tskIDLE_PRIORITY      + 15)
+#define TASK_PRIO_RANGING                       (tskIDLE_PRIORITY      + 7 )
+#define TASK_PRIO_SHADOW                        (tskIDLE_PRIORITY      + 8 )
+#define TASK_PRIO_LED                           (tskIDLE_PRIORITY      + 9 )
+#define TASK_PRIO_PUBLISH                       (tskIDLE_PRIORITY      + 10)
+#define TASK_PRIO_LIGHT                         (tskIDLE_PRIORITY      + 11)
+#define TASK_PRIO_ENV                           (tskIDLE_PRIORITY      + 12)
+#define TASK_PRIO_MOTION                        (tskIDLE_PRIORITY      + 13)
+#define TASK_PRIO_HOMEASSISTANT                 (tskIDLE_PRIORITY      + 14)
+#define TASK_PRIO_OTA                           (tskIDLE_PRIORITY      + 1 )
+#define TASK_PRIO_CLI                           (tskIDLE_PRIORITY      + 16)
+#define TASK_PRIO_MQTTA_AGENT                   (tskIDLE_PRIORITY      + 17)
 #define TASK_PRIO_W6X                           (TASK_PRIO_MQTTA_AGENT + 1 )
 #define TASK_PRIO_MXCHIP                        (tskIDLE_PRIORITY      + 23)
 #define TASK_PRIO_NET_ETH                       (TASK_PRIO_MQTTA_AGENT + 1 )
@@ -308,6 +326,7 @@ void Error_Handler(void);
 #define TASK_STACK_SIZE_SHADOW                  2024/** Stack size of the ShadowDevice process task      */
 #define TASK_STACK_SIZE_LED                     1024/** Stack size of the LED process task               */
 #define TASK_STACK_SIZE_BUTTON                  1024/** Stack size of the Button process task            */
+#define TASK_STACK_SIZE_RANGING                 1024/** Stack size of the RANGING process task            */
 #define TASK_STACK_SIZE_PUBLISH                 2024/** Stack size of the publish process task           */
 #define TASK_STACK_SIZE_ENV                     1024/** Stack size of the EnvSense process task          */
 #define TASK_STACK_SIZE_LIGHT                   1024/** Stack size of the LightSense process task        */
