@@ -15,6 +15,7 @@ If you are searching for a **secure STM32 AWS IoT example**, **STM32U5 MQTT over
 ## Table of Contents
 
 - [Why This Project](#why-this-project)
+- [Upstream and Key Differences](#upstream-and-key-differences)
 - [Key Features](#key-features)
 - [Supported Hardware and Sensors](#supported-hardware-and-sensors)
 - [Security Architecture](#security-architecture)
@@ -37,6 +38,22 @@ This reference helps embedded developers build secure, cloud-connected firmware 
 - MQTT over TLS with software or hardware-backed credentials
 - Standard interfaces for cryptography and runtime configuration
 - Proven end-to-end flows for provisioning, telemetry, control, and OTA
+
+## Upstream and Key Differences
+
+This repository is derived from the official FreeRTOS STM32U5 reference project:
+
+- https://github.com/FreeRTOS/iot-reference-stm32u5
+
+Main differences in this repository:
+
+- Adds **AWS IoT Fleet Provisioning** support
+- Adds **STSAFE** security flows (A110/A120)
+- Supports both **MXCHIP** and **ST67** Wi-Fi module variants
+- Adds support for **Mosquitto** and **EMQX** MQTT brokers
+- Supports **STM32CubeMX project regeneration** based on **CMSIS packs**
+- Stores runtime configuration in **internal flash or STSAFE** (instead of external flash used in the upstream reference)
+- Does **not** support **TrustZone**
 
 ## Key Features
 
