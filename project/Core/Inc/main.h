@@ -165,32 +165,32 @@ void Error_Handler(void);
 #endif
 
 /********** Seed Relay V2 Pin definition ***********/
-#define RELAY_4_Pin                             ARD_D07_Pin
-#define RELAY_4_Port                            ARD_D07_GPIO_Port
+#define RELAY_1_Pin                             ARD_D07_Pin
+#define RELAY_1_Port                            ARD_D07_GPIO_Port
 
-#define RELAY_3_Pin                             ARD_D06_Pin
-#define RELAY_3_Port                            ARD_D06_GPIO_Port
+#define RELAY_2_Pin                             ARD_D06_Pin
+#define RELAY_2_Port                            ARD_D06_GPIO_Port
 
-#define RELAY_2_Pin                             ARD_D05_Pin
-#define RELAY_2_Port                            ARD_D05_GPIO_Port
+#define RELAY_3_Pin                             ARD_D05_Pin
+#define RELAY_3_Port                            ARD_D05_GPIO_Port
 
-#define RELAY_1_Pin                             ARD_D04_Pin
-#define RELAY_1_Port                            ARD_D04_GPIO_Port
+#define RELAY_4_Pin                             ARD_D04_Pin
+#define RELAY_4_Port                            ARD_D04_GPIO_Port
 
-#define DOOR_SENSPR_3_Pin                       ARD_D03_Pin
-#define DOOR_SENSPR_3_Port                      ARD_D03_GPIO_Port
-#define DOOR_SENSPR_3_IRQn                      ARD_D03_EXTI_IRQn
-#define DOOR_SENSPR_3_STATE_OPEN                GPIO_PIN_SET
+#define DOOR_SENSPR_1_Pin                       ARD_D03_Pin
+#define DOOR_SENSPR_1_Port                      ARD_D03_GPIO_Port
+#define DOOR_SENSPR_1_IRQn                      ARD_D03_EXTI_IRQn
+#define DOOR_SENSPR_1_STATE_OPEN                GPIO_PIN_SET
 
 #define DOOR_SENSPR_2_Pin                       ARD_D08_Pin
 #define DOOR_SENSPR_2_Port                      ARD_D08_GPIO_Port
 #define DOOR_SENSPR_2_IRQn                      ARD_D08_EXTI_IRQn
 #define DOOR_SENSPR_2_STATE_OPEN                GPIO_PIN_SET
 
-#define DOOR_SENSPR_1_Pin                       ARD_D09_Pin
-#define DOOR_SENSPR_1_Port                      ARD_D09_GPIO_Port
-#define DOOR_SENSPR_1_IRQn                      ARD_D09_EXTI_IRQn
-#define DOOR_SENSPR_1_STATE_OPEN                GPIO_PIN_SET
+#define DOOR_SENSPR_3_Pin                       ARD_D09_Pin
+#define DOOR_SENSPR_3_Port                      ARD_D09_GPIO_Port
+#define DOOR_SENSPR_3_IRQn                      ARD_D09_EXTI_IRQn
+#define DOOR_SENSPR_3_STATE_OPEN                GPIO_PIN_SET
 
 /********** Cover demo configuration ***********/
 /* The number of garage doors */
