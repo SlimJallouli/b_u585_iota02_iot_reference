@@ -450,7 +450,7 @@ static void prvPublishCoverStates(void)
 
         size_t xLen = snprintf(pcPayload, sizeof(pcPayload), "%s", pcState);
 
-        prvPublishToTopic(MQTTQoS1, false,
+        prvPublishToTopic(MQTTQoS1, true,
                           pcTopic,
                           (uint8_t *)pcPayload,
                           xLen);
