@@ -1,114 +1,106 @@
+# STM32U585 Ranging Sensor (VL53L5CX) for Garage Door State Detection
 
-📦 MQTT Payload Structure
-Here’s a clean JSON payload your firmware can publish:
+This document describes the actual behavior of `ranging_sensor.c` in this project.
 
-```json
-{
-  "occupancy_level": 0.73,
-  "raw_average_mm": 1973.6,
-  "timestamp": "2025-07-23T19:22:00Z"
-}
-```
+The ranging task does **not** publish MQTT payloads directly. Instead, it determines door state (`OPEN` / `CLOSED`) from VL53L5CX distance data and notifies the cover task.
 
-This gives HA clarity:
+## What This Module Does
 
-occupancy_level: normalized value (0.0–1.0)
+- Initializes and configures the VL53L5CX ToF sensor
+- Samples center-zone distance periodically
+- Applies fixed hysteresis thresholds to infer door state
+- Updates global `gDoorState`
+- Sets `EVT_DOOR_STATE_CHANGED` so `cover_task.c` can publish cover state
 
-raw_average_mm: useful for calibration and dashboards
+## Source Files
 
-timestamp: helpful if you retain messages briefly or graph them
+- `project/Common/app/sensors/ranging_sensor.c`
+- `project/Common/app/cover/cover_task.c`
+- `project/Core/Inc/main.h`
+- `project/Core/Src/app_freertos.c`
 
-You could publish this to a topic like:
+## Compile-Time Requirements
 
-```
-iot/devices/<device_id>/sensors/occupancy
-```
-Or the simpler:
+The following constraints are enforced in firmware:
 
-```
-stm32u585-<device_sn>/tof/occupancy
-```
-🧠 Home Assistant MQTT Discovery Config
-To register it automatically in HA, publish to:
+- `USE_RANGING_SENSOR` and `USE_MAGNETIC_SENSOR` are mutually exclusive
+- `USE_RANGING_SENSOR` supports only one cover (`NUM_COVERS == 1`)
 
-homeassistant/sensor/<device_id>_occupancy/config
-With payload:
-
-```json
-{
-  "name": "Occupancy Level",
-  "state_topic": "iot/devices/stm32u585-0049001B3636500A20333342/sensors/occupancy",
-  "unit_of_measurement": "%",
-  "value_template": "{{ (value_json.occupancy_level * 100) | round(1) }}",
-  "json_attributes_topic": "iot/devices/stm32u585-0049001B3636500A20333342/sensors/occupancy",
-  "unique_id": "stm32u585-0049001B3636500A20333342_occupancy_level",
-  "device_class": "none",
-  "entity_category": "diagnostic",
-  "device": {
-    "identifiers": ["stm32u585-0049001B3636500A20333342"],
-    "name": "VL53L5CX ToF Sensor",
-    "model": "VL53L5CX",
-    "manufacturer": "STMicroelectronics",
-    "sw_version": "1.0.0"
-  },
-  "retain": false
-}
-```
-This will give you a clean diagnostic-style sensor that shows up in HA with percentage formatting and dynamic attributes like raw_average_mm.
-
-Want me to extend this with zone-level publishing (like zone_mask or grid data), or wire it up to a binary motion_detected entity when occupancy crosses a threshold? It’d be slick to pair this with an automation that fades your hallway lights based on proximity intensity.
-
-normalized proximity scale where:
-
-    * 0 mm = 100% occupancy (someone very close)
-    * 1970 mm and above = 0% occupancy (no one present)
-    * Anything in-between fades linearly
-
-Normalization Logic (C-style pseudocode)
+Example configuration (`main.h`):
 
 ```c
-#define MAX_DISTANCE_MM 1970.0f
-#define MIN_DISTANCE_MM 0.0f
-
-float normalize_occupancy(float measured_mm) {
-    if (measured_mm >= MAX_DISTANCE_MM) return 0.0f;
-    if (measured_mm <= MIN_DISTANCE_MM) return 1.0f;
-    return 1.0f - (measured_mm / MAX_DISTANCE_MM);
-}
-```
-This returns a float between 0.0 and 1.0, directly suitable for occupancy visualization.
-
-📤 MQTT Payload Example
-```json
-{
-  "occupancy_level": 0.73,
-  "raw_distance_mm": 532.8,
-  "confidence": "stable",
-  "timestamp": "2025-07-23T19:28:00Z"
-}
-```
-You could add confidence from variance checks if averaging multiple frames — totally optional but neat.
-
-🏠 Home Assistant Discovery Config
-```json
-{
-  "name": "ToF Occupancy Intensity",
-  "state_topic": "iot/devices/stm32u585-0049001B3636500A20333342/sensors/occupancy",
-  "unit_of_measurement": "%",
-  "value_template": "{{ (value_json.occupancy_level * 100) | round(1) }}",
-  "json_attributes_topic": "iot/devices/stm32u585-0049001B3636500A20333342/sensors/occupancy",
-  "unique_id": "stm32u585-0049001B3636500A20333342_tof_occupancy",
-  "device_class": "none",
-  "entity_category": "diagnostic",
-  "retain": false,
-  "device": {
-    "identifiers": ["stm32u585-0049001B3636500A20333342"],
-    "name": "VL53L5CX ToF Sensor",
-    "model": "VL53L5CX",
-    "manufacturer": "STMicroelectronics",
-    "sw_version": "1.0.0"
-  }
-}
+#define NUM_COVERS           1
+#define USE_MAGNETIC_SENSOR  0
+#define USE_RANGING_SENSOR   1
 ```
 
-This will show up in Home Assistant as a dynamic percentage-based diagnostic sensor.
+## Task Lifecycle
+
+`vRangingSensorTask()` is created in `app_freertos.c` when `USE_RANGING_SENSOR` is enabled.
+
+Runtime flow:
+
+1. `xInitSensors()` probes/initializes VL53L5CX
+2. Sensor profile is configured (`4x4 continuous`, timing budget `30`, frequency `5`)
+3. Task reads distance periodically (polling period: `1000 ms`)
+4. Center distance is extracted and door state is updated with hysteresis
+5. On state change, firmware sets `EVT_DOOR_STATE_CHANGED`
+
+## Door State Logic
+
+Global state:
+
+- `DOOR_STATE_UNKNOWN`
+- `DOOR_STATE_OPEN`
+- `DOOR_STATE_CLOSED`
+
+Thresholds in `ranging_sensor.c`:
+
+- `DOOR_OPEN_THRESHOLD_MM  = 500` (50 cm)
+- `DOOR_CLOSE_THRESHOLD_MM = 800` (80 cm)
+
+Hysteresis behavior:
+
+- From `CLOSED` -> `OPEN` when distance `< 500 mm`
+- From `OPEN` -> `CLOSED` when distance `> 800 mm`
+- From `UNKNOWN`:
+  - `< 500 mm` => `OPEN`
+  - otherwise => `CLOSED`
+
+This gap (500-800 mm) avoids rapid state toggling near threshold.
+
+## Distance Extraction Method
+
+`GetCenterDistance()` computes the average distance of the 4 center zones:
+
+- Works for both 4x4 and 8x8 layouts
+- Uses only zones with valid targets (`NumberOfTargets > 0`)
+- Returns `0` when no center zones report a target
+
+## Integration with Cover Task
+
+`ranging_sensor.c` exports `gDoorState`, which is consumed by `cover_task.c` when `USE_RANGING_SENSOR == 1`.
+
+On state change, the ranging task sets:
+
+```c
+xEventGroupSetBits(xSystemEvents, EVT_DOOR_STATE_CHANGED);
+```
+
+`cover_task.c` then publishes cover state over MQTT using its normal topics:
+
+- `<thing_name>/cover/<COVER_NAME>/state`
+
+For full cover MQTT details, see:
+
+- [Cover README](../cover/README.md)
+
+## Important Clarification
+
+This module is **not** an occupancy/intensity publisher and does not implement:
+
+- `occupancy_level`
+- custom `tof/occupancy` MQTT topics
+- Home Assistant sensor discovery payload publication
+
+Its role is specifically **door state detection** for cover control.

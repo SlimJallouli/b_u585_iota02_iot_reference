@@ -46,8 +46,8 @@ The example manages a `powerOn` state (for example, for an onboard LED):
   "state": {
     "reported": {
       "powerOn": "1",
-      "Board": "STM32H573I-DK",
-      "Connectivity": "Ethernet"
+      "Board": "B-U585I-IOT02A",
+      "Connectivity": "ST67W6X_RCP"
     }
   },
   "clientToken": "021909"
@@ -70,15 +70,15 @@ Send an MQTT message to `$aws/things/<thing-name>/shadow/update`
 
 The LED will turn on or off depending on the JSON message you send. The board will send back a message confirming the `reported` state.
 
-The `"Board": "STM32H573I-DK"` and `"Connectivity": "ST67_NCP"` fields depend on the project configuration you have selected.
+The `"Board": "B-U585I-IOT02A"` and `"Connectivity": "ST67W6X_RCP"` fields depend on the project configuration you selected.
 
 ```json
 {
   "state": {
     "reported": {
       "powerOn": "1",
-      "Board": "STM32H573I-DK",
-      "Connectivity": "ST67_NCP"
+      "Board": "B-U585I-IOT02A",
+      "Connectivity": "ST67W6X_RCP"
     }
   },
   "clientToken": "021909"

@@ -2,13 +2,13 @@
 
 The following build configurations support secure communication with [broker.emqx.io](https://www.emqx.com/en/mqtt/public-mqtt5-broker):
 
-> Due to MbedTLS version, Only the **ST67_T01** build configuration supports connection to [broker.emqx.io](https://www.emqx.com/en/mqtt/public-mqtt5-broker). (MXCHIP and Ethernet configuration uses a newer MbedTLS version)
+> Due to MbedTLS version compatibility, only the **ST67_T01_Single** build configuration supports connection to [broker.emqx.io](https://www.emqx.com/en/mqtt/public-mqtt5-broker). (`MXCHIP_Single` and `ST67_T02_Single` use a newer MbedTLS package in this project setup.)
 
 This provisioning method is supported by the following project configuration:
 
 |       Build Config          | Connects to emqx       |
 |:---------                   |:-------                |
-| ST67_T01                    |           Yes          |
+| ST67_T01_Single             |           Yes          |
 
 
 ## 1. Hardware Setup
@@ -23,7 +23,7 @@ Connect the Wi-Fi module to the Arduino connector on the board. Connect the boar
 
 ## 3. Get the ThingName
 
-Each board automatically generates a unique Thing Name in the format `stm32h573-< DeviceUID >`, where `< DeviceUID >` corresponds to the device's hardware Unique ID (UID). For example: `stm32h573-002C005B3332511738363236`. You can retrieve the Thing Name using the CLI. Save this device ID for further use. You can always retrieve it using the `conf get` command
+Each board automatically generates a unique Thing Name in the format `stm32u585-<DeviceUID>`, where `<DeviceUID>` corresponds to the device hardware Unique ID (UID). For example: `stm32u585-002C005B3332511738363236`. You can retrieve the Thing Name using the CLI. Save this device ID for later use. You can always retrieve it again with `conf get`.
 
 Type the following command on the serial terminal
 
@@ -172,8 +172,8 @@ Once connected, you should see confirmation messages in the terminal indicating 
 
 ## 11. Run and Test the Examples
 
-After provisioning your board, you can run and test the application features. Refer to the [Run and Test the Examples](readme.md#7-run-and-test-the-examples) section in the main README for details.
+After provisioning your board, you can run and test the application features. Refer to [Run the Examples](readme.md#run-the-examples) in the main README for details.
 
 ---
 
-[⬅️ Back to Main README - Run and Test the Examples](readme.md#7-run-and-test-the-examples)
+[⬅️ Back to Main README](readme.md)

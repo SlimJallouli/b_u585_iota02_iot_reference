@@ -1,32 +1,46 @@
-# Provision with AWS using Fleet Provisioning
+# AWS IoT Fleet Provisioning for STM32U585 (B-U585I-IOT02A, FreeRTOS)
 
-This provisioning method is supported by the following project configurations:
+This guide shows how to provision the STM32U585-based B-U585I-IOT02A project with **AWS IoT Core Fleet Provisioning** for secure, scalable device onboarding.
 
-|       Build Config          | Provisioning method       |
-|:---------                   |:----------                |
-| Ethernet_FleetProvisioning  | Fleet Provisioning        |
-| MXCHIP_FleetProvisioning    | Fleet Provisioning        |
-| ST67_T02_FleetProvisioning    | Fleet Provisioning        |
+## Supported Build Configurations
 
+| Build Config | Provisioning Method |
+|---|---|
+| `MXCHIP_FleetProvisioning` | AWS IoT Fleet Provisioning |
+| `ST67_T02_FleetProvisioning` | AWS IoT Fleet Provisioning |
 
 ## 1. Hardware Setup
 
-If you’ve selected the MXCHIP or ST67_T02 configuration, connect the Wi-Fi module to either the STMod+ or Arduino connector on the board.
+Set up your board based on the selected configuration:
 
-If you’re using the Ethernet configuration, connect the Ethernet cable to the board’s Ethernet port.
+- `MXCHIP_FleetProvisioning` or `ST67_T02_FleetProvisioning`
+  - Connect the Wi-Fi module to the `STMod+` or `Arduino` connector.
 
-Then, in all cases, connect the board to your PC via the ST-Link USB port to power it and enable programming/debugging.
+For all configurations:
+- Connect the board to your PC via the ST-Link USB port for power, flashing, and debugging.
 
-## 2. Fleet Provisioning
+## 2. What AWS IoT Fleet Provisioning Does
 
-[Fleet Provisioning](https://docs.aws.amazon.com/iot/latest/developerguide/provision-wo-cert.html#claim-based) is a feature of AWS IoT Core that automates the end-to-end device onboarding process. It securely delivers unique digital identities to devices, validates device attributes via Lambda functions, and sets up devices with all required permissions and registry metadata. This method is ideal for large-scale device deployments.
+[AWS IoT Fleet Provisioning (claim-based)](https://docs.aws.amazon.com/iot/latest/developerguide/provision-wo-cert.html#claim-based) automates secure device onboarding by:
 
-Follow this [link](https://github.com/SlimJallouli/stm32mcu_aws_fleetProvisioning) for instructions
+- Assigning unique device identity and certificates
+- Validating registration attributes (for example via Lambda)
+- Creating AWS IoT registry resources and policies
 
-## 3. Run and Test the Examples
+This workflow is recommended for production and large-scale IoT deployments.
 
-After provisioning your board, you can run and test the application features. Refer to the [Run and Test the Examples](readme.md#7-run-and-test-the-examples) section in the main README for details.
+## 3. Provisioning Steps
+
+Follow the full step-by-step provisioning workflow here:
+
+- [STM32 AWS Fleet Provisioning Setup Repository](https://github.com/SlimJallouli/stm32mcu_aws_fleetProvisioning)
+
+## 4. Run and Test Examples After Provisioning
+
+After onboarding is complete, run the application examples from the main project README:
+
+- [Run the Examples](readme.md#run-the-examples)
 
 ---
 
-[⬅️ Back to Main README - Run and Test the Examples](readme.md#7-run-and-test-the-examples)
+[Back to Main README](readme.md)

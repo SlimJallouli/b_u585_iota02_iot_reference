@@ -1,46 +1,58 @@
-# Provision with AWS using STSAFE
+# AWS IoT STSAFE Provisioning for STM32U585 (MAR, JITP, JITR)
 
-This provisioning method is supported by the following project configurations:
+This guide covers **STSAFE-based AWS IoT provisioning** for STM32U585 platforms, including:
 
-|       Build Config          | Provisioning method       |
-|:---------                   |:----------                |
-| Ethernet_STSAFEA110         | MAR, JITP, JITR           |
-| Ethernet_STSAFEA120         | MAR, JITP, JITR           |
-| MXCHIP_STSAFEA110           | MAR, JITP, JITR           |
-| MXCHIP_STSAFEA120           | MAR, JITP, JITR           |
+- **Multi-Account Registration (MAR)**
+- **Just-in-Time Provisioning (JITP)**
+- **Just-in-Time Registration (JITR)**
+
+STSAFE provisioning stores sensitive assets (device certificate, private key, and configuration) in secure hardware for stronger device identity protection.
+
+## Supported Build Configurations
+
+| Build Config | Provisioning Method |
+|---|---|
+| `MXCHIP_STSAFEA110` | MAR, JITP, JITR |
+| `MXCHIP_STSAFEA120` | MAR, JITP, JITR |
 
 ## 1. Hardware Setup
 
-If you’ve selected MXCHIP, Connect the Wi-Fi module to either the STMod+ connector on the board.
+- For `MXCHIP_*` profiles: connect the Wi-Fi module to `STMod+`.
+- Connect the STSAFE expansion board based on your configuration:
+  - [X-NUCLEO-SAFEA1](https://www.st.com/en/ecosystems/x-nucleo-safea1.html)
+  - [X-NUCLEO-ESE01A1](https://www.st.com/en/ecosystems/x-nucleo-ese01a1.html)
+- For all profiles: connect ST-Link USB to your PC for power, flashing, and debugging.
 
-Depending on the project configuration, connect the  [X-NUCLEO-SAFEA1](https://www.st.com/en/ecosystems/x-nucleo-safea1.html) or [X-NUCLEO-ESE01A1](https://www.st.com/en/ecosystems/x-nucleo-ese01a1.html) to your board.
+## 2. Multi-Account Registration (MAR)
 
-If you’re using the Ethernet configuration, connect the Ethernet cable to the board’s Ethernet port.
+[Multi-Account Registration (MAR)](https://aws.amazon.com/about-aws/whats-new/2020/04/simplify-iot-device-registration-and-easily-move-devices-between-aws-accounts-with-aws-iot-core-multi-account-registration/) enables secure onboarding and movement of devices across AWS accounts. With STSAFE, identity material remains protected in hardware.
 
-Then, in all cases, connect the board to your PC via the ST-Link USB port to power it and enable programming/debugging.
+Setup guide:
 
-### [Multi-Account Registration](https://aws.amazon.com/about-aws/whats-new/2020/04/simplify-iot-device-registration-and-easily-move-devices-between-aws-accounts-with-aws-iot-core-multi-account-registration/)
-[Multi-Account Registration (MAR)](https://aws.amazon.com/about-aws/whats-new/2020/04/simplify-iot-device-registration-and-easily-move-devices-between-aws-accounts-with-aws-iot-core-multi-account-registration/) registration method uses a secure element [(STSAFE)](https://www.st.com/en/secure-mcus/stsafe-a110.html) for added security. The device certificate, private key, and configuration parameters are saved on [(STSAFE)](https://www.st.com/en/secure-mcus/stsafe-a110.html). This method simplifies device registration and allows for easy movement of devices between multiple AWS accounts. It eliminates the need for a Certificate Authority (CA) to be registered with AWS IoT. The secure element provides additional security by storing sensitive information securely on the device. This method is ideal for large-scale device deployments.
+- [STM32 AWS MAR Reference](https://github.com/stm32-hotspot/stm32mcu_aws_mar)
 
-Follow this [link](https://github.com/stm32-hotspot/stm32mcu_aws_mar) for instructions
+## 3. Just-in-Time Provisioning (JITP)
 
-## [Just-in-Time Provisioning](https://aws.amazon.com/blogs/iot/setting-up-just-in-time-provisioning-with-aws-iot-core/)
+[Just-in-Time Provisioning (JITP)](https://aws.amazon.com/blogs/iot/setting-up-just-in-time-provisioning-with-aws-iot-core/) automatically provisions devices on first connection to AWS IoT Core. STSAFE-backed credentials strengthen trust during bootstrap and onboarding.
 
-[Just-in-Time Provisioning (JITP)](https://aws.amazon.com/blogs/iot/setting-up-just-in-time-provisioning-with-aws-iot-core/) is a method used to automatically provision IoT devices when they first attempt to connect to AWS IoT Core. The [(STSAFE)](https://www.st.com/en/secure-mcus/stsafe-a110.html) module stores the device certificate, private key, and configuration parameters securely, ensuring that the registration process is secure and reliable. This additional layer of security provided by the STSAFE module ensures that sensitive information is kept safe, making it a valuable asset for provisioning IoT devices with AWS IoT Core. This method is ideal for large-scale device deployments.
+Setup guide:
 
-Follow this [link](https://aws.amazon.com/blogs/iot/setting-up-just-in-time-provisioning-with-aws-iot-core/) for instructions
+- [AWS IoT Core JITP Guide](https://aws.amazon.com/blogs/iot/setting-up-just-in-time-provisioning-with-aws-iot-core/)
 
-## [Just-in-Time Registration](https://aws.amazon.com/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/)
+## 4. Just-in-Time Registration (JITR)
 
-[Just-in-Time Registration (JITR)](https://aws.amazon.com/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/) is a method used by AWS IoT Core to automatically register device certificates when a device first connects to AWS IoT.
-The [(STSAFE)](https://www.st.com/en/secure-mcus/stsafe-a110.html) module stores the device certificate, private key, and configuration parameters securely, ensuring that the registration process is secure and reliable. This additional layer of security provided by the STSAFE module ensures that sensitive information is kept safe, making it a valuable asset for provisioning IoT devices with AWS IoT Core. This method is ideal for large-scale device deployments.
+[Just-in-Time Registration (JITR)](https://aws.amazon.com/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/) automatically registers device certificates on first AWS IoT connection. STSAFE securely stores keys/certificates used during registration and runtime authentication.
 
-Follow this [link](https://aws.amazon.com/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/) for instructions
+Setup guide:
 
-## 3. Run and Test the Examples
+- [AWS IoT Core JITR Guide](https://aws.amazon.com/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/)
 
-After provisioning your board, you can run and test the application features. Refer to the [Run and Test the Examples](readme.md#7-run-and-test-the-examples) section in the main README for details.
+## 5. Run the Examples
+
+After provisioning, continue with:
+
+- [Run the Examples](readme.md#run-the-examples)
 
 ---
 
-[⬅️ Back to Main README - Run and Test the Examples](readme.md#7-run-and-test-the-examples)
+[Back to Main README](readme.md)

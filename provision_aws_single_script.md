@@ -1,84 +1,49 @@
-# Provision single device with AWS using Python Script
+# AWS IoT Core Single-Device Provisioning for STM32U585 (Python Script Method)
 
-[Single Thing Provisioning](https://docs.aws.amazon.com/iot/latest/developerguide/single-thing-provisioning.html) is a method used to provision individual IoT devices in AWS IoT Core. This method is ideal for scenarios where you need to provision devices one at a time.
+This guide explains how to provision a **single STM32U585 device** on **AWS IoT Core** using the automated `provision.py` workflow.
 
-In this method, you have two options: automated using a Python script or manual.  
-**This document describes the automated method using the `provision.py` script.**
+See AWS background: [Single Thing Provisioning](https://docs.aws.amazon.com/iot/latest/developerguide/single-thing-provisioning.html).
 
-This provisioning method is supported by the following project configurations:
+## Supported Build Configurations
 
-| Build Config       | Provisioning method       |
-|:------------       |:--------------------------|
-| Ethernet_Single    | Single Thing Provisioning |
-| MXCHIP_Single      | Single Thing Provisioning |
-| ST67_T01_Single    | Single Thing Provisioning |
-| ST67_T02_Single    | Single Thing Provisioning |
+| Build Config | Provisioning Method |
+|---|---|
+| `MXCHIP_Single` | Single Thing Provisioning |
+| `ST67_T01_Single` | Single Thing Provisioning |
+| `ST67_T02_Single` | Single Thing Provisioning |
 
 ## 1. Hardware Setup
 
-If you’ve selected the MXCHIP, ST67_T01 or ST67_T02 configuration, connect the Wi-Fi module to either the STMod+ or Arduino connector on the board.
+- For `MXCHIP_Single`, `ST67_T01_Single`, and `ST67_T02_Single`: connect the Wi-Fi module to `STMod+` or `Arduino`.
+- For all profiles: connect ST-Link USB to your PC for power, flashing, and debugging.
 
-If you’re using the Ethernet configuration, connect the Ethernet cable to the board’s Ethernet port.
+## 2. Prerequisites
 
-Then, in all cases, connect the board to your PC via the ST-Link USB port to power it and enable programming/debugging.
+1. Create an IAM user in AWS with IoT provisioning permissions (for example `AWSIoTFullAccess`, or equivalent least-privilege policy).
+2. Install AWS CLI: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+3. Configure AWS CLI:
 
-## 2. Provision Automatically with provision.py
+```bash
+aws configure
+```
 
-Before you begin, complete the following prerequisites:
+Provide access key, secret key, region, and output format.
 
-### Prerequisites
+## 3. Run Automated Provisioning with provision.py
 
-1. **Create an IAM User in AWS**
-   - Go to the [AWS IAM Console](https://console.aws.amazon.com/iam/).
-   - Create a new IAM user with programmatic access.
-   - Attach the `AWSIoTFullAccess` policy (or equivalent permissions for IoT provisioning).
-   - Save the Access Key ID and Secret Access Key.
+From the repository root:
 
-2. **Install the AWS CLI**
-   - Download and install the AWS CLI from [here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+```bash
+cd tools
+pip install -r requirements.txt
+python provision.py -i
+```
 
-3. **Configure the AWS CLI**
-   - Open a terminal and run:
-     ```
-     aws configure
-     ```
-   - Enter your Access Key ID, Secret Access Key, default region, and output format when prompted.
+Notes:
 
----
-
-### Automated Provisioning with provision.py
-
-This method uses the `provision.py` script (included in this pack under the `tools` directory) to automate the onboarding process of IoT devices to AWS IoT Core. The script handles device identity creation, registration, and policy attachment automatically.
-
-#### Steps
-
-1. **Navigate to the tools directory**
-   ```
-   cd tools
-   ```
-
-2. **Install Python requirements**
-   - Install required Python packages:
-     ```
-     pip install -r requirements.txt
-     ```
-
-3. **Locate the script**
-   - The `provision.py` script is available in the `tools` directory of this repository.
-
-4. **Connect your board**
-   - Make sure that your board is connected to the PC via the ST-Link USB port and that you do not have any serial terminal connected to it.
-
-5. **Run the provisioning script**
-   - Open a terminal in the `tools` directory.
-   - Run the script in interactive mode:
-     ```
-     python provision.py -i
-     ```
-
-The script will first:
-
-- Prompt you for several configuration options:
+- Ensure the board is connected through ST-Link USB.
+- Close any serial terminal before running the script.
+- The script is interactive and prompts for fields such as:
   - `time_hwm`
   - `thing_name`
   - `wifi_ssid`
@@ -87,65 +52,62 @@ The script will first:
   - `wifi_credential`
   - `mqtt_endpoint`
 
-**Recommended settings:**
-- Accept the default values for `mqtt_endpoint`, `time_hwm`, `thing_name`, and `mqtt_port`.
-- For the **ST67_T01** project, set `mqtt_security` to `4`.
-- For **MXCHIP**, **ST67_T01** and **ST67_T02**, set your `wifi_ssid` and `wifi_credential` as needed.
+Recommended values:
 
-After answering these prompts, the script will continue automatically to:
+- Keep default values for `mqtt_endpoint`, `time_hwm`, `thing_name`, and `mqtt_port` unless you need overrides.
+- For `ST67_T01_Single`, set `mqtt_security` to `4`.
+- For Wi-Fi profiles (`MXCHIP_Single`, `ST67_T01_Single`, `ST67_T02_Single`), provide valid Wi-Fi credentials.
 
-- Generate a key pair on the device.
-- Generate a certificate on the device.
-- Create and register a Thing in AWS IoT Core with the generated certificate.
-- Attach the specified policy.
-- Import the AWS root CA.
+The script then automates:
 
-![alt text](assets/provision_py.png)
+- Device key generation
+- Device certificate generation
+- Thing creation and certificate registration in AWS IoT Core
+- Policy attachment
+- AWS root CA import
 
-For more details and advanced options, see the [official documentation](https://github.com/FreeRTOS/iot-reference-stm32u5/blob/main/Getting_Started_Guide.md#option-8a-provision-automatically-with-provisionpy).
+![Provision Script](assets/provision_py.png)
 
-## 3. Delete old certs from ST67 internal file system
+Reference: [FreeRTOS STM32U5 Getting Started (provision.py)](https://github.com/FreeRTOS/iot-reference-stm32u5/blob/main/Getting_Started_Guide.md#option-8a-provision-automatically-with-provisionpy)
 
-If you are using the ST67_T01 configuration, it’s important to ensure that all previously stored certificates, especially **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat**, are removed from the module’s internal file system before importing new ones. This step is necessary to allow the firmware to load the updated certificates and private key into the ST67 module, which are then used for establishing the TLS/MQTT connection.
+## 4. ST67_T01 Only: Delete Old Certificates on ST67 FS
 
-On the serial terminal connected to your board, type the following command to list all files currently stored in the module:
+If using `ST67_T01_Single`, remove old files (`corePKCS11_CA_Cert.dat`, `corePKCS11_Cert.dat`, `corePKCS11_Key.dat`) from ST67 internal FS so the updated credentials are synchronized correctly.
 
-```
+List files:
+
+```bash
 w6x_fs ls
 ```
 
-![alt text](assets/w6x_fs_ls.png)
+Delete file:
 
-Delete any existing file using the following command:
-
-```
+```bash
 w6x_fs rm <filename>
 ```
 
-![alt text](assets/w6x_fs_rm.png)
+![ST67 FS ls](assets/w6x_fs_ls.png)
+![ST67 FS rm](assets/w6x_fs_rm.png)
 
-**Reset the board**
+Reset board:
 
-In the serial terminal connected to your board, type the following command:
-
-```
+```bash
 reset
 ```
 
-This will reboot the device. Upon startup, the firmware will use the newly imported TLS client certificate and configuration to securely connect to the MQTT broker.
+After reboot:
 
-For all standard configurations, the host microcontroller handles the TLS and MQTT stack directly.
+- Standard profiles: TLS/MQTT runs on STM32 host.
+- `ST67_T01_Single`: firmware copies missing PKCS#11 files to ST67 FS, then ST67 handles TLS/MQTT.
 
-For the ST67_T01 configuration, after each boot, the firmware checks for the presence of **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat** in the ST67 internal file system. If any of these files are missing, the firmware copies the corresponding certificates and private key from the microcontroller's internal file system to ST67.
+![MQTT Connection](assets/mqtt_connection.png)
 
-Once connected, you should see confirmation messages in the terminal indicating a successful TLS handshake and MQTT session establishment.
+## 5. Run the Examples
 
-![alt text](assets/mqtt_connection.png)
+After provisioning, continue with:
 
-## 4. Run and Test the Examples
-
-After provisioning your board, you can run and test the application features. Refer to the [Run and Test the Examples](readme.md#7-run-and-test-the-examples) section in the main README for details.
+- [Run the Examples](readme.md#run-the-examples)
 
 ---
 
-[⬅️ Back to Main README - Run and Test the Examples](readme.md#7-run-and-test-the-examples)
+[Back to Main README](readme.md)

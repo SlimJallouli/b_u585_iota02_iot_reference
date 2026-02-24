@@ -29,9 +29,9 @@ The STM32 FreeRTOS IoT Reference project includes support for AWS IoT Device Def
 
 ## How to Enable and Use Device Defender
 
-1. **Provision your device** with AWS IoT Core as described in the main [README](../../readme.md).
+1. **Provision your device** with AWS IoT Core as described in the main [README](readme.md).
 2. **Ensure the Device Defender CMSIS pack is installed:**  
-   - [AWS IoT Device Defender 4.1.1](https://d1pm0k3vkcievw.cloudfront.net/AWS.AWS_IoT_Device_Defender.4.1.1.pack)
+   - [AWS IoT Device Defender 4.2.0](https://freertos-cmsis-packs.s3.us-west-2.amazonaws.com/AWS.AWS_IoT_Device_Defender.4.2.0.pack)
 3. **Build and flash the firmware** with Device Defender support enabled (see your project configuration).
 4. **Monitor metrics in the AWS Console:**  
    - Go to the AWS IoT Console.

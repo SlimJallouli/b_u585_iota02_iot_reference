@@ -1,17 +1,28 @@
-# Garage Door Cover Control (cover_task.c)
-This module implements MQTT‑controlled garage door covers for STM32‑based devices.
-It supports 1–3 garage doors, relay‑pulse motor control, optional magnetic door sensors, and full Home Assistant MQTT Discovery.
+# STM32U585 MQTT Garage Door Cover Control (Home Assistant Discovery)
 
-The firmware is designed to work with the Seeed Studio Relay Shield V2  
-https://wiki.seeedstudio.com/Relay_Shield_V2/
+This module documents the `cover_task.c` implementation for **STM32U585 / B-U585I-IOT02A** garage door control over **MQTT**, with **Home Assistant MQTT Discovery** support.
 
+It supports:
 
-[Magnetic-RC-33-NC-Recessed-Security](https://www.amazon.com/Magnetic-RC-33-NC-Recessed-Security/dp/B0C394NYZ7/ref=asc_df_B0C394NYZ7?tag=bingshoppinga-20&linkCode=df0&hvadid=80470697129904&hvnetw=o&hvqmt=e&hvbmt=be&hvdev=c&hvlocint=&hvlocphy=111499&hvtargid=pla-4584070167952797&psc=1&msclkid=399944650c9a19c99d312df7050c7f86)
+- 1 to 3 garage doors
+- Relay pulse motor control
+- Optional magnetic door sensors
+- Optional ranging sensor mode
+- Automatic Home Assistant cover entity discovery
 
 ## Hardware Overview
-Relay → STM32 Pin Mapping
-The Seeed Relay Shield V2 uses four active‑high relays.
-This firmware uses up to three of them:
+
+Recommended relay board:
+
+- Seeed Studio Relay Shield V2: https://wiki.seeedstudio.com/Relay_Shield_V2/
+
+Optional door sensor:
+
+- Any NC/NO magnetic reed switch compatible with your GPIO voltage and wiring.
+
+### Relay to STM32 Pin Mapping
+
+The firmware uses up to 3 active-high relays.
 
 ```c
 #define RELAY_1_Pin                  ARD_D07_Pin
@@ -27,9 +38,12 @@ This firmware uses up to three of them:
 #define RELAY_4_Port                 ARD_D04_GPIO_Port
 ```
 
-Each relay produces a 1‑second pulse, simulating a physical garage door button press.
+Each command triggers a 1-second relay pulse to emulate a physical wall-button press.
 
-Optional Magnetic Door Sensors
+### Optional Magnetic Sensor Mapping
+
+Note: the symbol names are intentionally `DOOR_SENSPR_*` to match the firmware source.
+
 ```c
 #define DOOR_SENSPR_1_Pin            ARD_D03_Pin
 #define DOOR_SENSPR_1_Port           ARD_D03_GPIO_Port
@@ -47,205 +61,143 @@ Optional Magnetic Door Sensors
 #define DOOR_SENSPR_3_STATE_OPEN     GPIO_PIN_SET
 ```
 
-To disable sensors entirely:
+## Compile-Time Configuration
+
+Set number of covers:
 
 ```c
-#define USE_MAGNETIC_SENSOR 0
+#define NUM_COVERS 1   // valid: 1, 2, 3
 ```
 
-When disabled, the firmware reports:
+Sensor options:
 
-- unknown at boot
-- The last commanded state (OPEN/CLOSE/STOP)
-
-## How It Works
-MQTT Command Topic
-Home Assistant sends commands to:
-
-```Code
-<ThingName>/cover/<COVER_NAME>/desired
-```
-Example:
-
-```Code
-eval3-02093088825AD42AC20139/cover/GARAGE_DOOR_1/desired
+```c
+#define USE_MAGNETIC_SENSOR 1  // 0 or 1
+#define USE_RANGING_SENSOR  0  // 0 or 1
 ```
 
-Payload:
+Important constraints from firmware:
 
-```Code
+- `USE_MAGNETIC_SENSOR` and `USE_RANGING_SENSOR` are mutually exclusive.
+- `USE_RANGING_SENSOR` supports only one cover (`NUM_COVERS == 1`).
+
+If both sensor options are disabled, the reported state remains sensor-derived `unknown`:
+
+- startup state: `unknown`
+- after command: still reports `unknown` (because no sensor feedback is available)
+
+## MQTT Topics and Payloads
+
+Command topic:
+
+```text
+<thing_name>/cover/<COVER_NAME>/desired
+```
+
+State topic:
+
+```text
+<thing_name>/cover/<COVER_NAME>/state
+```
+
+Home Assistant discovery topic:
+
+```text
+homeassistant/cover/<thing_name>_<COVER_NAME>/config
+```
+
+Command payloads:
+
+```text
 OPEN
 CLOSE
 STOP
 ```
 
-MQTT State Topic
-The firmware reports the current state to:
+State payloads:
 
-```Code
-<ThingName>/cover/<COVER_NAME>/state
-```
-Example:
-
-```Code
-eval3-02093088825AD42AC20139/cover/GARAGE_DOOR_1/state
-```
-
-State values:
-
-```Code
-"open"
-"closed"
-"stopped"
-"unknown"
-```
-
-Relay Pulse Motor Control
-Every command triggers a 1‑second relay pulse, identical to pressing the wall button.
-
-Door Sensors (Optional)
-If enabled, sensors are polled at 5 Hz.
-If disabled, the firmware never overwrites the commanded state.
-
-## Compile‑Time Configuration
-Set the number of garage doors:
-
-```c
-#define NUM_COVERS 1   // or 2 or 3
-```
-
-The firmware automatically:
-
-- Creates the correct number of relay entries
-- Creates the correct number of cover descriptors
-- Publishes or clears Home Assistant discovery topics
-- Avoids stale retained messages
-
-## MQTT Topics Overview
-Command
-```Code
-<ThingName>/cover/<COVER_NAME>/desired
-```
-
-State
-```Code
-<ThingName>/cover/<COVER_NAME>/state
-```
-Home Assistant Discovery
-```Code
-homeassistant/cover/<ThingName>_<COVER_NAME>/config
-```
-## Example MQTT Messages
-Open the garage door
-Topic:
-
-```Code
-eval3-02093088825AD42AC20139/cover/GARAGE_DOOR_1/desired
-```
-Payload:
-
-```Code
-OPEN
-```
-
-Close the garage door
-```Code
-CLOSE
-```
-
-Stop the garage door
-```Code
-STOP
-```
-
-Example state report
-Topic:
-
-```Code
-eval3-02093088825AD42AC20139/cover/GARAGE_DOOR_1/state
-```
-Payload:
-
-```Code
+```text
 open
+closed
+stopped
+unknown
+```
+
+### Example
+
+```text
+Topic:   stm32u585-002C005B3332511738363236/cover/GARAGE_DOOR_1/desired
+Payload: OPEN
+```
+
+```text
+Topic:   stm32u585-002C005B3332511738363236/cover/GARAGE_DOOR_1/state
+Payload: open
 ```
 
 ## Home Assistant Integration
-The firmware publishes MQTT Discovery messages so Home Assistant automatically creates:
 
-- Cover entities
-- Availability status
-- Device metadata (serial number, model, firmware version)
-- No YAML configuration is required.
+The firmware publishes retained discovery data so Home Assistant can auto-create cover entities.
 
-## Firmware Architecture
-1. vCoverTask()
-- Main FreeRTOS task:
-- Waits for MQTT agent connection
-- Loads ThingName from KVStore
-- Subscribes to all cover command topics
-- Polls door sensors (if enabled)
-- Publishes state changes
+Expected entities:
 
-2. prvIncomingPublishCallback()
-- Handles incoming MQTT commands:
-- Extracts cover name
-- Extracts command string
-= Calls prvHandleCoverCommand()
+- `cover.garage_door_1`
+- `cover.garage_door_2`
+- `cover.garage_door_3` (when configured)
 
-3. prvHandleCoverCommand()
-- Executes the motor action:
-- OPEN → relay pulse
-- CLOSE → relay pulse
-- STOP → relay pulse
-- Updates internal state and triggers publish.
+No YAML entity definition is required.
 
-4. prvPublishCoverStates()
-- Publishes the current state of each cover.
+For bridge/discovery setup, see:
 
-5. prvReadDoorSensor()
-- Reads GPIO sensor state (if enabled).
+- [Home Assistant Discovery Guide](../HomeAssistant/home_assistant_discovery.md)
 
-## Relay Hardware Behavior
-The Seeed Relay Shield V2 uses active‑high relays.
-The firmware pulses each relay for 1000 ms:
+## Firmware Behavior (cover_task.c)
+
+Main flow:
+
+1. `vCoverTask()` waits for MQTT readiness, loads ThingName from KVStore, subscribes to cover command topics, and publishes initial state.
+2. `prvIncomingPublishCallback()` parses `.../cover/<name>/desired` and dispatches command handling.
+3. `prvHandleCoverCommand()` maps `OPEN/CLOSE/STOP` to relay pulse actions.
+4. `prvPublishCoverStates()` publishes per-cover state topics.
+5. `prvReadDoorSensor()` maps sensor/ranging input to `open/closed/unknown`.
+
+Sensor event model:
+
+- Magnetic sensors use EXTI callbacks and event-bit wakeups.
+- This path is event-driven (not fixed-rate polling).
+
+## Relay Pulse Implementation
+
+The relay pulse is implemented with FreeRTOS delay timing:
 
 ```c
-HAL_GPIO_WritePin(port, pin, GPIO_PIN_SET);
-HAL_Delay(1000);
-HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
+HAL_GPIO_WritePin(pxRelay->pxPort, pxRelay->usPin, GPIO_PIN_SET);
+vTaskDelay(pdMS_TO_TICKS(1000));
+HAL_GPIO_WritePin(pxRelay->pxPort, pxRelay->usPin, GPIO_PIN_RESET);
 ```
 
-This mimics a physical garage door button.
+## Monitoring MQTT Traffic
 
-## Monitoring MQTT Messages
-You can use any MQTT client:
+You can test with:
 
 - AWS IoT MQTT test client
-- mqtt.cool
-- mqttx.app
-- mosquitto_sub / mosquitto_pub
+- MQTTX
+- mosquitto CLI tools (`mosquitto_sub`, `mosquitto_pub`)
 
-Subscribe to:
+Subscribe:
 
-```Code
-<ThingName>/cover/+/state
-```
-Publish to:
-
-```Code
-<ThingName>/cover/+/desired
+```text
+<thing_name>/cover/+/state
 ```
 
-## Summary
-This firmware provides a complete, robust, and flexible garage door controller:
+Publish:
 
-- Supports 1–3 garage doors
-- Relay pulse control using Seeed Relay Shield V2
-- Optional magnetic door sensors
-- Optional ranging sensor as door sensor
-- Full Home Assistant MQTT discovery
-- Clean state reporting
-- Simple command interface
-- FreeRTOS + MQTT Agent architecture
-- It is designed to be reliable, scalable, and easy to integrate into any Home Assistant setup.
+```text
+<thing_name>/cover/+/desired
+```
+
+## Related Docs
+
+- [Home Assistant Discovery](../HomeAssistant/home_assistant_discovery.md)
+- [LED App README](../led/readme.md)
+- [Button App README](../button/readme.md)

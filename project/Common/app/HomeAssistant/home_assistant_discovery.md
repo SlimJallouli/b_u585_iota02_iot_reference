@@ -1,47 +1,65 @@
-# MQTT Auto-Discovery with Home Assistant
+# STM32U585 Home Assistant MQTT Discovery (AWS IoT Core + Mosquitto Bridge)
 
-This document describes the MQTT topic structure and [Home Assistant discovery](https://www.home-assistant.io/integrations/mqtt) configuration for your STM32-based IoT device.
+This guide explains how to enable **Home Assistant MQTT Auto-Discovery** for the **STM32U585 / B-U585I-IOT02A** IoT reference project, including MQTT topic structure and AWS IoT Core bridge setup.
 
-## 1. Home Assistant MQTT Discovery Topics
+It covers:
 
-Home Assistant uses MQTT discovery to automatically register devices and sensors. Each discovery message must be published to a [discovery topic](https://www.home-assistant.io/integrations/mqtt#discovery-topic):
+- MQTT discovery topic format
+- Device identity format used by this firmware
+- Home Assistant + Mosquitto bridge configuration for AWS IoT Core
+- Discovery/state topics used by firmware features (OTA, LED, button, sensors, cover, availability)
+
+For Home Assistant MQTT integration details, see:
+- https://www.home-assistant.io/integrations/mqtt
+
+## Table of Contents
+
+- [1. Home Assistant MQTT Discovery Topic Format](#1-home-assistant-mqtt-discovery-topic-format)
+- [2. Device Identity Format](#2-device-identity-format)
+- [3. Home Assistant Bridge to AWS IoT Core](#3-home-assistant-bridge-to-aws-iot-core)
+- [4. Verify Device Discovery in Home Assistant](#4-verify-device-discovery-in-home-assistant)
+- [5. MQTT Topic Reference](#5-mqtt-topic-reference)
+
+## 1. Home Assistant MQTT Discovery Topic Format
+
+Home Assistant uses MQTT discovery to register entities automatically. Each discovery message is published to a discovery topic:
 
 ```
-homeassistant/< component >/< device_id >_< sensor >/config
+homeassistant/<component>/<device_id>_<entity>/config
 ```
-## 2. Device Identity
 
-All STM32 device IDs follow the pattern: `stm32x123-< serial_number >`
+## 2. Device Identity Format
 
-Example:
+The firmware uses a device identity format similar to:
 
-- Without STSAFE : `stm32h573-002C005B3332511738363236`
-- With STSAFEA-110: `eval3-0209203A825AD52AC20139`
-- With STSAFEA-120: `eval5-0209203A825AD52AC20139`
-- With STSAFEA-TPM: `ST1-TPM-TCA01-EBD60101EE7B88`
+- `stm32u585-<serial_number>`
 
-## 3. Home Assistant MQTT Bridge to AWS IoT Core with Auto Discovery
+Examples:
 
-This guide outlines the steps to configure Home Assistant (HA) to connect to AWS IoT Core via Mosquitto and enable MQTT discovery for IoT devices.
+- Without STSAFE: `stm32u585-002C005B3332511738363236`
+- With STSAFE-A110: `eval3-0209203A825AD52AC20139`
+- With STSAFE-A120: `eval5-0209203A825AD52AC20139`
 
-### 3.1. Prerequisites
+## 3. Home Assistant Bridge to AWS IoT Core
 
-- Home Assistant running with File Editor and Mosquitto Broker add-ons installed
-- AWS IoT Core configured with:
-  - Device certificates
-  - MQTT topics for config and state
-- Devices publishing retained MQTT discovery messages
+This section shows how to configure Home Assistant to receive discovery and state messages through a Mosquitto bridge connected to AWS IoT Core.
 
-### 3.2. Step 1: Create a device in AWS
+### 3.1 Prerequisites
+
+- Home Assistant with File Editor and Mosquitto Broker add-ons
+- AWS IoT Core Thing and certificates for the Home Assistant bridge client
+- Devices publishing retained discovery messages
+
+### 3.2 Step 1: Create a device in AWS IoT Core
 ![AWS_HomeAssistant_Thing.png](../../../../assets/AWS_HomeAssistant_Thing.png)
 
-- Download the Thing certificate, the thing private key and [AmazonRootCA1.pem](https://www.amazontrust.com/repository/AmazonRootCA1.pem)
+- Download the Thing certificate, private key, and [AmazonRootCA1.pem](https://www.amazontrust.com/repository/AmazonRootCA1.pem)
 - Rename the Thing certificate to `certificate.pem.crt`
-- Rename the thing private key to `private.pem.key`
+- Rename the private key to `private.pem.key`
 
 ![AWS_HomeAssistant_Certs.png](../../../../assets/AWS_HomeAssistant_Certs.png)
 
-### 3.3. Step 2: Install File Editor Add-on
+### 3.3 Step 2: Install File Editor Add-on
 
 1. Go to **Settings > Apps > Add-on Store**
 2. Search for **File Editor** and install it
@@ -52,25 +70,25 @@ This guide outlines the steps to configure Home Assistant (HA) to connect to AWS
    - Enable `Show in sidebar`
    - Click **Start**
 
-### 3.4. Step 3: Add the certs to the SSL folder
+### 3.4 Step 3: Add Certificates to the SSL Folder
 1. Open **File Editor**
 2. Navigate to `/ssl`
 3. Upload the certificates
 
 ![HomeAssistant_Upload_Certs.png](../../../../assets/HomeAssistant_Upload_Certs.png)
 
-### 3.5. Step 4: Create Mosquitto Bridge Config
+### 3.5 Step 4: Create Mosquitto Bridge Config
 1. Open **File Editor**
 2. Navigate to `/share`
 3. Create a folder named `mosquitto`
 4. Inside `mosquitto`, create a file named `aws_bridge.conf`
 5. Paste the following configuration:
-6. Make sure to update the AWS `endpoint` address and the `clientid`. The `clientid` should match the Thing name of your Raspberry Pi device (created in step 3.2).
+6. Update AWS `endpoint` and `clientid`. The `clientid` should match the Home Assistant bridge Thing name created in AWS IoT Core.
 
 ```ini
 connection aws_bridge
 address <your-aws-endpoint>:8883
-clientid HomeAssistant
+clientid <your-clientid>
 
 bridge_protocol_version mqttv311
 
@@ -92,7 +110,7 @@ notifications false
 
 ![HomeAssistant_aws_bridge.png](../../../../assets/HomeAssistant_aws_bridge.png)
 
-### 3.6. Step 5: Install Mosquitto Broker Add-on
+### 3.6 Step 5: Install Mosquitto Broker Add-on
 
 1. Go to **Settings > Apps > Add-on Store**
 2. Search for **Mosquitto Broker** and install it
@@ -104,10 +122,10 @@ notifications false
    - Click **Start**
 
 ### 3.7 Step 6: Restart Mosquitto Broker
-* Go to **Settings > Add-ons > Mosquitto Broker**
+- Go to **Settings > Add-ons > Mosquitto Broker**
 
 1. Click Restart
-2. Under the Log tab, confirm that `aws_bridge.conf` was loaded successfully
+2. Under the Log tab, confirm `aws_bridge.conf` was loaded successfully
 
 ### 3.8 Step 7: Enable MQTT Integration in Home Assistant
 1. Go to **Settings > Devices & Services**
@@ -121,29 +139,27 @@ notifications false
 3. Click Submit
 
 ### 3.9 Step 8: Validate Discovery
-Go to **Developer Tools > MQTT**
+Go to **Developer Tools > MQTT**:
 
 1. Subscribe to `homeassistant/#`
 2. Confirm that retained config messages are received
 3. Confirm that state messages are published to the correct topics
 
-Entities should appear automatically under **Settings > Devices & Services > MQTT**
+Entities should appear automatically under **Settings > Devices & Services > MQTT**.
 
-## 4. Home Assistant
+## 4. Verify Device Discovery in Home Assistant
 
-Reset your STM32 boards
-
-Home Assistant will pick the devices and you should be able to see them on the dashboard
+Reset your STM32 board(s). Home Assistant should discover devices/entities and display them in the dashboard.
 
 ![HomeAssistant_OverView.png](../../../../assets/HomeAssistant_OverView.png)
 
-## 5. MQTT Topics
+## 5. MQTT Topic Reference
 
 This is a description of the MQTT messages exchanged between STM32 and Home Assistant through AWS IoT Core.
 
-This is just a description on how STM32 and Home Assistant interact with each other. You don't need to do anything.
+This section is a reference for topic/payload behavior. No additional setup is required.
 
-For more details, please refer to https://www.home-assistant.io/integrations/mqtt
+For more details, see https://www.home-assistant.io/integrations/mqtt
 
 ### 5.1. Firmware state and revision
 
@@ -293,7 +309,7 @@ LED_GREEN_ON
 Or
 
 ```
-LED_GREEN_FF
+LED_GREEN_OFF
 ```
 
 #### 5.2.7. Related Documentation
@@ -546,7 +562,7 @@ Each axis is registered as a separate sensor in Home Assistant:
   }
 }
 ```
-#### 5.6.4. Related Documentation
+#### 5.6.5. Related Documentation
 For more details see  [related README.md](../sensors/motion_sensor_readme.md)
 
 ### 5.7. Device Availability

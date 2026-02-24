@@ -48,7 +48,7 @@ For more information, see the [AWS IoT OTA documentation](https://docs.aws.amazo
 
 To perform an OTA update with AWS IoT, follow these steps:
 
-Before proceeding with OTA, **after making any changes to the firmware**, you must update the firmware revision number in your `Core\Src\ota_pal\ota_firmware_version.c` file.  
+Before proceeding with OTA, **after making any changes to the firmware**, you must update the firmware revision number in `project/Core/Src/ota_pal/ota_firmware_version.c`.  
 This ensures that STM32 recognizes the new firmware version and allows the update to proceed.
 
 Refer to the following example and screenshot:
@@ -138,7 +138,7 @@ brpFPSOWsS7VKW+2Q8vBKdhuw/fLtPCOIpYhZBVdKsoQEltm97CHWlvJtQ==
 
 When running the helper script, you will need to:
 
-- Select the board (e.g., `STM32H573I-DK`).
+- Select the board (for example, `B-U585I-IOT02A`).
 - Set the binary file location and name depending on your selected project.
 - Set the Thing Name (the unique device name in AWS IoT).
 - Set the Thing Group Name if your device is associated with a group.
@@ -156,11 +156,11 @@ After configuring these variables, run the script to start the OTA update proces
 
 ```bash
 #!/bin/bash
-export BOARD='STM32H573I-DK'
-export BIN_LOCATION="../../ST67_NCP/"
-export BIN_FILE="stm32h573i_dk_w6x_iot_reference.bin"
-export THING_NAME='stm32h573-002C005B3332511738363236'
-export THING_GROUP_NAME="STM32H573I-DK"
+export BOARD='B-U585I-IOT02A'
+export BIN_LOCATION="../../project/ST67_T02_Single/"
+export BIN_FILE="b_u585_iota02_iot_reference.bin"
+export THING_NAME='stm32u585-002C005B3332511738363236'
+export THING_GROUP_NAME="ST67_T02_Single"
 
 export AWS_CLI_PROFILE='default'
 export ROLE='MY-OTA_ROLE'

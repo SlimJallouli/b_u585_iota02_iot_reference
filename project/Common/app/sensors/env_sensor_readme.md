@@ -1,95 +1,67 @@
-# Environmental Sensor Example (`env_sensor_publish.c`)
+# STM32U585 MQTT Environmental Sensor Example (env_sensor_publish.c)
 
-This example demonstrates how to publish environmental sensor data (such as temperature, humidity, and pressure) from the STM32 board to an MQTT broker. The board periodically reads sensor values and publishes them in JSON format to a specific MQTT topic.
+This example publishes environmental telemetry from **B-U585I-IOT02A** to MQTT.
 
----
+## MQTT Topic
 
-## How It Works
+- Publish topic: `<thing_name>/sensor/env`
 
-- The firmware reads environmental sensor data (e.g., temperature, humidity, pressure) at regular intervals.
-- The board publishes the sensor readings to the topic:  
-  `stm32h573-<device-id>/sensor/env`  
-  in JSON format.
+Example:
+- `stm32u585-002C005B3332511738363236/sensor/env`
 
-- Example device IDs:
-    * Without STSAFE: `stm32h573-002C005B3332511738363236`
-    * With STSAFEA-110: `eval3-0102203B825BD42BC20554`
-    * With STSAFEA-120: `eval5-0209203D823AD52A920A39`
-    * With STSAFEA-TPM: `ST1-TPM-TCA01-ABC60101DD7B33`
+## Payload Format
 
----
-
-## MQTT Topic Overview
-
-- **Sensor data topic:**  
-  `stm32h573-<device-id>/sensor/env`
-
-#### Example sensor data report sent by the board
+Default payload:
 
 ```json
-{ 
-  "temp_0_c": 30.000000,
-  "rh_pct": 0.000000,
-  "temp_1_c": 10.000000,
-  "baro_mbar": 0.000000
+{
+  "temp_0_c": 22.30,
+  "temp_1_c": 22.10,
+  "rh_pct": 50.20,
+  "baro_mbar": 998.10
 }
 ```
 
->Note: The actual JSON fields and values depend on your sensor and firmware implementation.*
----
+When `DEMO_LIGHT_SENSOR == 1`, light metrics are added:
 
-## Monitoring MQTT Messages
+```json
+{
+  "temp_0_c": 22.30,
+  "temp_1_c": 22.10,
+  "rh_pct": 50.20,
+  "baro_mbar": 998.10,
+  "als_lux": 120,
+  "white_lux": 140
+}
+```
 
-<details>
-  <summary>Option 1: mqtt.cool for test.mosquitto.org</summary>
+## Publish Behavior
 
-1. Open [mqtt.cool](https://testclient-cloud.mqtt.cool/)
-2. Connect to `test.mosquitto.org` on port `1883`.
-3. Subscribe to the topic:  
-   `stm32h573-xxxxxxxxxxxxxxxx/sensor/env`  
-   (replace `xxxxxxxxxxxxxxxx` with your board's unique ID, e.g. `stm32h573-002C005B3332511738363236/sensor/env`)
-4. You will see messages published by your board.
+- Periodic publish interval is defined in firmware (`MQTT_PUBLISH_TIME_BETWEEN_MS`)
+- Data source depends on sensor configuration (`USE_SENSORS`, `DEMO_LIGHT_SENSOR`)
 
-![alt text](../../../../assets/mqtt_cool_sensor_env.png)
+## Monitor Messages
 
-</details>
+You can use any MQTT client to monitor environmental sensor data. Below are two recommended web clients:
 
----
+Option 1: mqtt.cool for `test.mosquitto.org`
 
-<details>
-  <summary>Option 2: MQTTX Web Client for broker.emqx.io</summary>
+Option 2: MQTTX Web Client for `broker.emqx.io`
 
-1. Connect to [broker.emqx.io](https://mqttx.app/web-client) on port `8084`.
+Subscribe to:
 
-![alt text](../../../../assets/emqx_mqtt_connect.png)
+```text
+<thing_name>/sensor/env
+```
 
-3. Subscribe to the topic:  
-   `stm32h573-xxxxxxxxxxxxxxxx/sensor/env`  
-   (replace `xxxxxxxxxxxxxxxx` with your board's unique ID, e.g. `stm32h573-002C005B3332511738363236/sensor/env`)
-4. You will see messages published by your board.
+Screenshots:
+- ![Env Sensor (mqtt.cool)](../../../../assets/mqtt_cool_sensor_env.png)
+- ![Env Sensor (EMQX)](../../../../assets/emqx_mqtt_env_publish.png)
 
-![alt text](../../../../assets/emqx_mqtt_env_publish.png)
+## Firmware Notes
 
----
-
-<details>
-  <summary>Option 3: AWS IoT Core</summary>
-
-1. Connect to [broker.emqx.io](https://mqttx.app/web-client) on port `8084`.
-
-![alt text](../../../../assets/emqx_mqtt_connect.png)
-
-3. Subscribe to the topic:  
-   `stm32h573-xxxxxxxxxxxxxxxx/sensor/env`  
-   (replace `xxxxxxxxxxxxxxxx` with your board's unique ID, e.g. `stm32h573-002C005B3332511738363236/sensor/env`)
-4. You will see messages published by your board.
-
-![alt text](../../../../assets/emqx_mqtt_env_publish.png)
-
----
-
-**Note:**  
-Replace `xxxxxxxxxxxxxxxx` with your board's unique device ID (Thing Name).
-
-</details>
-
+`vEnvironmentSensorPublishTask()`:
+- initializes sensors
+- builds topic from KVStore thing name
+- reads sensors and publishes JSON payload
+- skips publish when MQTT is disconnected

@@ -4,16 +4,13 @@ This provisioning method is supported by the following project configurations:
 
 |       Build Config          | Connects to Mosquitto  |
 |:---------                   |:-------                |
-| Ethernet                    |           Yes          |
-| MXCHIP                      |           Yes          |
-| ST67_T01                    |           Yes          |
-| ST67_T02                    |           Yes          |
+| MXCHIP_Single               |           Yes          |
+| ST67_T01_Single             |           Yes          |
+| ST67_T02_Single             |           Yes          |
 
 ## 1. Hardware Setup
 
-If you’ve selected the MXCHIP or ST67 configuration, connect the Wi-Fi module to either the STMod+ or Arduino connector on the board.
-
-If you’re using the Ethernet configuration, connect the Ethernet cable to the board’s Ethernet port.
+If you selected `MXCHIP_Single`, `ST67_T01_Single`, or `ST67_T02_Single`, connect the Wi-Fi module to either the STMod+ or Arduino connector on the board.
 
 Then, in all cases, connect the board to your PC via the ST-Link USB port to power it and enable programming/debugging.
 
@@ -25,7 +22,7 @@ Open a serial terminal (e.g., Tera Term, PuTTY, [Web based](https://googlechrome
 
 ## 3. Get the ThingName
 
-Each board automatically generates a unique Thing Name in the format `stm32h573-< DeviceUID >`, where `< DeviceUID >` corresponds to the device's hardware Unique ID (UID). For example: `stm32h573-002C005B3332511738363236`. You can retrieve the Thing Name using the CLI. Save this device ID for further use. You can always retrieve it using the `conf get` command.
+Each board automatically generates a unique Thing Name in the format `stm32u585-<DeviceUID>`, where `<DeviceUID>` corresponds to the device hardware Unique ID (UID). For example: `stm32u585-002C005B3332511738363236`. You can retrieve the Thing Name using the CLI. Save this device ID for further use. You can always retrieve it using the `conf get` command.
 
 Type the following command on the serial terminal:
 
@@ -137,14 +134,14 @@ conf set mqtt_port 8884
 
 > Port 8884 is used by test.mosquitto.org for mutual TLS authentication with client certificates.
 
-- In the case of ST67 or MXCHIP, set the Wi-Fi SSID and password. Type the following command on the serial terminal:
+- For `MXCHIP_Single`, `ST67_T01_Single`, or `ST67_T02_Single`, set the Wi-Fi SSID and password. Type the following command on the serial terminal:
 
 ```
 conf set wifi_ssid < YourSSID >
 conf set wifi_credential < YourPASSWORD>
 ```
 
-- In the case of ST67_T01, set the MQTT security.
+- In the case of `ST67_T01_Single`, set the MQTT security.
 
 The configuration is required for ST67 to enable TLS mutual authentication.
 
@@ -170,7 +167,7 @@ conf commit
 
 ## 11. Delete old certs from ST67 internal file system
 
-If you are using the ST67_T01 configuration, it’s important to ensure that all previously stored certificates, especially **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat**, are removed from the module’s internal file system before importing new ones. This step is necessary to allow the firmware to load the updated certificates and private key into the ST67 module, which are then used for establishing the TLS/MQTT connection.
+If you are using the `ST67_T01_Single` configuration, it is important to ensure that all previously stored certificates, especially **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat**, are removed from the module internal file system before importing new ones. This step is necessary to allow the firmware to load updated certificates and private key into the ST67 module for TLS/MQTT connection.
 
 - On the serial terminal connected to your board, type the following command to list all files currently stored in the module:
 
@@ -200,7 +197,7 @@ This will reboot the device. Upon startup, the firmware will use the newly impor
 
 For all standard configurations, the host microcontroller handles the TLS and MQTT stack directly.
 
-For the ST67_T01 configuration, after each boot, the firmware checks for the presence of **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat** in the ST67's internal file system. If any of these files are missing, the firmware copies the corresponding certificates and private key from the microcontroller's internal file system to ST67.
+For the `ST67_T01_Single` configuration, after each boot the firmware checks for **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat** in the ST67 internal file system. If any file is missing, the firmware copies the corresponding certificate/private key from the microcontroller internal file system to ST67.
 
 Once connected, you should see confirmation messages in the terminal indicating a successful TLS handshake and MQTT session establishment.
 
@@ -208,8 +205,8 @@ Once connected, you should see confirmation messages in the terminal indicating 
 
 ## 13. Run and Test the Examples
 
-After provisioning your board, you can run and test the application features. Refer to the [Run and Test the Examples](readme.md#7-run-and-test-the-examples) section in the main README for details.
+After provisioning your board, you can run and test the application features. Refer to [Run the Examples](readme.md#run-the-examples) in the main README for details.
 
 ---
 
-[⬅️ Back to Main README - Run and Test the Examples](readme.md#7-run-and-test-the-examples)
+[⬅️ Back to Main README](readme.md)
