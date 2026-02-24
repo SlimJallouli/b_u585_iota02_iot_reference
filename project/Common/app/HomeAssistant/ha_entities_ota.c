@@ -208,8 +208,7 @@ MQTTStatus_t HA_OTA_PublishFirmwareProgress( AppVersion32_t xInstalled,
                          "\"latest_version\": \"%u.%u.%u\","
                          "\"status\": \"installing\","
                          "\"in_progress\": true,"
-                         "\"update_percentage\": %u,"
-                         "\"blocks_remaining\": %u"
+                         "\"update_percentage\": %u"
                        "}",
                        xInstalled.u.x.major,
                        xInstalled.u.x.minor,
@@ -217,8 +216,7 @@ MQTTStatus_t HA_OTA_PublishFirmwareProgress( AppVersion32_t xInstalled,
                        xLatest.u.x.major,
                        xLatest.u.x.minor,
                        xLatest.u.x.build,
-                       ulProgress,
-                       ulBlocksRemaining );
+                       ulProgress);
 
 
     if( ( msgLen < 0 ) || ( ( size_t ) msgLen >= sizeof( pcPayloadBuffer ) ) )
