@@ -64,10 +64,8 @@ typedef struct BUTTONDescriptor_t
     uint16_t       pin;
     GPIO_PinState  onLevel;   /* GPIO level that means "ON"/pressed                */
     GPIO_PinState  pinState;  /* last sampled GPIO state                           */
-    uint8_t        index;     /* index in any future arrays if needed              */
 } BUTTONDescriptor_t;
 
-#define BUTTON_USER_INDEX   0
 
 /* For now only one button, user button. */
 static BUTTONDescriptor_t xBUTTONs[] =
@@ -77,8 +75,7 @@ static BUTTONDescriptor_t xBUTTONs[] =
       USER_Button_GPIO_Port,
       USER_Button_Pin,
       USER_BUTTON_ON,
-      USER_BUTTON_ON,
-      BUTTON_USER_INDEX }
+      USER_BUTTON_ON }
 };
 
 #define BUTTON_COUNT   ( ( uint8_t ) ( sizeof( xBUTTONs ) / sizeof( xBUTTONs[ 0 ] ) ) )
