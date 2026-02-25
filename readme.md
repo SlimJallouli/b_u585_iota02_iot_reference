@@ -70,6 +70,9 @@ Main differences in this repository:
 - **Wi-Fi modules**:
   - [X-NUCLEO-67W61M1](https://www.st.com/en/evaluation-tools/x-nucleo-67w61m1.html)
   - MXCHIP EMW3080B
+- **Secure element**:
+  - [STSAFE-A110](https://www.st.com/en/secure-mcus/stsafe-a110.html)
+  - STSAFE-A120 via [X-NUCLEO-ESE01A1](https://www.st.com/en/evaluation-tools/x-nucleo-ese01a1.html)
 - **Sensors**:
   - Temperature/Humidity: [HTS221](https://www.st.com/resource/en/datasheet/hts221.pdf)
   - Magnetometer: [IIS2MDC](https://www.st.com/en/mems-and-sensors/iis2mdc.html)
