@@ -32,7 +32,7 @@ struct hostent {
 
 int W6X_Net_GetAddrInfo(const char *nodename, const char *servname, const struct addrinfo *hints, struct addrinfo **res);
 void W6X_Net_FreeAddrInfo(struct addrinfo *res);
-char* ip4addr_ntoa_r(const struct in_addr *addr, char *buf, int buflen);
+char *ip4addr_ntoa_r(const ip4_addr_t *addr, char *buf, int buflen);
 int W6X_Net_select  ( int   maxfdp1, fd_set *  readset, fd_set *  writeset, fd_set *  exceptset, struct timeval *  timeout);
 struct hostent *W6X_Net_gethostbyname(const char *hostname);
 
@@ -64,7 +64,7 @@ struct hostent *W6X_Net_gethostbyname(const char *hostname);
 #define IPADDR_ANY         ((uint32_t)0x00000000UL)
 #define INADDR_ANY         IPADDR_ANY
 
-#define ip4_addr_get_u32(src_ipaddr) ((src_ipaddr)->s_addr)
+#define ip4_addr_get_u32(src_ipaddr) ((src_ipaddr)->addr)
 
 #define inet_ntoa_r ip4addr_ntoa_r
 #endif /* ST67W6X_NCP */

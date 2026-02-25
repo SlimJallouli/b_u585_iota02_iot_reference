@@ -9,6 +9,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include "sys_evt.h"
+#include <stdint.h>
 
 int W6X_Net_GetAddrInfo(const char *nodename, const char *servname, const struct addrinfo *hints, struct addrinfo **res)
 {
@@ -74,7 +75,7 @@ void W6X_Net_FreeAddrInfo(struct addrinfo *res)
  * @return either pointer to buf which now holds the ASCII
  *         representation of addr or NULL if buf was too small
  */
-char* ip4addr_ntoa_r(const struct in_addr *addr, char *buf, int buflen)
+char *ip4addr_ntoa_r(const ip4_addr_t *addr, char *buf, int buflen)
 {
   uint32_t s_addr;
   char inv[3];
