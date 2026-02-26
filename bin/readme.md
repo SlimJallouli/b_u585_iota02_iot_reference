@@ -57,23 +57,25 @@ flowchart TD
 
     F -->|aws + single config| H[Run provision_aws_single.ps1]
     H --> H1[Detect COM + open serial]
-    H1 --> H2[Download + import AWS root CA]
-    H2 --> H3[Generate key + CSR on device]
-    H3 --> H4[AWS CLI create cert from CSR]
-    H4 --> H5[Ensure Thing exists + attach cert + attach policy]
-    H5 --> H6[Import tls_cert + fetch AWS endpoint + set MQTT/Wi-Fi + commit + reset]
+    H1 --> H2[Reset basic Wi-Fi config]
+    H2 --> H3[Download + import AWS root CA]
+    H3 --> H4[Generate key + CSR on device]
+    H4 --> H5[AWS CLI create cert from CSR]
+    H5 --> H6[Ensure Thing exists + attach cert + attach policy]
+    H6 --> H7[Import tls_cert + fetch AWS endpoint + set MQTT/Wi-Fi + commit + reset]
 
     F -->|aws + STSAFE config| I[Run provision_aws_stsafe.ps1]
     I --> I1[Detect COM + open serial]
     I1 --> I2[Download + import AWS root CA]
-    I2 --> I3[Read thing_name + export STSAFE tls_cert]
-    I3 --> I4[AWS CLI register cert without CA]
-    I4 --> I5[Ensure Thing exists + attach cert + attach policy]
-    I5 --> I6[Fetch AWS endpoint + set MQTT/Wi-Fi + commit + reset]
+    I2 --> I3[Reset basic Wi-Fi config]  
+    I3 --> I4[Read thing_name + export STSAFE tls_cert]
+    I4 --> I5[AWS CLI register cert without CA]
+    I5 --> I6[Ensure Thing exists + attach cert + attach policy]
+    I6 --> I7[Fetch AWS endpoint + set MQTT/Wi-Fi + commit + reset]
 
     G6 --> Z[Done]
-    H6 --> Z
-    I6 --> Z
+    H7 --> Z
+    I7 --> Z
 ```
 
 Notes:
