@@ -268,6 +268,7 @@ Notes:
 - Fleet provisioning, STSAFE, and OTA options are AWS-specific.
 - In STSAFE profiles, keys/certs/config are stored in STSAFE.
 - In `ST67_T01_Single`, TLS/MQTT is handled by ST67.
+- For EMQX, use `DigiCertGlobalRootG2.crt.pem` as the server root CA.
 
 ## Provisioning Guides
 
