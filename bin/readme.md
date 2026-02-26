@@ -56,8 +56,8 @@ flowchart TD
     G2 --> G3[Download + import mosquitto root CA]
     G3 --> G4[Generate key + CSR on device]
     G4 --> G5[Request cert from test.mosquitto.org or manual fallback]
-    G5 --> G6[Import tls_cert + set endpoint/port + Wi-Fi + commit]
-    G6 --> G7[reset]
+    G5 --> G6[download the tls_cert]
+    G6 --> G7[Import tls_cert + set endpoint/port + Wi-Fi + commit + reset]
 
     F -->|aws + single config| H[Run provision_aws_single.ps1]
     H --> H1[Detect COM + open serial]
