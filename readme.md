@@ -188,9 +188,6 @@ Bootloader responsibilities:
 
 ## Quick Start
 
-> CRITICAL NOTE  
-> If you regenerate code with STM32CubeMX, you must run `update.sh` before building. Skipping this step causes build failures.
-
 ### 1. Clone with submodules
 
 ```bash
@@ -344,6 +341,9 @@ This project includes external dependencies as submodules:
 - [tinycbor](https://github.com/intel/tinycbor)
 
 ## STM32CubeMX Regeneration Note
+
+> CRITICAL NOTE  
+> If you regenerate code with STM32CubeMX, you must run `update.sh` before building. Skipping this step causes build failures.
 
 After regenerating from STM32CubeMX, run the project update script before building to avoid generated-code integration issues:
 
