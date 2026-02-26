@@ -254,12 +254,12 @@ Use the provided debug configurations to:
 
 | Build Config | AWS IoT Core | Mosquitto | EMQX | OTA |
 |---|---:|---:|---:|---:|
-| `MXCHIP_Single` | Yes | Yes | No | Yes |
+| `MXCHIP_Single` | Yes | Yes | Yes | Yes |
 | `MXCHIP_FleetProvisioning` | Yes | No | No | Yes |
 | `MXCHIP_STSAFEA110` | Yes | No | No | Yes |
 | `MXCHIP_STSAFEA120` | Yes | No | No | Yes |
 | `ST67_T01_Single` | Yes | Yes | Yes | No |
-| `ST67_T02_Single` | Yes | Yes | No | Yes |
+| `ST67_T02_Single` | Yes | Yes | Yes | Yes |
 | `ST67_T02_FleetProvisioning` | Yes | No | No | Yes |
 | `ST67_T02_STSAFEA110` | Yes | No | No | Yes |
 | `ST67_T02_STSAFEA120` | Yes | No | No | Yes |
@@ -278,7 +278,7 @@ Choose your broker and onboarding method:
 - Guide: [Provision and Run with test.mosquitto.org](provision_mosquitto.md)
 
 2. EMQX (`broker.emqx.io`)
-- Supported: `ST67_T01_Single`
+- Supported: `MXCHIP_Single`, `ST67_T01_Single`, `ST67_T02_Single`
 - Guide: [Provision and Run with EMQX MQTT Broker](provision_emqx.md)
 
 3. AWS IoT Core (Single Thing)

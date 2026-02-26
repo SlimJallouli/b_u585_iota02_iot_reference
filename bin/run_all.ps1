@@ -32,6 +32,7 @@ $configuration = $config.configuration
 # Select provision script based on broker_type
 switch ($brokerType) {
     "mosquitto" { $provisionScript = Join-Path $scriptDir "provision_mosquitto.ps1" }
+    "emqx" { $provisionScript = Join-Path $scriptDir "provision_emqx.ps1" }
     "aws" {
         $awsSingleConfigs = @("MXCHIP_Single", "ST67_T01_Single", "ST67_T02_Single")
         if ($configuration -in $awsSingleConfigs) {
@@ -41,7 +42,7 @@ switch ($brokerType) {
         }
     }
     default {
-        Write-Error "Unsupported broker_type '$brokerType'. Use 'mosquitto' or 'aws' in config.json."
+        Write-Error "Unsupported broker_type '$brokerType'. Use 'mosquitto', 'emqx', or 'aws' in config.json."
         exit 1
     }
 }

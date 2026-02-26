@@ -1,22 +1,24 @@
-# Bin Quick Start (AWS + Mosquitto)
+# Bin Quick Start (AWS + Mosquitto + EMQX)
 
-This `bin/` flow supports `broker_type: "aws"` and `broker_type: "mosquitto"`.
+This `bin/` flow supports `broker_type: "aws"`, `broker_type: "mosquitto"`, and `broker_type: "emqx"`.
 
 Build configuration support in `bin/` scripts:
 
-| Build Config | AWS IoT Core | Mosquitto |
-| --- | --- | --- |
-| `MXCHIP_Single` | Yes | Yes |
-| `MXCHIP_STSAFEA110` | Yes | No |
-| `MXCHIP_STSAFEA120` | Yes | No |
-| `ST67_T02_Single` | Yes | Yes |
-| `ST67_T02_STSAFEA110` | Yes | No |
-| `ST67_T02_STSAFEA120` | Yes | No |
+| Build Config | AWS IoT Core | Mosquitto | EMQX |
+| --- | --- | --- | --- |
+| `MXCHIP_Single` | Yes | Yes | Yes |
+| `MXCHIP_STSAFEA110` | Yes | No | No |
+| `MXCHIP_STSAFEA120` | Yes | No | No |
+| `ST67_T01_Single` | Yes | Yes | Yes |
+| `ST67_T02_Single` | Yes | Yes | Yes |
+| `ST67_T02_STSAFEA110` | Yes | No | No |
+| `ST67_T02_STSAFEA120` | Yes | No | No |
 
 ## Files in `bin/`
 
 - `flash.ps1`: flashes bootloader + selected app binary
 - `provision_mosquitto.ps1`: mosquitto provisioning flow
+- `provision_emqx.ps1`: EMQX provisioning flow
 - `provision_aws_stsafe.ps1`: AWS STSAFE provisioning flow
 - `provision_aws_single.ps1`: AWS single-thing provisioning flow
 - `run_all.ps1`: runs flash, then provisioning
@@ -59,6 +61,13 @@ flowchart TD
     G5 --> G6[download the tls_cert]
     G6 --> G7[Import tls_cert + set endpoint/port + Wi-Fi + commit + reset]
 
+    F -->|emqx| J[Run provision_emqx.ps1]
+    J --> J1[Detect COM + open serial]
+    J1 --> J2[Reset basic Wi-Fi config]
+    J2 --> J3[Download + import DigiCert Global Root G2]
+    J3 --> J4[Generate key + self-signed cert on device]
+    J4 --> J5[Set endpoint/port + Wi-Fi + commit + reset]
+
     F -->|aws + single config| H[Run provision_aws_single.ps1]
     H --> H1[Detect COM + open serial]
     H1 --> H2[Reset basic Wi-Fi config]
@@ -78,6 +87,7 @@ flowchart TD
     I6 --> I7[Fetch AWS endpoint + set MQTT/Wi-Fi + commit + reset]
 
     G7 --> Z[Done]
+    J5 --> Z
     H7 --> Z
     I7 --> Z
 ```
@@ -104,7 +114,24 @@ Notes:
 - It tries to auto-request a client cert from `https://test.mosquitto.org/ssl/`.
 - If auto-request fails, it falls back to manual cert download and asks for cert path.
 
-### Option B: AWS + `MXCHIP_Single`
+### Option B: EMQX + `MXCHIP_Single`
+
+Example:
+
+```json
+{
+  "broker_type": "emqx",
+  "configuration": "MXCHIP_Single",
+  "wifi_ssid": "YOUR_WIFI",
+  "wifi_credential": "YOUR_PASSWORD"
+}
+```
+
+Notes:
+- `provision_emqx.ps1` downloads DigiCert Global Root G2 CA and imports it as `root_ca_cert`.
+- It generates device key + self-signed device certificate using board CLI (`pki generate key`, `pki generate cert`).
+
+### Option C: AWS + `MXCHIP_Single`
 
 Example:
 
@@ -117,7 +144,7 @@ Example:
 }
 ```
 
-### Option C: AWS + STSAFE config (example: `MXCHIP_STSAFEA110`)
+### Option D: AWS + STSAFE config (example: `MXCHIP_STSAFEA110`)
 
 Example:
 
@@ -162,7 +189,20 @@ cd .\bin
   - `MXCHIP_STSAFEA110`, `MXCHIP_STSAFEA120`, `ST67_T02_STSAFEA110`, `ST67_T02_STSAFEA120`
 - In `bin/`, Mosquitto flow supports:
   - `MXCHIP_Single`, `ST67_T01_Single`, `ST67_T02_Single`
+- In `bin/`, EMQX flow supports:
+  - `MXCHIP_Single`, `ST67_T01_Single`, `ST67_T02_Single`
 - Fleet Provisioning profiles are not currently supported by these `bin/` provisioning scripts.
+
+## Run the Examples
+
+After provisioning, use these feature guides:
+
+- [LED Control Example](../project/Common/app/led/readme.md)
+- [Button Status Example](../project/Common/app/button/readme.md)
+- [Environmental Sensor Example](../project/Common/app/sensors/env_sensor_readme.md)
+- [Motion Sensor Example](../project/Common/app/sensors/motion_sensor_readme.md)
+- [Home Assistant Discovery Example](../project/Common/app/HomeAssistant/home_assistant_discovery.md)
+- [Garage Door Cover Control Example](../project/Common/app/cover/README.md)
 
 ## For Other Configurations
 
@@ -170,5 +210,16 @@ Use the main project documentation:
 
 - [Main README](../readme.md)
 - [Mosquitto provisioning guide](../provision_mosquitto.md)
+- [EMQX provisioning guide](../provision_emqx.md)
 - [AWS STSAFE provisioning guide](../provision_aws_STSAFE.md)
 - [AWS single-device provisioning guide](../provision_aws_single_script.md)
+
+## Run and Test Examples After Provisioning
+
+After onboarding is complete, run the application examples from the main project README:
+
+- [Run the Examples](readme.md#run-the-examples)
+
+---
+
+[Back to Main README](readme.md)

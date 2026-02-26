@@ -2,13 +2,18 @@
 
 The following build configurations support secure communication with [broker.emqx.io](https://www.emqx.com/en/mqtt/public-mqtt5-broker):
 
-> Due to MbedTLS version compatibility, only the **ST67_T01_Single** build configuration supports connection to [broker.emqx.io](https://www.emqx.com/en/mqtt/public-mqtt5-broker). (`MXCHIP_Single` and `ST67_T02_Single` use a newer MbedTLS package in this project setup.)
+> Use the DigiCert Global Root G2 CA certificate for EMQX:
+> `https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem`
+>
+> The older `broker.emqx.io-ca.crt` chain is SHA-1 signed and can fail certificate verification with newer MbedTLS policy settings.
 
 This provisioning method is supported by the following project configuration:
 
 |       Build Config          | Connects to emqx       |
 |:---------                   |:-------                |
+| MXCHIP_Single               |           Yes          |
 | ST67_T01_Single             |           Yes          |
+| ST67_T02_Single             |           Yes          |
 
 
 ## 1. Hardware Setup
@@ -64,10 +69,10 @@ The certificate will be printed to the terminal upon success and stored automati
 Download the EMQX test server's root CA certificate:
 
 ```sh
-wget https://assets.emqx.com/data/broker.emqx.io-ca.crt
+wget https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem
 ```
 
-Or download it manually from [broker.emqx.io-ca.crt](https://assets.emqx.com/data/broker.emqx.io-ca.crt).
+Or download it manually from [DigiCertGlobalRootG2.crt.pem](https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem).
  
 ## 7. Import the server root CA certificate to STM32
 
@@ -79,7 +84,7 @@ We need to import the server root CA to STM32 so it can be used with the TLS aut
 pki import cert root_ca_cert
 ```
 
-- Open the **broker.emqx.io-ca.crt** file you downloaded in a text editor (such as Notepad, VS Code, or nano). 
+- Open the **DigiCertGlobalRootG2.crt.pem** file you downloaded in a text editor (such as Notepad, VS Code, or nano). 
 
 - Copy the entire contents—be sure to include the lines: > `-----BEGIN CERTIFICATE-----  ...your certificate body...  -----END CERTIFICATE-----` >
 

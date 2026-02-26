@@ -214,6 +214,11 @@ try {
 
     Send-Command "conf commit"
     Start-Sleep -Seconds 1
+    if ($configuration -eq "ST67_T01_Single") {
+        Send-Command "w6x_fs rm corePKCS11_CA_Cert.dat"
+        Send-Command "w6x_fs rm corePKCS11_Cert.dat"
+        Send-Command "w6x_fs rm corePKCS11_Key.dat"
+    }
     Send-Command "reset"
 }
 finally {
