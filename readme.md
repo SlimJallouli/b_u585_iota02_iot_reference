@@ -213,7 +213,19 @@ Profile note:
 - `profile_t01`: TCP/IP, MQTT, TLS on ST67
 - `profile_t02`: TCP/IP, MQTT, TLS on STM32 host (recommanded)
 
-### 3. Import into STM32CubeIDE
+### 3. Quick Start with Prebuilt Binaries and Scripts
+
+If you want the fastest path to run this project, use the prebuilt binaries and automation scripts in `bin/`.
+
+This option is recommended for quick validation because it:
+- Avoids immediate IDE/project setup
+- Uses prebuilt firmware images
+- Automates flash + provisioning through PowerShell scripts
+
+Start here:
+- [bin/readme.md](bin/readme.md)
+
+### 4. Import into STM32CubeIDE
 
 - Open STM32CubeIDE
 - Select **Import Project**
@@ -223,13 +235,13 @@ Profile note:
 ![STM32CubeIDE Info Center](assets/STM32CubeIDE_InfoCenter.png)
 ![STM32CubeIDE Import Project](assets/STM32CubeIDE_ImportProject.png)
 
-### 4. Select a build configuration and build
+### 5. Select a build configuration and build
 
 Use the dropdown next to the hammer icon in STM32CubeIDE.
 
 ![Build Configurations](assets/build_configurations.png)
 
-### 5. Flash and debug
+### 6. Flash and debug
 
 Use the provided debug configurations to:
 - Build bootloader + selected app profile

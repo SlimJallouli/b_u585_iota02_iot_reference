@@ -1,5 +1,6 @@
 {
     "files.associations": {
         "sys_evt.h": "c"
-    }
+    },
+    "cmake.sourceDirectory": "C:/Users/stred/OneDrive/Documents/Projects/AWS/ST67/b_u585_iota02_iot_reference/project/Libraries/corePKCS11/test/pkcs11_utils_utest"
 }

@@ -1,0 +1,6 @@
+{
+  "broker_type": "mosquitto",
+  "configuration": "MXCHIP_Single",
+  "wifi_ssid": "YOUR_WIFI",
+  "wifi_credential": "YOUR_PASSWORD"
+}
