@@ -1,14 +1,17 @@
-# Bin Quick Start (Supported Profiles Only)
+# Bin Quick Start (AWS + Mosquitto)
 
-This `bin/` flow is intended as a **quick start** for these supported profiles:
+This `bin/` flow supports `broker_type: "aws"` and `broker_type: "mosquitto"`.
 
-- `MXCHIP_Single` with `broker_type: "mosquitto"`
-- `MXCHIP_Single` with `broker_type: "aws"`
-- `MXCHIP_STSAFEA110` with `broker_type: "aws"`
-- `MXCHIP_STSAFEA120` with `broker_type: "aws"`
+Build configuration support in `bin/` scripts:
 
-All other binaries in `bin/` are kept for reference.  
-If you want to use other profiles, follow the full project guides in the main docs.
+| Build Config | AWS IoT Core | Mosquitto |
+| --- | --- | --- |
+| `MXCHIP_Single` | Yes | Yes |
+| `MXCHIP_STSAFEA110` | Yes | No |
+| `MXCHIP_STSAFEA120` | Yes | No |
+| `ST67_T02_Single` | Yes | Yes |
+| `ST67_T02_STSAFEA110` | Yes | No |
+| `ST67_T02_STSAFEA120` | Yes | No |
 
 ## Files in `bin/`
 
@@ -35,7 +38,7 @@ If you want to use other profiles, follow the full project guides in the main do
 ## Quick Start
 
 1. Open `bin/config.json`
-2. Choose one supported setup:
+2. Choose one supported setup from the matrix above (`Yes` for the broker you selected).
 
 ## What `run_all.ps1` Does
 
@@ -114,7 +117,7 @@ Example:
 }
 ```
 
-### Option C: AWS + `MXCHIP_STSAFEA110`
+### Option C: AWS + STSAFE config (example: `MXCHIP_STSAFEA110`)
 
 Example:
 
@@ -122,19 +125,6 @@ Example:
 {
   "broker_type": "aws",
   "configuration": "MXCHIP_STSAFEA110",
-  "wifi_ssid": "YOUR_WIFI",
-  "wifi_credential": "YOUR_PASSWORD"
-}
-```
-
-### Option D: AWS + `MXCHIP_STSAFEA120`
-
-Example:
-
-```json
-{
-  "broker_type": "aws",
-  "configuration": "MXCHIP_STSAFEA120",
   "wifi_ssid": "YOUR_WIFI",
   "wifi_credential": "YOUR_PASSWORD"
 }
@@ -166,12 +156,13 @@ cd .\bin
 
 ## Important Scope
 
-- This quick-start flow is validated only for:
-  - `MXCHIP_Single` + Mosquitto
-  - `MXCHIP_Single` + AWS
-  - `MXCHIP_STSAFEA110` + AWS
-  - `MXCHIP_STSAFEA120` + AWS
-- Other profile binaries are provided as reference only in this folder.
+- In `bin/`, AWS single-device flow supports:
+  - `MXCHIP_Single`, `ST67_T01_Single`, `ST67_T02_Single`
+- In `bin/`, AWS STSAFE flow supports:
+  - `MXCHIP_STSAFEA110`, `MXCHIP_STSAFEA120`, `ST67_T02_STSAFEA110`, `ST67_T02_STSAFEA120`
+- In `bin/`, Mosquitto flow supports:
+  - `MXCHIP_Single`, `ST67_T01_Single`, `ST67_T02_Single`
+- Fleet Provisioning profiles are not currently supported by these `bin/` provisioning scripts.
 
 ## For Other Configurations
 

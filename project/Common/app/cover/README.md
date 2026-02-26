@@ -181,8 +181,7 @@ HAL_GPIO_WritePin(pxRelay->pxPort, pxRelay->usPin, GPIO_PIN_RESET);
 You can test with:
 
 - AWS IoT MQTT test client
-- MQTTX
-- mosquitto CLI tools (`mosquitto_sub`, `mosquitto_pub`)
+- [MQTTX Web Client](https://mqttx.app/web-client)
 
 Subscribe:
 
@@ -195,6 +194,17 @@ Publish:
 ```text
 <thing_name>/cover/+/desired
 ```
+
+You can use any MQTT client to monitor and control cover status.
+
+For mosquitto and EMQX you can use MQTTX Web Client
+- https://mqttx.app/web-client
+
+Configuration for mosquitto
+- ![mosquitto](../../../../assets/wqttx_conf_mosquiotto.png)
+
+Configuration for EMQX
+- ![EMQX](../../../../assets/wqttx_conf_emqx.png)
 
 ## Related Docs
 

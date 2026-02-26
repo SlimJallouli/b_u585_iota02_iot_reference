@@ -40,20 +40,20 @@ The firmware publishes this structure:
 
 ## Monitor Messages
 
-You can use any MQTT client to monitor motion sensor data. Below are two recommended web clients:
+You can use any MQTT client to monitor motion sensor data.
 
-Option 1: mqtt.cool for `test.mosquitto.org`
+For mosquitto and EMQX you can use MQTTX Web Client
+- https://mqttx.app/web-client
 
-Option 2: MQTTX Web Client for `broker.emqx.io`
+Configuration for mosquitto
+- ![mosquitto](../../../../assets/wqttx_conf_mosquiotto.png)
 
-Subscribe to:
+Configuration for EMQX
+- ![EMQX](../../../../assets/wqttx_conf_emqx.png)
 
-```text
-<thing_name>/sensor/motion
-```
+Subscribe to `<thing_name>/sensor/motion`
 
 Screenshots:
-- ![Motion Sensor (mqtt.cool)](../../../../assets/mqtt_cool_sensor_motion.png)
 - ![Motion Sensor (EMQX)](../../../../assets/emqx_mqtt_motion_publish.png)
 
 ## Firmware Notes

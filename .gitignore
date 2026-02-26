@@ -17,3 +17,6 @@ Bootloader/Debug/
 tools/certs/
 tools/host-ota-cert/ota_pub_key.txt
 *.pem
+bin/client.crt
+bin/log.txt
+bin/mosquitto.org.crt

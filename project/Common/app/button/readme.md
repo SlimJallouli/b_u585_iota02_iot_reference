@@ -41,21 +41,18 @@ Button pressed:
 2. Press/release USER button
 3. Observe state updates
 
-Tools:
-- AWS IoT MQTT test client
-- mqtt.cool (`test.mosquitto.org`)
-- MQTTX Web (`broker.emqx.io`)
-- `mosquitto_sub`
+You can use any MQTT client to monitor button state updates.
 
-Option: EMQX (MQTTX Web)
+For mosquitto and EMQX you can use MQTTX Web Client
+- https://mqttx.app/web-client
 
-1. Open https://mqttx.app/web-client
-2. Connect to `broker.emqx.io` (MQTT, port `1883`).
-3. Subscribe to `<thing_name>/sensor/button/reported`.
-4. Press/release USER button and observe updates.
+Configuration for mosquitto
+- ![mosquitto](../../../../assets/wqttx_conf_mosquiotto.png)
+
+Configuration for EMQX
+- ![EMQX](../../../../assets/wqttx_conf_emqx.png)
 
 Screenshots:
-- ![Button (mqtt.cool)](../../../../assets/mqtt_cool_button_reported.png)
 - ![Button (EMQX)](../../../../assets/emqx_mqtt_button_reported.png)
 
 ## Firmware Notes
