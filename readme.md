@@ -304,10 +304,11 @@ After provisioning, use these feature guides:
 
 - [LED Control Example](project/Common/app/led/readme.md)
 - [Button Status Example](project/Common/app/button/readme.md)
-- [Home Assistant Discovery Example](project/Common/app/HomeAssistant/home_assistant_discovery.md)
 - [Environmental Sensor Example](project/Common/app/sensors/env_sensor_readme.md)
-- [Garage Door Cover Control Example](project/Common/app/cover/README.md)
+- [Ranging Sensor Example](project/Common/app/sensors/ranging_sensor_readme.md)
 - [Motion Sensor Example](project/Common/app/sensors/motion_sensor_readme.md)
+- [Home Assistant Discovery Example](project/Common/app/HomeAssistant/home_assistant_discovery.md)
+- [Garage Door Cover Control Example](project/Common/app/cover/README.md)
 - [AWS Fleet Provisioning Guide](provision_aws_FleetProvisioning.md)
 - [AWS Defender](readme_aws_defender.md)
 - [AWS Shadow](readme_aws_shadow.md)

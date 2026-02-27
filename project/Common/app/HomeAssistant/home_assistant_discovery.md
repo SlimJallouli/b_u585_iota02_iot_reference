@@ -565,16 +565,65 @@ Each axis is registered as a separate sensor in Home Assistant:
 #### 5.6.5. Related Documentation
 For more details see  [related README.md](../sensors/motion_sensor_readme.md)
 
-### 5.7. Device Availability
+### 5.7. Ranging Sensor
+
+Source file: *ha_entities_sensors.c*
+
+#### 5.7.1. Ranging Sensor Home Assistant discovery
+
+- **Topic**: `homeassistant/sensor/< device_id >_distance_mm/config`
+- **Example**: `homeassistant/sensor/stm32u585-003000523636500A20333352_distance_mm/config`
+
+#### 5.7.2. Ranging sensor Config Payload Example:
+```json
+{
+  "name": "Ranging Distance",
+  "unique_id": "stm32u585-001C00444841500520363230_distance_mm",
+  "state_topic": "stm32u585-001C00444841500520363230/sensor/ranging/reported",
+  "value_template": "{{ value_json.distance_mm }}",
+  "unit_of_measurement": "mm",
+  "device_class": "distance",
+  "state_class": "measurement",
+  "availability_topic": "stm32u585-001C00444841500520363230/status/availability",
+  "payload_available": "online",
+  "payload_not_available": "offline",
+  "retain": false,
+  "device": {
+    "identifiers": [
+      "stm32u585-001C00444841500520363230"
+    ],
+    "manufacturer": "STMicroelectronics",
+    "model": "B_U585_IOTA02",
+    "name": "stm32u585-001C00444841500520363230"
+  }
+}
+```
+
+#### 5.7.3. Device Message
+- **Topic**: `< device_id >/sensor/ranging/reported`
+- **Retained**: True
+- **Task**: `vRangingSensorTask()` in ranging_sensor.c
+
+#### 5.7.4. Device Payload:
+```json
+{
+  "distance_mm": 742
+}
+```
+
+#### 5.7.5. Related Documentation
+For more details see  [related README.md](../sensors/ranging_sensor_readme.md)
+
+### 5.8. Device Availability
 
 Source file: *ha_helpers.c*
 
-#### 5.7.1. Device Message
+#### 5.8.1. Device Message
 - **Topic**: `< device_id >/status/availability`
 - **Retained**: True
 - **Example**: `stm32u585-003000523636500A20333352/status/availability`
 
-#### 5.7.2. Example Payload:
+#### 5.8.2. Example Payload:
 
 ```
 online
@@ -586,14 +635,14 @@ Or
 offline
 ```
 
-### 5.8. Cover (Garage Door)
+### 5.9. Cover (Garage Door)
 The MQTT cover integration allows you to control an MQTT cover (such as blinds, a roller shutter or a garage door).
 
 https://www.home-assistant.io/integrations/cover.mqtt/
 
 Here we have an example of a garage door.
 
-#### 5.8.1. Cover Home Assistant discovery
+#### 5.9.1. Cover Home Assistant discovery
 
 Source file: *ha_entities_cover.c*
 
@@ -627,7 +676,7 @@ Commands
     - closed
     - closing
 
-#### 5.8.2. Cover Payload Example:
+#### 5.9.2. Cover Payload Example:
 ```json
 {
   "platform": "cover",
@@ -657,7 +706,7 @@ Commands
 }
 ```
 
-#### 5.8.3. Topics
+#### 5.9.3. Topics
 Command:
 ```
 <thing>/cover/GARAGE_DOOR_1/desired
@@ -677,5 +726,5 @@ Availability:
 <thing>/status/availability
 ```
 
-#### 5.8.4. Related Documentation
+#### 5.9.4. Related Documentation
 For full details on the garage door cover implementation, including relay wiring, sensor configuration, MQTT topics, and firmware architecture, see the [cover README.md](../cover/README.md)
