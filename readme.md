@@ -224,6 +224,7 @@ Start here:
 
 ### 4. Import into STM32CubeIDE
 
+- Note: This project was built and tested with **STM32CubeIDE v2.1.0**.
 - Open STM32CubeIDE
 - Select **Import Project**
 - Choose the repository root folder `b_u585_iota02_iot_reference`
