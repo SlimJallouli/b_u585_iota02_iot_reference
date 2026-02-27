@@ -489,7 +489,7 @@ void StartDefaultTask(void *argument)
       xTaskCreate(vCoverTask, "CoverTask", TASK_STACK_SIZE_BUTTON, NULL, TASK_PRIO_BUTTON, NULL);
 #endif
 
-#if USE_RANGING_SENSOR
+#if DEMO_RANGING_SENSOR
       xTaskCreate(vRangingSensorTask, "RangingTask", TASK_STACK_SIZE_RANGING, NULL, TASK_PRIO_RANGING, NULL);
 #endif
 

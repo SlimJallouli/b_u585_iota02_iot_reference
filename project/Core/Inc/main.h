@@ -197,8 +197,8 @@ void Error_Handler(void);
 #define NUM_COVERS                              1 /* 1, 2 or 3 */
 
 /* Define if door sensors are used 0: not used, 1: used */
-#define USE_MAGNETIC_SENSOR                     0
-#define USE_RANGING_SENSOR                      1
+#define USE_MAGNETIC_SENSOR                     1
+#define USE_RANGING_SENSOR                      0
 
 #if (NUM_COVERS < 1) || (NUM_COVERS > 3)
 #error "NUM_COVERS must be 1, 2, or 3"
@@ -264,6 +264,7 @@ void Error_Handler(void);
 #define DEMO_ENV_SENSOR                         1   // Environmental Sensor Example
 #define DEMO_LIGHT_SENSOR                       1   // Light Sensor Example
 #define DEMO_MOTION_SENSOR                      0   // Motion Sensor Example
+#define DEMO_RANGING_SENSOR                     1
 #define DEMO_LED                                1   // LED Control Example
 #define DEMO_BUTTON                             1   // Button Status Example
 #define DEMO_ECHO_SERVER                        0   // Echo server example

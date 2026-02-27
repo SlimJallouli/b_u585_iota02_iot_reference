@@ -54,6 +54,19 @@ static const MotionSensorDescriptor_t xMotionSensors[] = {
     { "magnetometer", "Magnetometer" , "mGauss", "z", pdTRUE },
 };
 
+typedef struct RangingSensorDescriptor_t
+{
+    const char * field;
+    const char * name;
+    const char * unit;
+    const char * class;
+    BaseType_t enabled;
+} RangingSensorDescriptor_t;
+
+static const RangingSensorDescriptor_t xRangingSensors[] = {
+    { "distance_mm", "Ranging Distance", "mm", "distance", pdTRUE }
+};
+
 #define ARRAY_SIZE(arr) ( sizeof( (arr) ) / sizeof( (arr)[0] ) )
 
 /*-----------------------------------------------------------*/
@@ -178,7 +191,7 @@ void HA_MotionSensors_ClearConfig( const char * pcThingName )
 }
 
 void HA_MotionSensors_PublishConfig( const char * pcThingName,
-                                    char * pcPayloadBuffer )
+                                     char * pcPayloadBuffer )
 {
 #if (DEMO_MOTION_SENSOR == 1)
     configASSERT( pcThingName != NULL );
@@ -244,6 +257,108 @@ void HA_MotionSensors_PublishConfig( const char * pcThingName,
                 LogError( ( "Motion sensor %s %s payload truncated",
                             xMotionSensors[ i ].label,
                             xMotionSensors[ i ].axis ) );
+            }
+        }
+        else
+        {
+            ( void ) HA_ClearRetainedTopic( configPUBLISH_TOPIC );
+        }
+
+        vTaskDelay( pdMS_TO_TICKS( HA_MQTT_PUBLISH_TIME_BETWEEN_MS ) );
+    }
+#else
+    ( void ) pcThingName;
+    ( void ) pcPayloadBuffer;
+#endif
+}
+
+/*-----------------------------------------------------------*/
+
+void HA_RangingSensor_ClearConfig( const char * pcThingName )
+{
+    configASSERT( pcThingName != NULL );
+    configASSERT( configPUBLISH_TOPIC != NULL );
+
+    for( int i = 0; i < ( int ) ARRAY_SIZE( xRangingSensors ); i++ )
+    {
+        ( void ) snprintf( configPUBLISH_TOPIC,
+                           HA_CONFIG_MAX_TOPIC_LENGTH,
+                           "homeassistant/%s/%s_%s/config",
+                           entity,
+                           pcThingName,
+                           xRangingSensors[ i ].field );
+
+        ( void ) HA_ClearRetainedTopic( configPUBLISH_TOPIC );
+        vTaskDelay( pdMS_TO_TICKS( HA_MQTT_PUBLISH_TIME_BETWEEN_MS ) );
+    }
+}
+
+void HA_RangingSensor_PublishConfig( const char * pcThingName,
+                                     char * pcPayloadBuffer )
+{
+#if ( DEMO_RANGING_SENSOR == 1 )
+    configASSERT( pcThingName != NULL );
+    configASSERT( pcPayloadBuffer != NULL );
+    configASSERT( configPUBLISH_TOPIC != NULL );
+
+    for( int i = 0; i < ( int ) ARRAY_SIZE( xRangingSensors ); i++ )
+    {
+        const RangingSensorDescriptor_t * pxSensor = &xRangingSensors[ i ];
+
+        ( void ) snprintf( configPUBLISH_TOPIC,
+                           HA_CONFIG_MAX_TOPIC_LENGTH,
+                           "homeassistant/%s/%s_%s/config",
+                           entity,
+                           pcThingName,
+                           pxSensor->field );
+
+        if( pxSensor->enabled == pdTRUE )
+        {
+            size_t xPayloadLength = ( size_t ) snprintf(
+                pcPayloadBuffer,
+                HA_CONFIG_PAYLOAD_BUFFER_LENGTH,
+                "{"
+                  "\"name\": \"%s\","
+                  "\"unique_id\": \"%s_%s\","
+                  "\"state_topic\": \"%s/sensor/ranging/reported\","
+                  "\"value_template\": \"{{ value_json.%s }}\","
+                  "\"unit_of_measurement\": \"%s\","
+                  "\"device_class\": \"%s\","
+                  "\"state_class\": \"measurement\","
+                  "\"availability_topic\": \"%s/status/availability\","
+                  "\"payload_available\": \"online\","
+                  "\"payload_not_available\": \"offline\","
+                  "\"retain\": false,"
+                  "\"device\": {"
+                    "\"identifiers\": [\"%s\"],"
+                    "\"manufacturer\": \"STMicroelectronics\","
+                    "\"model\": \"%s\","
+                    "\"name\": \"%s\""
+                  "}"
+                "}",
+                pxSensor->name,
+                pcThingName,
+                pxSensor->field,
+                pcThingName,
+                pxSensor->field,
+                pxSensor->unit,
+                pxSensor->class,
+                pcThingName,
+                pcThingName,
+                BOARD,
+                pcThingName );
+
+            if( xPayloadLength < HA_CONFIG_PAYLOAD_BUFFER_LENGTH )
+            {
+                ( void ) HA_PublishToTopic( MQTTQoS0,
+                                            true,
+                                            configPUBLISH_TOPIC,
+                                            ( const uint8_t * ) pcPayloadBuffer,
+                                            xPayloadLength );
+            }
+            else
+            {
+                LogError( ( "Ranging sensor %s payload truncated", pxSensor->field ) );
             }
         }
         else

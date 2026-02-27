@@ -122,6 +122,12 @@ static void prvPublishAllHAConfigs( const char * pcThingName,
     HA_MotionSensors_ClearConfig( pcThingName );
 #endif
 
+#if ( DEMO_RANGING_SENSOR == 1 )
+    HA_RangingSensor_PublishConfig( pcThingName, pcPayloadBuffer );
+#else
+    HA_RangingSensor_ClearConfig( pcThingName );
+#endif
+
 #if ( DEMO_COVER == 1 )
     HA_COVER_PublishConfig( pcThingName, pcPayloadBuffer );
 #else

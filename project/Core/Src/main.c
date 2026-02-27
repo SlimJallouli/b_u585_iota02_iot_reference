@@ -115,7 +115,7 @@ int32_t ETH_PHY_IO_WriteReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t RegVal)
 int32_t ETH_PHY_IO_GetTick(void);
 #endif
 
-#if USE_RANGING_SENSOR
+#if DEMO_RANGING_SENSOR
 static int32_t vl53l5cx_i2c_recover(void);
 #endif
 /* USER CODE END PFP */
@@ -345,7 +345,7 @@ static void MX_I2C1_Init(void)
 {
 
   /* USER CODE BEGIN I2C1_Init 0 */
-#if USE_RANGING_SENSOR
+#if DEMO_RANGING_SENSOR
   vl53l5cx_i2c_recover();
 #endif
   /* USER CODE END I2C1_Init 0 */
@@ -1075,7 +1075,7 @@ int32_t ETH_PHY_IO_GetTick(void)
 }
 #endif
 
-#if USE_RANGING_SENSOR
+#if DEMO_RANGING_SENSOR
 /**
   * @brief This functions permits to avoid HW reset due to an I2C bug on the device.
   */

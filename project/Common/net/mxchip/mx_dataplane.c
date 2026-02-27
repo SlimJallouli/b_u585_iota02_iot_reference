@@ -25,7 +25,6 @@
 
 #include "logging_levels.h"
 #define LOG_LEVEL    LOG_INFO
-//#include "logging.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -37,6 +36,8 @@
 
 #include "mx_ipc.h"
 #include "mx_prv.h"
+
+#include "interrupt_handlers.h"
 
 #define EVT_SPI_DONE        0x8
 #define EVT_SPI_ERROR       0x10

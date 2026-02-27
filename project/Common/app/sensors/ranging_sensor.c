@@ -5,7 +5,11 @@
   ******************************************************************************
   */
 #include "main.h"
-#if USE_RANGING_SENSOR
+#if DEMO_RANGING_SENSOR
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
+
 #include "logging_levels.h"
 #define LOG_LEVEL LOG_INFO
 #include "logging.h"
@@ -19,7 +23,10 @@
 #include "event_groups.h"
 #include "sys_evt.h"
 
-#include <stdio.h>
+#include "core_mqtt.h"
+#include "core_mqtt_agent.h"
+#include "mqtt_agent_task.h"
+#include "kvstore.h"
 
 /* -------------------------------------------------------------------------- */
 /* Door state                                                                 */
@@ -40,6 +47,11 @@ door_state_t gDoorState = DOOR_STATE_UNKNOWN;
 
 #define POLLING_PERIOD_MS          1000
 #define POLLING_PERIOD             pdMS_TO_TICKS(POLLING_PERIOD_MS)
+#define DISTANCE_REPORT_STEP_MM    5U /* 5 mm */
+#define DISTANCE_REPORT_MAX_MM     1900U
+#define MQTT_MAX_TOPIC_LENGTH      96
+#define MQTT_PAYLOAD_LENGTH        128
+#define MQTT_PUBLISH_BLOCK_MS      500
 
 /* Fixed hysteresis */
 #define DOOR_OPEN_THRESHOLD_MM     500   /* 50 cm */
@@ -52,6 +64,8 @@ door_state_t gDoorState = DOOR_STATE_UNKNOWN;
 static VL53L5CX_ProfileConfig_t Profile;
 static VL53L5CX_Object_t *pVL53L5CX_Obj = NULL;
 static VL53L5CX_Result_t distance;
+static MQTTAgentHandle_t xMQTTAgentHandle = NULL;
+static char publish_topic[ MQTT_MAX_TOPIC_LENGTH ];
 
 /* -------------------------------------------------------------------------- */
 /* Prototypes                                                                 */
@@ -61,7 +75,24 @@ static int32_t VL53L5CX_Probe(VL53L5CX_Object_t **ppVL53L5CXObj);
 static BaseType_t xInitSensors(void);
 static BaseType_t xUpdateSensorData(VL53L5CX_Result_t *pxData);
 static uint32_t GetCenterDistance(const VL53L5CX_Result_t *r);
+
+#if USE_RANGING_SENSOR
 static void ProcessDoorState(uint32_t distance_mm);
+#endif
+
+static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS,
+                                      bool xRetain,
+                                      char *pcTopic,
+                                      uint8_t *pucPayload,
+                                      size_t xPayloadLength);
+static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext,
+                                      MQTTAgentReturnInfo_t *pxReturnInfo);
+
+struct MQTTAgentCommandContext
+{
+    TaskHandle_t xTaskToNotify;
+    void *pArgs;
+};
 
 /* -------------------------------------------------------------------------- */
 /* Init                                                                       */
@@ -116,9 +147,27 @@ void vRangingSensorTask(void *pvParameters)
 
     int32_t result = xInitSensors();
     uint32_t distance_mm = 0;
+#if USE_RANGING_SENSOR
     uint32_t last_distance = 0;
+#endif
+    uint32_t last_reported_distance = 0;
+    BaseType_t has_reported_distance = pdFALSE;
+    char payload[ MQTT_PAYLOAD_LENGTH ];
+    MQTTQoS_t xQoS = MQTTQoS0;
+    bool xRetain = pdTRUE;
+    char *pThingName = NULL;
+    size_t uxTempSize = 0;
 
     LogInfo("Ranging sensor task started");
+    vSleepUntilMQTTAgentReady();
+    xMQTTAgentHandle = xGetMqttAgentHandle();
+    configASSERT(xMQTTAgentHandle != NULL);
+
+    pThingName = KVStore_getStringHeap(CS_CORE_THING_NAME, &uxTempSize);
+    configASSERT(pThingName != NULL);
+
+    snprintf(publish_topic, MQTT_MAX_TOPIC_LENGTH, "%s/sensor/ranging/reported", pThingName);
+    vPortFree(pThingName);
 
     while (result == BSP_ERROR_NONE)
     {
@@ -129,10 +178,67 @@ void vRangingSensorTask(void *pvParameters)
             distance_mm = GetCenterDistance(&distance);
             LogDebug("Center distance: %lu mm", distance_mm);
 
+#if USE_RANGING_SENSOR
             if (distance_mm != last_distance)
             {
                 last_distance = distance_mm;
                 ProcessDoorState(distance_mm);
+            }
+#endif
+            BaseType_t shouldPublish = pdFALSE;
+
+            if (has_reported_distance == pdFALSE)
+            {
+                shouldPublish = pdTRUE;
+            }
+            else
+            {
+                uint32_t delta = (distance_mm > last_reported_distance)
+                                 ? (distance_mm - last_reported_distance)
+                                 : (last_reported_distance - distance_mm);
+
+                if (delta >= DISTANCE_REPORT_STEP_MM)
+                {
+                    shouldPublish = pdTRUE;
+                }
+            }
+
+            if (shouldPublish == pdTRUE)
+            {
+#if 0
+                if (distance_mm > DISTANCE_REPORT_MAX_MM)
+                {
+                    LogDebug("Skipping distance report above max threshold: %lu mm", distance_mm);
+                }
+                else
+#endif
+                  if (xIsMqttAgentConnected() == pdTRUE)
+                {
+                    LogInfo("Distance report: %lu mm", distance_mm);
+                    size_t xPayloadLength = (size_t) snprintf(payload,
+                                                              MQTT_PAYLOAD_LENGTH,
+                                                              "{ \"distance_mm\": %lu }",
+                                                              distance_mm);
+
+                    if (xPayloadLength < MQTT_PAYLOAD_LENGTH)
+                    {
+                        MQTTStatus_t xMQTTStatus = prvPublishToTopic(xQoS,
+                                                                      xRetain,
+                                                                      publish_topic,
+                                                                      (uint8_t *) payload,
+                                                                      xPayloadLength);
+
+                        if (xMQTTStatus == MQTTSuccess)
+                        {
+                            last_reported_distance = distance_mm;
+                            has_reported_distance = pdTRUE;
+                        }
+                        else
+                        {
+                            LogError("Failed to publish ranging data to: %s", publish_topic);
+                        }
+                    }
+                }
             }
         }
 
@@ -143,10 +249,76 @@ void vRangingSensorTask(void *pvParameters)
     vTaskDelete(NULL);
 }
 
+static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext,
+                                      MQTTAgentReturnInfo_t *pxReturnInfo)
+{
+    if (pxCommandContext->xTaskToNotify != NULL)
+    {
+        xTaskNotify(pxCommandContext->xTaskToNotify, pxReturnInfo->returnCode, eSetValueWithOverwrite);
+    }
+}
+
+static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS,
+                                      bool xRetain,
+                                      char *pcTopic,
+                                      uint8_t *pucPayload,
+                                      size_t xPayloadLength)
+{
+    MQTTPublishInfo_t xPublishInfo = { 0UL };
+    MQTTAgentCommandContext_t xCommandContext = { 0 };
+    MQTTStatus_t xMQTTStatus;
+    BaseType_t xNotifyStatus;
+    MQTTAgentCommandInfo_t xCommandParams = { 0UL };
+    uint32_t ulNotifiedValue = 0U;
+
+    xTaskNotifyStateClear(NULL);
+
+    xPublishInfo.qos = xQoS;
+    xPublishInfo.retain = xRetain;
+    xPublishInfo.pTopicName = pcTopic;
+    xPublishInfo.topicNameLength = (uint16_t) strlen(pcTopic);
+    xPublishInfo.pPayload = pucPayload;
+    xPublishInfo.payloadLength = xPayloadLength;
+
+    xCommandContext.xTaskToNotify = xTaskGetCurrentTaskHandle();
+
+    xCommandParams.blockTimeMs = MQTT_PUBLISH_BLOCK_MS;
+    xCommandParams.cmdCompleteCallback = prvPublishCommandCallback;
+    xCommandParams.pCmdCompleteCallbackContext = &xCommandContext;
+
+    do
+    {
+        xMQTTStatus = MQTTAgent_Publish(xMQTTAgentHandle, &xPublishInfo, &xCommandParams);
+
+        if (xMQTTStatus == MQTTSuccess)
+        {
+            xNotifyStatus = xTaskNotifyWait(0, 0, &ulNotifiedValue, portMAX_DELAY);
+
+            if (xNotifyStatus == pdTRUE)
+            {
+                if (ulNotifiedValue)
+                {
+                    xMQTTStatus = MQTTSendFailed;
+                }
+                else
+                {
+                    xMQTTStatus = MQTTSuccess;
+                }
+            }
+            else
+            {
+                xMQTTStatus = MQTTSendFailed;
+            }
+        }
+    } while (xMQTTStatus != MQTTSuccess);
+
+    return xMQTTStatus;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Door state logic (fixed hysteresis)                                        */
 /* -------------------------------------------------------------------------- */
-
+#if USE_RANGING_SENSOR
 static void ProcessDoorState(uint32_t distance_mm)
 {
     door_state_t newState = gDoorState;
@@ -184,6 +356,7 @@ static void ProcessDoorState(uint32_t distance_mm)
             LogInfo("Door state: CLOSED (%lu mm)", distance_mm);
     }
 }
+#endif
 
 /* -------------------------------------------------------------------------- */
 /* Center distance                                                             */
