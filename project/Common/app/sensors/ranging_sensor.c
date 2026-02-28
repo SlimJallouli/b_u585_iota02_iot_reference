@@ -45,13 +45,14 @@ door_state_t gDoorState = DOOR_STATE_UNKNOWN;
 /* Thresholds                                                                 */
 /* -------------------------------------------------------------------------- */
 
-#define POLLING_PERIOD_MS          1000
+#define POLLING_PERIOD_MS          500
 #define POLLING_PERIOD             pdMS_TO_TICKS(POLLING_PERIOD_MS)
-#define DISTANCE_REPORT_STEP_MM    5U /* 5 mm */
+#define DISTANCE_REPORT_STEP_MM    50U   /* Increased to reduce MQTT noise */
 #define DISTANCE_REPORT_MAX_MM     1900U
 #define MQTT_MAX_TOPIC_LENGTH      96
 #define MQTT_PAYLOAD_LENGTH        128
 #define MQTT_PUBLISH_BLOCK_MS      500
+#define MOVING_AVG_SAMPLES         7U
 
 /* Fixed hysteresis */
 #define DOOR_OPEN_THRESHOLD_MM     500   /* 50 cm */
@@ -75,6 +76,10 @@ static int32_t VL53L5CX_Probe(VL53L5CX_Object_t **ppVL53L5CXObj);
 static BaseType_t xInitSensors(void);
 static BaseType_t xUpdateSensorData(VL53L5CX_Result_t *pxData);
 static uint32_t GetCenterDistance(const VL53L5CX_Result_t *r);
+static uint32_t ApplyMovingAverage(uint32_t raw_distance_mm,
+                                   uint32_t *avg_buf,
+                                   uint8_t *pAvgIdx,
+                                   uint8_t *pAvgCount);
 
 #if USE_RANGING_SENSOR
 static void ProcessDoorState(uint32_t distance_mm);
@@ -146,12 +151,21 @@ void vRangingSensorTask(void *pvParameters)
     (void)pvParameters;
 
     int32_t result = xInitSensors();
-    uint32_t distance_mm = 0;
+    uint32_t raw_distance_mm = 0;
+    uint32_t filtered_distance_mm = 0;
+
 #if USE_RANGING_SENSOR
-    uint32_t last_distance = 0;
+    uint32_t last_raw_distance = 0;
 #endif
+
     uint32_t last_reported_distance = 0;
     BaseType_t has_reported_distance = pdFALSE;
+
+    /* Moving average buffer */
+    static uint32_t avg_buf[MOVING_AVG_SAMPLES] = {0};
+    static uint8_t avg_idx = 0;
+    static uint8_t avg_count = 0;
+
     char payload[ MQTT_PAYLOAD_LENGTH ];
     MQTTQoS_t xQoS = MQTTQoS0;
     bool xRetain = pdTRUE;
@@ -175,16 +189,26 @@ void vRangingSensorTask(void *pvParameters)
 
         if (result == BSP_ERROR_NONE)
         {
-            distance_mm = GetCenterDistance(&distance);
-            LogDebug("Center distance: %lu mm", distance_mm);
+            /* RAW distance for door logic */
+            raw_distance_mm = GetCenterDistance(&distance);
+            LogDebug("Raw center distance: %lu mm", raw_distance_mm);
 
 #if USE_RANGING_SENSOR
-            if (distance_mm != last_distance)
+            if (raw_distance_mm != last_raw_distance)
             {
-                last_distance = distance_mm;
-                ProcessDoorState(distance_mm);
+                last_raw_distance = raw_distance_mm;
+                ProcessDoorState(raw_distance_mm);
             }
 #endif
+
+            filtered_distance_mm = ApplyMovingAverage(raw_distance_mm,
+                                                      avg_buf,
+                                                      &avg_idx,
+                                                      &avg_count);
+
+            LogDebug("Raw center distance: %lu mm, Filtered distance: %lu mm", raw_distance_mm, filtered_distance_mm);
+
+            /* MQTT reporting uses FILTERED distance */
             BaseType_t shouldPublish = pdFALSE;
 
             if (has_reported_distance == pdFALSE)
@@ -193,9 +217,9 @@ void vRangingSensorTask(void *pvParameters)
             }
             else
             {
-                uint32_t delta = (distance_mm > last_reported_distance)
-                                 ? (distance_mm - last_reported_distance)
-                                 : (last_reported_distance - distance_mm);
+                uint32_t delta = (filtered_distance_mm > last_reported_distance)
+                                 ? (filtered_distance_mm - last_reported_distance)
+                                 : (last_reported_distance - filtered_distance_mm);
 
                 if (delta >= DISTANCE_REPORT_STEP_MM)
                 {
@@ -205,23 +229,17 @@ void vRangingSensorTask(void *pvParameters)
 
             if (shouldPublish == pdTRUE)
             {
-#if 0
-                if (distance_mm > DISTANCE_REPORT_MAX_MM)
+                if (xIsMqttAgentConnected() == pdTRUE)
                 {
-                    LogDebug("Skipping distance report above max threshold: %lu mm", distance_mm);
-                }
-                else
-#endif
-                  if (xIsMqttAgentConnected() == pdTRUE)
-                {
-                    LogInfo("Distance report: %lu mm", distance_mm);
                     size_t xPayloadLength = (size_t) snprintf(payload,
                                                               MQTT_PAYLOAD_LENGTH,
                                                               "{ \"distance_mm\": %lu }",
-                                                              distance_mm);
+                                                              filtered_distance_mm);
 
                     if (xPayloadLength < MQTT_PAYLOAD_LENGTH)
                     {
+                        LogInfo(( "Sending publish message to topic: %s , message : %*s", publish_topic, xPayloadLength, ( char * ) payload ));
+
                         MQTTStatus_t xMQTTStatus = prvPublishToTopic(xQoS,
                                                                       xRetain,
                                                                       publish_topic,
@@ -230,7 +248,7 @@ void vRangingSensorTask(void *pvParameters)
 
                         if (xMQTTStatus == MQTTSuccess)
                         {
-                            last_reported_distance = distance_mm;
+                            last_reported_distance = filtered_distance_mm;
                             has_reported_distance = pdTRUE;
                         }
                         else
@@ -390,6 +408,28 @@ static uint32_t GetCenterDistance(const VL53L5CX_Result_t *r)
     }
 
     return (count == 0) ? 0 : (sum / count);
+}
+
+static uint32_t ApplyMovingAverage(uint32_t raw_distance_mm,
+                                   uint32_t *avg_buf,
+                                   uint8_t *pAvgIdx,
+                                   uint8_t *pAvgCount)
+{
+    avg_buf[*pAvgIdx] = raw_distance_mm;
+    *pAvgIdx = (uint8_t)((*pAvgIdx + 1U) % MOVING_AVG_SAMPLES);
+
+    if (*pAvgCount < MOVING_AVG_SAMPLES)
+    {
+        (*pAvgCount)++;
+    }
+
+    uint32_t sum = 0U;
+    for (uint8_t i = 0; i < *pAvgCount; i++)
+    {
+        sum += avg_buf[i];
+    }
+
+    return sum / *pAvgCount;
 }
 
 /* -------------------------------------------------------------------------- */
