@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include <string.h>
+#include "rtc.h"
 
 /* Private typedef -----------------------------------------------------------*/
 typedef void (*pFunction)(void);
@@ -93,6 +94,14 @@ void Jump_To_Main_Application(void)
 bool check_for_hota(void)
 {
   bool xReseult = false;
+
+#if 1
+  if(Check_RTC_Backup_Integrity(0xABCDEF01) == 0)
+  {
+    return false;
+  }
+#endif
+
 #if defined(HAL_ICACHE_MODULE_ENABLED)
 HAL_ICACHE_Disable();
 #endif

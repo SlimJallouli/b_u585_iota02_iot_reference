@@ -165,17 +165,17 @@ void Error_Handler(void);
 #endif
 
 /********** Seed Relay V2 Pin definition ***********/
-#define RELAY_1_Pin                             ARD_D07_Pin
-#define RELAY_1_Port                            ARD_D07_GPIO_Port
+#define RELAY_4_Pin                             ARD_D07_Pin
+#define RELAY_4_Port                            ARD_D07_GPIO_Port
 
-#define RELAY_2_Pin                             ARD_D06_Pin
-#define RELAY_2_Port                            ARD_D06_GPIO_Port
+#define RELAY_3_Pin                             ARD_D06_Pin
+#define RELAY_3_Port                            ARD_D06_GPIO_Port
 
-#define RELAY_3_Pin                             ARD_D05_Pin
-#define RELAY_3_Port                            ARD_D05_GPIO_Port
+#define RELAY_2_Pin                             ARD_D05_Pin
+#define RELAY_2_Port                            ARD_D05_GPIO_Port
 
-#define RELAY_4_Pin                             ARD_D04_Pin
-#define RELAY_4_Port                            ARD_D04_GPIO_Port
+#define RELAY_1_Pin                             ARD_D04_Pin
+#define RELAY_1_Port                            ARD_D04_GPIO_Port
 
 #define DOOR_SENSPR_1_Pin                       ARD_D03_Pin
 #define DOOR_SENSPR_1_Port                      ARD_D03_GPIO_Port
@@ -197,8 +197,8 @@ void Error_Handler(void);
 #define NUM_COVERS                              1 /* 1, 2 or 3 */
 
 /* Define if door sensors are used 0: not used, 1: used */
-#define USE_MAGNETIC_SENSOR                     1
-#define USE_RANGING_SENSOR                      0
+#define USE_MAGNETIC_SENSOR                     0
+#define USE_RANGING_SENSOR                      1
 
 #if (NUM_COVERS < 1) || (NUM_COVERS > 3)
 #error "NUM_COVERS must be 1, 2, or 3"

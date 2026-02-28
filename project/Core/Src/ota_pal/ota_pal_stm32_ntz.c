@@ -55,6 +55,8 @@
 #if DEMO_HOME_ASSISTANT
 #include "sys_evt.h"
 
+#include "rtc.h"
+
 extern EventGroupHandle_t xHAEventGroup;
 extern AppVersion32_t newAppFirmwareVersion;
 QueueHandle_t xOtaBlocksRemainingQueue = NULL;
@@ -1368,6 +1370,8 @@ if (xOtaBlocksRemainingQueue == NULL)
             case OTA_PAL_READY:
 #if !defined(LFS_USE_INTERNAL_NOR)
 #else
+              RTC_SaveBackupData(0x00000000);
+
               if(check_for_hota())
               {
                   ( void ) prvEraseBank( FLASH_BANK_2 );
@@ -1744,6 +1748,8 @@ OtaPalStatus_t otaPal_ResetDevice( OtaFileContext_t * const pxFileContext )
 
     if( OTA_PAL_MAIN_ERR( uxStatus ) == OtaPalSuccess )
     {
+      RTC_SaveBackupData(0xABCDEF01);
+      vTaskDelay(10);
 #if  DEMO_HOME_ASSISTANT
       xEventGroupSetBits(xHAEventGroup, EVT_OTA_COMPLETED);
       vTaskDelay(portMAX_DELAY);
