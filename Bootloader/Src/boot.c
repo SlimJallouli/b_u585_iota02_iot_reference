@@ -70,11 +70,9 @@ void Jump_To_Main_Application(void)
   HAL_ICACHE_Disable();
 #endif
 
-#if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
   uint32_t saved_flash_latency = __HAL_FLASH_GET_LATENCY();
   __HAL_FLASH_SET_LATENCY(__HAL_FLASH_GET_LATENCY() + 2);
   (void)__HAL_FLASH_GET_LATENCY();
-#endif
 
   /* Jump to user application */
   JumpAddress = *(uint32_t*)(APP_START_ADDRESS + 4);
@@ -83,10 +81,8 @@ void Jump_To_Main_Application(void)
   /* Initialize user application's Stack Pointer */
   __set_MSP(*(uint32_t*)APP_START_ADDRESS);
 
-#if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
   __HAL_FLASH_SET_LATENCY(saved_flash_latency);
   (void)__HAL_FLASH_GET_LATENCY();
-#endif
 
   JumpToApplication();
 }
@@ -106,11 +102,9 @@ bool check_for_hota(void)
 HAL_ICACHE_Disable();
 #endif
 
-#if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
   uint32_t saved_flash_latency = __HAL_FLASH_GET_LATENCY();
   __HAL_FLASH_SET_LATENCY(__HAL_FLASH_GET_LATENCY() + 2);
   (void) __HAL_FLASH_GET_LATENCY();
-#endif
 
   // Create a pointer to the HOTA_START_ADDRESS
   uint32_t *address_ptr = (uint32_t*) HOTA_START_ADDRESS;
@@ -121,10 +115,8 @@ HAL_ICACHE_Disable();
   // Check if the value is different from 0xFFFFFFFF
   xReseult = (value != 0xFFFFFFFFU);
 
-#if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
   __HAL_FLASH_SET_LATENCY(saved_flash_latency);
   (void) __HAL_FLASH_GET_LATENCY();
-#endif
 
 #if defined(HAL_ICACHE_MODULE_ENABLED)
 HAL_ICACHE_Enable();
@@ -215,19 +207,15 @@ static void copy_from_flash_to_buffer(uint8_t *dest, const uint32_t src_flash_ad
 HAL_ICACHE_Disable();
 #endif
 
-#if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
   uint32_t saved_flash_latency = __HAL_FLASH_GET_LATENCY();
   __HAL_FLASH_SET_LATENCY(__HAL_FLASH_GET_LATENCY() + 2);
   (void) __HAL_FLASH_GET_LATENCY();
-#endif
 
   const uint8_t *src_ptr = (const uint8_t*) src_flash_addr;
   memcpy(dest, src_ptr, size);
 
-#if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
   __HAL_FLASH_SET_LATENCY(saved_flash_latency);
   (void) __HAL_FLASH_GET_LATENCY();
-#endif
 
 #if defined(HAL_ICACHE_MODULE_ENABLED)
 HAL_ICACHE_Enable();
@@ -314,11 +302,9 @@ static bool prvEraseSectors(uint32_t Nb_Bank, uint32_t Nb_Sectors, uint32_t Star
     HAL_ICACHE_Disable();
     #endif
 
-#if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
   uint32_t saved_flash_latency = __HAL_FLASH_GET_LATENCY();
   __HAL_FLASH_SET_LATENCY(__HAL_FLASH_GET_LATENCY() + 2);
   (void) __HAL_FLASH_GET_LATENCY();
-#endif
 
   if (HAL_FLASH_Unlock() == HAL_OK)
   {
@@ -350,11 +336,8 @@ static bool prvEraseSectors(uint32_t Nb_Bank, uint32_t Nb_Sectors, uint32_t Star
     xResult = false;
   }
 
-#if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
   __HAL_FLASH_SET_LATENCY(saved_flash_latency);
   (void) __HAL_FLASH_GET_LATENCY();
-  ;
-#endif
 
 #if defined(HAL_ICACHE_MODULE_ENABLED)
     HAL_ICACHE_Enable();

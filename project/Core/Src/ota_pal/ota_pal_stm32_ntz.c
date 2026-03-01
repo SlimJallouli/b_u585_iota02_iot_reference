@@ -670,11 +670,9 @@ static HAL_StatusTypeDef prvWriteToFlash( uint32_t destination,
     #endif
 
 
-    #if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
       uint32_t saved_flash_latency = __HAL_FLASH_GET_LATENCY();
       __HAL_FLASH_SET_LATENCY(__HAL_FLASH_GET_LATENCY() + 2);
       (void)__HAL_FLASH_GET_LATENCY();
-    #endif
 
         /* Unlock the Flash to enable the flash control register access *************/
         HAL_FLASH_Unlock();
@@ -738,10 +736,8 @@ static HAL_StatusTypeDef prvWriteToFlash( uint32_t destination,
         HAL_FLASH_Lock();
     #endif
 
-    #if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
       __HAL_FLASH_SET_LATENCY(saved_flash_latency);
       (void)__HAL_FLASH_GET_LATENCY();;
-    #endif
 
     #if defined(HAL_ICACHE_MODULE_ENABLED)
     HAL_ICACHE_Enable();
@@ -795,11 +791,9 @@ static BaseType_t prvEraseBank( uint32_t bankNumber )
     HAL_ICACHE_Disable();
     #endif
 
-    #if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
       uint32_t saved_flash_latency = __HAL_FLASH_GET_LATENCY();
       __HAL_FLASH_SET_LATENCY(__HAL_FLASH_GET_LATENCY() + 2);
       (void)__HAL_FLASH_GET_LATENCY();
-    #endif
 
         if( HAL_FLASH_Unlock() == HAL_OK )
         {
@@ -831,10 +825,8 @@ static BaseType_t prvEraseBank( uint32_t bankNumber )
             xResult = pdFALSE;
         }
 
-    #if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
       __HAL_FLASH_SET_LATENCY(saved_flash_latency);
       (void)__HAL_FLASH_GET_LATENCY();;
-    #endif
 
     #if defined(HAL_ICACHE_MODULE_ENABLED)
     HAL_ICACHE_Enable();
@@ -953,11 +945,9 @@ static bool check_for_hota(void)
 HAL_ICACHE_Disable();
 #endif
 
-#if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
   uint32_t saved_flash_latency = __HAL_FLASH_GET_LATENCY();
   __HAL_FLASH_SET_LATENCY(__HAL_FLASH_GET_LATENCY() + 2);
   (void) __HAL_FLASH_GET_LATENCY();
-#endif
 
   // Create a pointer to the HOTA_START_ADDRESS
   uint32_t *address_ptr = (uint32_t*) FLASH_START_INACTIVE_BANK;
@@ -968,10 +958,8 @@ HAL_ICACHE_Disable();
   // Check if the value is different from 0xFFFFFFFF
   xReseult = (value != 0xFFFFFFFFU);
 
-#if defined(__STM32H5xx_HAL_H) || defined(STM32L5xx_HAL_H)
   __HAL_FLASH_SET_LATENCY(saved_flash_latency);
   (void) __HAL_FLASH_GET_LATENCY();
-#endif
 
 #if defined(HAL_ICACHE_MODULE_ENABLED)
 HAL_ICACHE_Enable();
