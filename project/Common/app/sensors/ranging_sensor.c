@@ -20,6 +20,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 #include "event_groups.h"
 #include "sys_evt.h"
 
@@ -29,34 +30,18 @@
 #include "kvstore.h"
 
 /* -------------------------------------------------------------------------- */
-/* Door state                                                                 */
-/* -------------------------------------------------------------------------- */
-
-typedef enum {
-    DOOR_STATE_UNKNOWN = 0,
-    DOOR_STATE_OPEN,
-    DOOR_STATE_CLOSED
-} door_state_t;
-
-/* Exported so cover_task.c can read it */
-door_state_t gDoorState = DOOR_STATE_UNKNOWN;
-
-/* -------------------------------------------------------------------------- */
 /* Thresholds                                                                 */
 /* -------------------------------------------------------------------------- */
 
 #define POLLING_PERIOD_MS          500
 #define POLLING_PERIOD             pdMS_TO_TICKS(POLLING_PERIOD_MS)
 #define DISTANCE_REPORT_STEP_MM    50U   /* Increased to reduce MQTT noise */
-#define DISTANCE_REPORT_MAX_MM     1900U
 #define MQTT_MAX_TOPIC_LENGTH      96
 #define MQTT_PAYLOAD_LENGTH        128
 #define MQTT_PUBLISH_BLOCK_MS      500
 #define MOVING_AVG_SAMPLES         7U
 
-/* Fixed hysteresis */
-#define DOOR_OPEN_THRESHOLD_MM     500   /* 50 cm */
-#define DOOR_CLOSE_THRESHOLD_MM    800   /* 80 cm */
+QueueHandle_t xDistanceQueue;
 
 /* -------------------------------------------------------------------------- */
 /* Sensor objects                                                             */
@@ -80,10 +65,6 @@ static uint32_t ApplyMovingAverage(uint32_t raw_distance_mm,
                                    uint32_t *avg_buf,
                                    uint8_t *pAvgIdx,
                                    uint8_t *pAvgCount);
-
-#if USE_RANGING_SENSOR
-static void ProcessDoorState(uint32_t distance_mm);
-#endif
 
 static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS,
                                       bool xRetain,
@@ -154,10 +135,6 @@ void vRangingSensorTask(void *pvParameters)
     uint32_t raw_distance_mm = 0;
     uint32_t filtered_distance_mm = 0;
 
-#if USE_RANGING_SENSOR
-    uint32_t last_raw_distance = 0;
-#endif
-
     uint32_t last_reported_distance = 0;
     BaseType_t has_reported_distance = pdFALSE;
 
@@ -171,6 +148,9 @@ void vRangingSensorTask(void *pvParameters)
     bool xRetain = pdTRUE;
     char *pThingName = NULL;
     size_t uxTempSize = 0;
+
+    xDistanceQueue = xQueueCreate(1, sizeof(uint32_t));
+    configASSERT(xDistanceQueue != NULL);
 
     LogInfo("Ranging sensor task started");
     vSleepUntilMQTTAgentReady();
@@ -189,26 +169,19 @@ void vRangingSensorTask(void *pvParameters)
 
         if (result == BSP_ERROR_NONE)
         {
-            /* RAW distance for door logic */
             raw_distance_mm = GetCenterDistance(&distance);
             LogDebug("Raw center distance: %lu mm", raw_distance_mm);
-
-#if USE_RANGING_SENSOR
-            if (raw_distance_mm != last_raw_distance)
-            {
-                last_raw_distance = raw_distance_mm;
-                ProcessDoorState(raw_distance_mm);
-            }
-#endif
 
             filtered_distance_mm = ApplyMovingAverage(raw_distance_mm,
                                                       avg_buf,
                                                       &avg_idx,
                                                       &avg_count);
 
-            LogDebug("Raw center distance: %lu mm, Filtered distance: %lu mm", raw_distance_mm, filtered_distance_mm);
+            xQueueOverwrite(xDistanceQueue, &raw_distance_mm);
 
-            /* MQTT reporting uses FILTERED distance */
+            LogDebug("Raw center distance: %lu mm, Filtered distance: %lu mm",
+                     raw_distance_mm, filtered_distance_mm);
+
             BaseType_t shouldPublish = pdFALSE;
 
             if (has_reported_distance == pdFALSE)
@@ -227,34 +200,29 @@ void vRangingSensorTask(void *pvParameters)
                 }
             }
 
-            if (shouldPublish == pdTRUE)
+            if (shouldPublish == pdTRUE && xIsMqttAgentConnected() == pdTRUE)
             {
-                if (xIsMqttAgentConnected() == pdTRUE)
+                size_t xPayloadLength = snprintf(payload,
+                                                 MQTT_PAYLOAD_LENGTH,
+                                                 "{ \"distance_mm\": %lu }",
+                                                 filtered_distance_mm);
+
+                if (xPayloadLength < MQTT_PAYLOAD_LENGTH)
                 {
-                    size_t xPayloadLength = (size_t) snprintf(payload,
-                                                              MQTT_PAYLOAD_LENGTH,
-                                                              "{ \"distance_mm\": %lu }",
-                                                              filtered_distance_mm);
+                    MQTTStatus_t xMQTTStatus = prvPublishToTopic(xQoS,
+                                                                 xRetain,
+                                                                 publish_topic,
+                                                                 (uint8_t *)payload,
+                                                                 xPayloadLength);
 
-                    if (xPayloadLength < MQTT_PAYLOAD_LENGTH)
+                    if (xMQTTStatus == MQTTSuccess)
                     {
-                        LogInfo(( "Sending publish message to topic: %s , message : %*s", publish_topic, xPayloadLength, ( char * ) payload ));
-
-                        MQTTStatus_t xMQTTStatus = prvPublishToTopic(xQoS,
-                                                                      xRetain,
-                                                                      publish_topic,
-                                                                      (uint8_t *) payload,
-                                                                      xPayloadLength);
-
-                        if (xMQTTStatus == MQTTSuccess)
-                        {
-                            last_reported_distance = filtered_distance_mm;
-                            has_reported_distance = pdTRUE;
-                        }
-                        else
-                        {
-                            LogError("Failed to publish ranging data to: %s", publish_topic);
-                        }
+                        last_reported_distance = filtered_distance_mm;
+                        has_reported_distance = pdTRUE;
+                    }
+                    else
+                    {
+                        LogError("Failed to publish ranging data to: %s", publish_topic);
                     }
                 }
             }
@@ -332,49 +300,6 @@ static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS,
 
     return xMQTTStatus;
 }
-
-/* -------------------------------------------------------------------------- */
-/* Door state logic (fixed hysteresis)                                        */
-/* -------------------------------------------------------------------------- */
-#if USE_RANGING_SENSOR
-static void ProcessDoorState(uint32_t distance_mm)
-{
-    door_state_t newState = gDoorState;
-
-    switch (gDoorState)
-    {
-        case DOOR_STATE_CLOSED:
-            if (distance_mm < DOOR_OPEN_THRESHOLD_MM)
-                newState = DOOR_STATE_OPEN;
-            break;
-
-        case DOOR_STATE_OPEN:
-            if (distance_mm > DOOR_CLOSE_THRESHOLD_MM)
-                newState = DOOR_STATE_CLOSED;
-            break;
-
-        case DOOR_STATE_UNKNOWN:
-        default:
-            newState = (distance_mm < DOOR_OPEN_THRESHOLD_MM)
-                       ? DOOR_STATE_OPEN
-                       : DOOR_STATE_CLOSED;
-            break;
-    }
-
-    if (newState != gDoorState)
-    {
-        gDoorState = newState;
-
-        /* Notify cover task */
-        xEventGroupSetBits(xSystemEvents, EVT_DOOR_STATE_CHANGED);
-
-        if (newState == DOOR_STATE_OPEN)
-            LogInfo("Door state: OPEN (%lu mm)", distance_mm);
-        else
-            LogInfo("Door state: CLOSED (%lu mm)", distance_mm);
-    }
-}
-#endif
 
 /* -------------------------------------------------------------------------- */
 /* Center distance                                                             */
