@@ -44,7 +44,7 @@
 #else
     #define APP_VERSION_MAJOR    1
     #define APP_VERSION_MINOR    45
-    #define APP_VERSION_BUILD    2
+    #define APP_VERSION_BUILD    9
 #endif /* ( TEST_AUTOMATION_INTEGRATION == 1 ) && ( OTA_E2E_TEST_ENABLED == 1 ) */
 
 /**

@@ -73,6 +73,7 @@ clear
 
 # source ../.venv/bin/activate
 
+# Reserved for thing updates
 # python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
 
 # Reserved for thing group updates
