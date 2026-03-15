@@ -17,9 +17,9 @@
 export BOARD='B-U585I-IOT02A'
 # export BOARD='STM32H573I-DK'
 # export BOARD='STM32N6570-DK'
-#export BOARD='NUCLEO-U575ZI-Q'
-#export BOARD='NUCLEO-H536ZI'
-#export BOARD='NUCLEO-N657x0-Q'
+# export BOARD='NUCLEO-U575ZI-Q'
+# export BOARD='NUCLEO-H536ZI'
+# export BOARD='NUCLEO-N657x0-Q'
 
 # Check for version argument
 if [ -z "$1" ]; then
@@ -59,7 +59,8 @@ export S3BUCKET='ld-st67-ota-bucket-redmond-iot'
 # CERT_ARN is used only when creating new signing profile <OTA_SIGNING_PROFILE>. Ignored by the script if using existing signing profile
 # export CERT_ARN='arn:aws:acm:us-west-1:006151905315:certificate/a441625c-2041-454c-8e0a-24dec43eae95'
 
-export QC_PATH=$(pwd)
+# Current directory
+export SCRIPT_PATH=$(pwd)
 
 # AWS keys Start
 #Reserved for workshop
@@ -74,10 +75,10 @@ clear
 # source ../.venv/bin/activate
 
 # Reserved for thing updates
-# python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
+# python $SCRIPT_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
 
 # Reserved for thing group updates
-python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$THING_GROUP_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
+python $SCRIPT_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$THING_GROUP_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
 
 # Reserved for workshop
-# python3 $QC_PATH/hota_update.py                          --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path=$BIN_LOCATION --certarn=$CERT_ARN --region=$AWS_REGION --accesskey=$AWS_ACCESS_KEY_ID --secretkey=$AWS_SECRET_ACCESS_KEY --sessiontoken=$AWS_SESSION_TOKEN
+# python3 $SCRIPT_PATH/hota_update.py                          --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path=$BIN_LOCATION --certarn=$CERT_ARN --region=$AWS_REGION --accesskey=$AWS_ACCESS_KEY_ID --secretkey=$AWS_SECRET_ACCESS_KEY --sessiontoken=$AWS_SESSION_TOKEN
