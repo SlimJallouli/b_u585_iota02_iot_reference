@@ -52,7 +52,7 @@ extern "C" {
 #define W6X_CLOCK_MODE                          1
 
 /* USER CODE BEGIN EC */
-
+#include <stdint.h>
 /* USER CODE END EC */
 
 #ifdef __cplusplus

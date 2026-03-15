@@ -28,7 +28,7 @@ extern "C" {
 #include <stddef.h>
 #include "w6x_default_config.h"
 #include "w61_default_config.h"
-#include <stdint.h>
+
 /* Exported constants --------------------------------------------------------*/
 /* ===================================================================== */
 /** @defgroup ST67W6X_API_System_Public_Constants ST67W6X System Constants
