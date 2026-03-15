@@ -141,6 +141,7 @@ extern void vButtonTask                  ( void * pvParameters );
 extern void vHAConfigPublishTask         ( void * pvParameters );
 extern void vCoverTask                   ( void * pvParameters );
 extern void vRangingSensorTask           ( void * pvParameters );
+extern   void vIMUTask                   ( void * pvParameters );
 /* USER CODE END FunctionPrototypes */
 
 /* USER CODE BEGIN 5 */
@@ -473,6 +474,10 @@ void StartDefaultTask(void *argument)
   xTaskCreate(vMotionSensorsPublish, "MotionS", TASK_STACK_SIZE_MOTION, NULL, TASK_PRIO_MOTION, NULL);
 #endif
 
+#if defined DEMO_MOTION_IMU
+  xTaskCreate(vIMUTask, "IMU", TASK_STACK_SIZE_MOTION, NULL, TASK_PRIO_MOTION, NULL);
+#endif
+
 #if DEMO_HOME_ASSISTANT
       xTaskCreate(vHAConfigPublishTask, "HomeAssistant", TASK_STACK_SIZE_HOMEASSISTANT, NULL, TASK_PRIO_HOMEASSISTANT, NULL);
 #endif
@@ -489,7 +494,7 @@ void StartDefaultTask(void *argument)
       xTaskCreate(vCoverTask, "CoverTask", TASK_STACK_SIZE_BUTTON, NULL, TASK_PRIO_BUTTON, NULL);
 #endif
 
-#if DEMO_RANGING_SENSOR
+#if (DEMO_RANGING_SENSOR || USE_RANGING_SENSOR)
       xTaskCreate(vRangingSensorTask, "RangingTask", TASK_STACK_SIZE_RANGING, NULL, TASK_PRIO_RANGING, NULL);
 #endif
 

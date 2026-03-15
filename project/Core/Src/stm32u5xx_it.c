@@ -185,6 +185,20 @@ void EXTI2_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles EXTI Line11 interrupt.
+  */
+void EXTI11_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI2_IRQn 0 */
+
+  /* USER CODE END EXTI2_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(ISM330DHCX_INT1_Pin);
+  /* USER CODE BEGIN EXTI2_IRQn 1 */
+
+  /* USER CODE END EXTI2_IRQn 1 */
+}
+
+/**
   * @brief This function handles EXTI Line13 interrupt.
   */
 void EXTI13_IRQHandler(void)

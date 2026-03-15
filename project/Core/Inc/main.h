@@ -134,6 +134,8 @@ void Error_Handler(void);
 #define STSAFE_EN_GPIO_Port GPIOF
 #define ARD_D07_Pin GPIO_PIN_13
 #define ARD_D07_GPIO_Port GPIOF
+#define ISM330DHCX_INT1_Pin GPIO_PIN_11
+#define ISM330DHCX_INT1_GPIO_Port GPIOE
 #define ARD_SPI_MOSI_Pin GPIO_PIN_15
 #define ARD_SPI_MOSI_GPIO_Port GPIOE
 #define MXCHIP_RESET_Pin GPIO_PIN_15
@@ -264,7 +266,8 @@ void Error_Handler(void);
 #define DEMO_ENV_SENSOR                         1   // Environmental Sensor Example
 #define DEMO_LIGHT_SENSOR                       1   // Light Sensor Example
 #define DEMO_MOTION_SENSOR                      0   // Motion Sensor Example
-#define DEMO_RANGING_SENSOR                     1
+#define DEMO_MOTION_IMU                         1
+#define DEMO_RANGING_SENSOR                     0
 #define DEMO_LED                                1   // LED Control Example
 #define DEMO_BUTTON                             1   // Button Status Example
 #define DEMO_ECHO_SERVER                        0   // Echo server example
@@ -277,8 +280,12 @@ void Error_Handler(void);
 
 #define DEMO_PING                               0   // Ping example
 
+#if (DEMO_MOTION_SENSOR && DEMO_MOTION_IMU)
+#error Please select either DEMO_MOTION_SENSOR or DEMO_MOTION_IMU
+#endif
+
 #if !defined(ST67W6X_NCP)
-#define DEMO_AWS_DEFENDER                       1   // AWS IoT Defender Example
+#define DEMO_AWS_DEFENDER                       0   // AWS IoT Defender Example
 #endif
 
 #if defined(ST67W6X_NCP)
@@ -289,6 +296,8 @@ void Error_Handler(void);
                                                  DEMO_ENV_SENSOR    || \
 												                         DEMO_LIGHT_SENSOR  || \
                                                  DEMO_MOTION_SENSOR || \
+												                         DEMO_MOTION_IMU    || \
+												                         DEMO_RANGING_SENSOR|| \
 												                         DEMO_LED           || \
 																		             DEMO_BUTTON        || \
 																					       DEMO_HOME_ASSISTANT|| \

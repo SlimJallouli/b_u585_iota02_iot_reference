@@ -30,7 +30,6 @@
 #include "test_param_config.h"
 #include "test_execution_config.h"
 
-
 /**
  *  @brief The version for the firmware which is running. OTA agent uses this
  * version number to perform anti-rollback validation. The firmware version for the
@@ -44,7 +43,7 @@
 #else
     #define APP_VERSION_MAJOR    1
     #define APP_VERSION_MINOR    45
-    #define APP_VERSION_BUILD    9
+    #define APP_VERSION_BUILD    19
 #endif /* ( TEST_AUTOMATION_INTEGRATION == 1 ) && ( OTA_E2E_TEST_ENABLED == 1 ) */
 
 /**

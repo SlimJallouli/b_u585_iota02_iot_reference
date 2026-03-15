@@ -800,7 +800,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOH, LED_RED_Pin|LED_GREEN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(VL53L5A1_LP_GPIO_Port, VL53L5A1_LP_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(VL53L5A1_LP_GPIO_Port, VL53L5A1_LP_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOF, STSAFE_EN_Pin|ARD_D07_Pin|MXCHIP_RESET_Pin, GPIO_PIN_RESET);
@@ -898,6 +898,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(ARD_D07_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : ISM330DHCX_INT1_Pin */
+  GPIO_InitStruct.Pin = ISM330DHCX_INT1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(ISM330DHCX_INT1_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : MXCHIP_RESET_Pin */
   GPIO_InitStruct.Pin = MXCHIP_RESET_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -926,6 +932,10 @@ static void MX_GPIO_Init(void)
   HAL_NVIC_EnableIRQ(EXTI15_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
+#if DEMO_MOTION_IMU
+  HAL_NVIC_SetPriority(EXTI11_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI11_IRQn);
+#endif
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
