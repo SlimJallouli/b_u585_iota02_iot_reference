@@ -34,8 +34,6 @@
 
 #include "logging_levels.h"
 
-#define LOG_LEVEL LOG_DEBUG
-
 #ifndef LOG_LEVEL
 #define LOG_LEVEL    LOG_ERROR
 #endif

@@ -1207,7 +1207,7 @@ static void vSubCommand_ImportPrivKey( ConsoleIO_t * pxCIO,
             pxCIO->print( "Success: Priv Key loaded to label: '" );
             pxCIO->print( pcPrivKeyLabel );
             pxCIO->print( "\r\n" );
-            pxCIO->print( pucPemBuffer );
+            pxCIO->print( (char *) pucPemBuffer );
             pxCIO->print( "\r\n" );
         }
         else
