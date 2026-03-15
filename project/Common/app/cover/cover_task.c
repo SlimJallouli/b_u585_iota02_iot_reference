@@ -621,7 +621,9 @@ void vCoverTask(void *pvParams)
 
     LogInfo(("Cover task starting for thing: %s", thingName));
 
+#if USE_RANGING_SENSOR
     configASSERT(xDistanceQueue != NULL);
+#endif
 
 #if USE_MAGNETIC_SENSOR
     prvRegisterDoorInterrupts();

@@ -79,7 +79,7 @@ typedef struct
 } EnvironmentalSensorData_t;
 
 #define MQTT_PUBLISH_MAX_LEN                 ( 512 )
-#define MQTT_PUBLISH_TIME_BETWEEN_MS         ( 1000 * 60)
+#define MQTT_PUBLISH_TIME_BETWEEN_MS         ( 1000 * 60) /* Publish sensor data every 1 mn */
 #define MQTT_PUBLISH_TOPIC                   "sensor/env"
 #define MQTT_PUBLICH_TOPIC_STR_LEN           ( 256 )
 #define MQTT_PUBLISH_BLOCK_TIME_MS           ( 1000 )
@@ -668,4 +668,8 @@ void vEnvironmentSensorPublishTask(void *pvParameters)
       vTaskDelay(xTicksToWait);
     }
   }
+
+
+  LogError("Task exiting due to error");
+  vTaskDelete(NULL);
 }

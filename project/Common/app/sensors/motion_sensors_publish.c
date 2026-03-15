@@ -58,6 +58,7 @@
 /* Subscription manager header include. */
 #include "subscription_manager.h"
 
+#if DEMO_MOTION_SENSOR
 #if USE_SENSORS
 /* Sensor includes */
 #include "ism330dhcx.h"
@@ -488,4 +489,9 @@ void vMotionSensorsPublish( void * pvParameters )
         /* Wait until its time to poll the sensors again */
         vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
     }
+
+
+    LogError("Task exiting due to error");
+    vTaskDelete(NULL);
 }
+#endif

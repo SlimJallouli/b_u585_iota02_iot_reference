@@ -35,6 +35,7 @@
 #include "ha_entities_sensors.h"
 #include "ha_entities_reset.h"
 #include "ha_entities_cover.h"
+#include "ha_entities_imu.h"
 
 /*-----------------------------------------------------------*/
 /* Globals (shared across modules). */
@@ -132,6 +133,12 @@ static void prvPublishAllHAConfigs( const char * pcThingName,
     HA_COVER_PublishConfig( pcThingName, pcPayloadBuffer );
 #else
     HA_COVER_ClearConfig( pcThingName );
+#endif
+
+#if ( DEMO_MOTION_IMU == 1 )
+    HA_IMU_PublishConfig( pcThingName, pcPayloadBuffer );
+#else
+    HA_IMU_ClearConfig( pcThingName );
 #endif
 
     /* Reset entity (reboot button) discovery. */

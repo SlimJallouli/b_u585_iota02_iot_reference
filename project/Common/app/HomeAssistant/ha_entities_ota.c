@@ -216,7 +216,7 @@ MQTTStatus_t HA_OTA_PublishFirmwareProgress( AppVersion32_t xInstalled,
                        xLatest.u.x.major,
                        xLatest.u.x.minor,
                        xLatest.u.x.build,
-                       ulProgress);
+                       (int)ulProgress);
 
 
     if( ( msgLen < 0 ) || ( ( size_t ) msgLen >= sizeof( pcPayloadBuffer ) ) )

@@ -5,7 +5,7 @@
   ******************************************************************************
   */
 #include "main.h"
-#if DEMO_RANGING_SENSOR
+#if (DEMO_RANGING_SENSOR || USE_RANGING_SENSOR)
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
@@ -33,13 +33,18 @@
 /* Thresholds                                                                 */
 /* -------------------------------------------------------------------------- */
 
-#define POLLING_PERIOD_MS          500
+#define MOVING_AVG_SAMPLES         6U
+#define DISTANCE_REPORT_STEP_MM    50   /* Increased to reduce MQTT noise */
+#define POLLING_PERIOD_MS          1000
+#define MAX_DISTANCE_MM            2000 /* Maximum distance */
+
 #define POLLING_PERIOD             pdMS_TO_TICKS(POLLING_PERIOD_MS)
-#define DISTANCE_REPORT_STEP_MM    50U   /* Increased to reduce MQTT noise */
+
+#if DEMO_RANGING_SENSOR
 #define MQTT_MAX_TOPIC_LENGTH      96
 #define MQTT_PAYLOAD_LENGTH        128
 #define MQTT_PUBLISH_BLOCK_MS      500
-#define MOVING_AVG_SAMPLES         7U
+#endif
 
 QueueHandle_t xDistanceQueue;
 
@@ -50,9 +55,11 @@ QueueHandle_t xDistanceQueue;
 static VL53L5CX_ProfileConfig_t Profile;
 static VL53L5CX_Object_t *pVL53L5CX_Obj = NULL;
 static VL53L5CX_Result_t distance;
+
+#if DEMO_RANGING_SENSOR
 static MQTTAgentHandle_t xMQTTAgentHandle = NULL;
 static char publish_topic[ MQTT_MAX_TOPIC_LENGTH ];
-
+#endif
 /* -------------------------------------------------------------------------- */
 /* Prototypes                                                                 */
 /* -------------------------------------------------------------------------- */
@@ -66,6 +73,7 @@ static uint32_t ApplyMovingAverage(uint32_t raw_distance_mm,
                                    uint8_t *pAvgIdx,
                                    uint8_t *pAvgCount);
 
+#if DEMO_RANGING_SENSOR
 static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS,
                                       bool xRetain,
                                       char *pcTopic,
@@ -73,6 +81,9 @@ static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS,
                                       size_t xPayloadLength);
 static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext,
                                       MQTTAgentReturnInfo_t *pxReturnInfo);
+
+static uint16_t step_for(uint16_t d);
+#endif
 
 struct MQTTAgentCommandContext
 {
@@ -102,7 +113,7 @@ static BaseType_t xInitSensors(void)
     if (result == VL53L5CX_OK)
     {
         Profile.RangingProfile = VL53L5CX_PROFILE_4x4_CONTINUOUS;
-        Profile.TimingBudget   = 30;
+        Profile.TimingBudget   = 50;
         Profile.Frequency      = 5;
         Profile.EnableAmbient  = 0;
         Profile.EnableSignal   = 0;
@@ -131,29 +142,37 @@ void vRangingSensorTask(void *pvParameters)
 {
     (void)pvParameters;
 
-    int32_t result = xInitSensors();
+    int32_t result = BSP_ERROR_COMPONENT_FAILURE;
     uint32_t raw_distance_mm = 0;
     uint32_t filtered_distance_mm = 0;
-
-    uint32_t last_reported_distance = 0;
-    BaseType_t has_reported_distance = pdFALSE;
 
     /* Moving average buffer */
     static uint32_t avg_buf[MOVING_AVG_SAMPLES] = {0};
     static uint8_t avg_idx = 0;
     static uint8_t avg_count = 0;
 
+#if DEMO_RANGING_SENSOR
+    uint32_t last_reported_distance = 0;
+    BaseType_t has_reported_distance = pdFALSE;
+
     char payload[ MQTT_PAYLOAD_LENGTH ];
     MQTTQoS_t xQoS = MQTTQoS0;
     bool xRetain = pdTRUE;
+
     char *pThingName = NULL;
     size_t uxTempSize = 0;
+#endif
 
     xDistanceQueue = xQueueCreate(1, sizeof(uint32_t));
     configASSERT(xDistanceQueue != NULL);
 
     LogInfo("Ranging sensor task started");
+
+    result = xInitSensors();
+
     vSleepUntilMQTTAgentReady();
+
+ #if DEMO_RANGING_SENSOR
     xMQTTAgentHandle = xGetMqttAgentHandle();
     configASSERT(xMQTTAgentHandle != NULL);
 
@@ -162,6 +181,8 @@ void vRangingSensorTask(void *pvParameters)
 
     snprintf(publish_topic, MQTT_MAX_TOPIC_LENGTH, "%s/sensor/ranging/reported", pThingName);
     vPortFree(pThingName);
+#endif
+
 
     while (result == BSP_ERROR_NONE)
     {
@@ -170,18 +191,25 @@ void vRangingSensorTask(void *pvParameters)
         if (result == BSP_ERROR_NONE)
         {
             raw_distance_mm = GetCenterDistance(&distance);
-            LogDebug("Raw center distance: %lu mm", raw_distance_mm);
 
             filtered_distance_mm = ApplyMovingAverage(raw_distance_mm,
                                                       avg_buf,
                                                       &avg_idx,
                                                       &avg_count);
+#if DEMO_RANGING_SENSOR
+            if(filtered_distance_mm > MAX_DISTANCE_MM )
+            {
+              filtered_distance_mm = MAX_DISTANCE_MM;
+            }
+#endif
 
-            xQueueOverwrite(xDistanceQueue, &raw_distance_mm);
+            xQueueOverwrite(xDistanceQueue, &filtered_distance_mm);
 
             LogDebug("Raw center distance: %lu mm, Filtered distance: %lu mm",
-                     raw_distance_mm, filtered_distance_mm);
+                     raw_distance_mm,
+                     filtered_distance_mm);
 
+#if DEMO_RANGING_SENSOR
             BaseType_t shouldPublish = pdFALSE;
 
             if (has_reported_distance == pdFALSE)
@@ -194,10 +222,11 @@ void vRangingSensorTask(void *pvParameters)
                                  ? (filtered_distance_mm - last_reported_distance)
                                  : (last_reported_distance - filtered_distance_mm);
 
-                if (delta >= DISTANCE_REPORT_STEP_MM)
+                if (delta >= step_for(filtered_distance_mm))
                 {
                     shouldPublish = pdTRUE;
                 }
+
             }
 
             if (shouldPublish == pdTRUE && xIsMqttAgentConnected() == pdTRUE)
@@ -209,6 +238,8 @@ void vRangingSensorTask(void *pvParameters)
 
                 if (xPayloadLength < MQTT_PAYLOAD_LENGTH)
                 {
+                  LogInfo(( "Sending publish message to topic: %s , message : %*s", publish_topic, xPayloadLength, ( char * ) payload ));
+
                     MQTTStatus_t xMQTTStatus = prvPublishToTopic(xQoS,
                                                                  xRetain,
                                                                  publish_topic,
@@ -226,15 +257,17 @@ void vRangingSensorTask(void *pvParameters)
                     }
                 }
             }
+#endif
         }
 
         vTaskDelay(POLLING_PERIOD);
     }
 
-    LogError("Ranging task exiting due to error");
+    LogError("Task exiting due to error");
     vTaskDelete(NULL);
 }
 
+#if DEMO_RANGING_SENSOR
 static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext,
                                       MQTTAgentReturnInfo_t *pxReturnInfo)
 {
@@ -300,6 +333,17 @@ static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS,
 
     return xMQTTStatus;
 }
+
+static uint16_t step_for(uint16_t d)
+{
+    if (d <= 50)        return 2;
+    if (d <= 100)       return 5;
+    if (d <= 500)       return 10;
+    if (d <= 1500)      return 20;
+    if (d <= 2200)      return 40;
+    return 80;
+}
+#endif
 
 /* -------------------------------------------------------------------------- */
 /* Center distance                                                             */
